@@ -88,12 +88,15 @@ def upsert_tool_output(tool_output: ToolOutput) -> None:
 # Email
 # ------------------------------------------------------------------
 
+_EMAIL_COLS = "id, sender, recipient, subject, body, is_read, is_deleted, thread_id, in_reply_to, created_at"
+_ACTIVE = "is_deleted = FALSE"
+
+
 def list_emails() -> list[Email]:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, sender, recipient, subject, body, is_read, created_at "
-                "FROM emails ORDER BY created_at DESC"
+                f"SELECT {_EMAIL_COLS} FROM emails WHERE {_ACTIVE} ORDER BY created_at DESC"
             )
             return [Email.from_row(r) for r in cur.fetchall()]
 
@@ -102,8 +105,7 @@ def get_email(email_id: int) -> Email | None:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, sender, recipient, subject, body, is_read, created_at "
-                "FROM emails WHERE id = %s",
+                f"SELECT {_EMAIL_COLS} FROM emails WHERE id = %s AND {_ACTIVE}",
                 (email_id,),
             )
             row = cur.fetchone()
@@ -117,12 +119,89 @@ def create_email(email: Email) -> Email:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO emails (sender, recipient, subject, body) "
-                "VALUES (%(sender)s, %(recipient)s, %(subject)s, %(body)s) RETURNING id, created_at",
-                email.model_dump(include={"sender", "recipient", "subject", "body"}),
+                "INSERT INTO emails (sender, recipient, subject, body, in_reply_to) "
+                "VALUES (%(sender)s, %(recipient)s, %(subject)s, %(body)s, %(in_reply_to)s) "
+                "RETURNING id, created_at",
+                email.model_dump(include={"sender", "recipient", "subject", "body", "in_reply_to"}),
             )
             row = cur.fetchone()
-            return email.model_copy(update={"id": row[0], "created_at": row[1]})
+            new_id, created_at = row[0], row[1]
+            thread_id = email.thread_id if email.thread_id is not None else new_id
+            cur.execute("UPDATE emails SET thread_id = %s WHERE id = %s", (thread_id, new_id))
+            return email.model_copy(update={"id": new_id, "created_at": created_at, "thread_id": thread_id})
+
+
+def get_email_thread(email_id: int) -> list[Email]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT thread_id FROM emails WHERE id = %s AND {_ACTIVE}",
+                (email_id,),
+            )
+            row = cur.fetchone()
+            if not row or row[0] is None:
+                return []
+            thread_id = row[0]
+            cur.execute(
+                f"SELECT {_EMAIL_COLS} FROM emails "
+                f"WHERE thread_id = %s AND {_ACTIVE} ORDER BY created_at ASC",
+                (thread_id,),
+            )
+            return [Email.from_row(r) for r in cur.fetchall()]
+
+
+def soft_delete_email(email_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE emails SET is_deleted = TRUE WHERE id = %s AND {_ACTIVE}",
+                (email_id,),
+            )
+            return cur.rowcount > 0
+
+
+def mark_email_unread(email_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE emails SET is_read = FALSE WHERE id = %s AND {_ACTIVE}",
+                (email_id,),
+            )
+            return cur.rowcount > 0
+
+
+def list_unread_emails() -> list[Email]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_EMAIL_COLS} FROM emails "
+                f"WHERE is_read = FALSE AND {_ACTIVE} ORDER BY created_at DESC"
+            )
+            return [Email.from_row(r) for r in cur.fetchall()]
+
+
+def search_emails(query: str) -> list[Email]:
+    pattern = f"%{query}%"
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_EMAIL_COLS} FROM emails "
+                f"WHERE {_ACTIVE} AND (sender ILIKE %s OR subject ILIKE %s OR body ILIKE %s) "
+                "ORDER BY created_at DESC",
+                (pattern, pattern, pattern),
+            )
+            return [Email.from_row(r) for r in cur.fetchall()]
+
+
+def get_email_stats() -> dict:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT COUNT(*), COUNT(*) FILTER (WHERE is_read = FALSE) "
+                f"FROM emails WHERE {_ACTIVE}"
+            )
+            total, unread = cur.fetchone()
+            return {"total": total, "unread": unread, "read": total - unread}
 
 
 # ------------------------------------------------------------------

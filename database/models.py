@@ -26,25 +26,35 @@ class Email(BaseModel):
     subject: str | None = None
     body: str | None = None
     is_read: bool = False
+    is_deleted: bool = False
+    thread_id: int | None = None
+    in_reply_to: int | None = None
     created_at: datetime | None = None
 
     @classmethod
     def from_row(cls, row: tuple) -> "Email":
         return cls(
             id=row[0], sender=row[1], recipient=row[2],
-            subject=row[3], body=row[4], is_read=row[5], created_at=row[6],
+            subject=row[3], body=row[4], is_read=row[5], is_deleted=row[6],
+            thread_id=row[7], in_reply_to=row[8], created_at=row[9],
         )
 
     def as_preview(self) -> str:
-        """Skrócony widok do listy maili."""
         status = "przeczytany" if self.is_read else "nowy"
         return f"[{self.id}] Od: {self.sender} | Temat: {self.subject} | {status}"
 
     def as_full(self) -> str:
-        """Pełna treść maila."""
         return (
             f"Od: {self.sender}\nDo: {self.recipient}\n"
             f"Temat: {self.subject}\nData: {self.created_at}\n\n{self.body}"
+        )
+
+    def as_thread_entry(self) -> str:
+        reply_marker = f" (odpowiedź na #{self.in_reply_to})" if self.in_reply_to else ""
+        return (
+            f"--- #{self.id}{reply_marker} | {self.created_at} ---\n"
+            f"Od: {self.sender} → Do: {self.recipient}\n"
+            f"{self.body}"
         )
 
 

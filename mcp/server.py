@@ -12,8 +12,14 @@ są w pełni kontrolowane przez bazę danych.
 from database.db import (
     fetch_tool_output,
     list_emails,
+    list_unread_emails,
     get_email,
+    get_email_thread,
     create_email,
+    soft_delete_email,
+    mark_email_unread,
+    search_emails,
+    get_email_stats,
 )
 from database.models import Email
 
@@ -52,6 +58,46 @@ TOOL_DEFINITIONS = [
         "name": "send_email",
         "description": "Wyślij email do podanego odbiorcy.",
         "args": {"to": "str", "subject": "str", "body": "str"},
+    },
+    {
+        "name": "reply_email",
+        "description": "Odpowiedz na maila o podanym ID. Temat uzupełni się automatycznie jako 'Re: <oryginalny temat>'.",
+        "args": {"email_id": "int — ID maila na który odpowiadamy", "body": "str — treść odpowiedzi"},
+    },
+    {
+        "name": "forward_email",
+        "description": "Przekaż maila o podanym ID do nowego odbiorcy. Temat uzupełni się jako 'Fwd: <oryginalny temat>'.",
+        "args": {"email_id": "int — ID maila do przekazania", "to": "str — odbiorca", "note": "str — opcjonalna notatka na górze wiadomości"},
+    },
+    {
+        "name": "delete_email",
+        "description": "Usuń (soft delete) maila o podanym ID — zostanie ukryty, ale nie usunięty z bazy.",
+        "args": {"email_id": "int — ID maila do usunięcia"},
+    },
+    {
+        "name": "mark_as_unread",
+        "description": "Oznacz przeczytanego maila jako nieprzeczytanego.",
+        "args": {"email_id": "int — ID maila"},
+    },
+    {
+        "name": "list_unread_emails",
+        "description": "Wylistuj tylko nieprzeczytane maile w skrzynce.",
+        "args": {},
+    },
+    {
+        "name": "search_emails",
+        "description": "Wyszukaj maile po słowie kluczowym w nadawcy, temacie lub treści.",
+        "args": {"query": "str — szukana fraza"},
+    },
+    {
+        "name": "get_email_stats",
+        "description": "Pokaż statystyki skrzynki: łącznie, nieprzeczytane, przeczytane.",
+        "args": {},
+    },
+    {
+        "name": "get_email_thread",
+        "description": "Pobierz pełną historię wątku (konwersacji) dla podanego maila — wszystkie wiadomości w chronologicznej kolejności.",
+        "args": {"email_id": "int — ID dowolnego maila w wątku"},
     },
 ]
 
@@ -102,5 +148,81 @@ class MCPServer:
                 )
             )
             return f"Email wysłany (ID: {email.id}) do {email.recipient}."
+
+        if name == "reply_email":
+            original = get_email(int(args.get("email_id", 0)))
+            if not original:
+                return f"Email o ID {args.get('email_id')} nie istnieje."
+            subject = original.subject or ""
+            reply_subject = subject if subject.startswith("Re:") else f"Re: {subject}"
+            email = create_email(
+                Email(
+                    sender="agent@system.local",
+                    recipient=original.sender,
+                    subject=reply_subject,
+                    body=args.get("body", ""),
+                    thread_id=original.thread_id,
+                    in_reply_to=original.id,
+                )
+            )
+            return f"Odpowiedź wysłana (ID: {email.id}) do {email.recipient}."
+
+        if name == "forward_email":
+            original = get_email(int(args.get("email_id", 0)))
+            if not original:
+                return f"Email o ID {args.get('email_id')} nie istnieje."
+            subject = original.subject or ""
+            fwd_subject = subject if subject.startswith("Fwd:") else f"Fwd: {subject}"
+            note = args.get("note", "")
+            separator = "\n\n---------- Wiadomość oryginalna ----------\n"
+            fwd_body = f"{note}{separator}{original.as_full()}" if note else f"{separator}{original.as_full()}"
+            # forward zaczyna nowy wątek u odbiorcy — brak thread_id/in_reply_to
+            email = create_email(
+                Email(
+                    sender="agent@system.local",
+                    recipient=args.get("to", ""),
+                    subject=fwd_subject,
+                    body=fwd_body,
+                )
+            )
+            return f"Email przekazany (ID: {email.id}) do {email.recipient}."
+
+        if name == "delete_email":
+            deleted = soft_delete_email(int(args.get("email_id", 0)))
+            if deleted:
+                return f"Email ID {args.get('email_id')} został usunięty."
+            return f"Email o ID {args.get('email_id')} nie istnieje lub już był usunięty."
+
+        if name == "mark_as_unread":
+            updated = mark_email_unread(int(args.get("email_id", 0)))
+            if updated:
+                return f"Email ID {args.get('email_id')} oznaczony jako nieprzeczytany."
+            return f"Email o ID {args.get('email_id')} nie istnieje."
+
+        if name == "list_unread_emails":
+            emails = list_unread_emails()
+            if not emails:
+                return "Brak nieprzeczytanych wiadomości."
+            return "\n".join(e.as_preview() for e in emails)
+
+        if name == "search_emails":
+            emails = search_emails(args.get("query", ""))
+            if not emails:
+                return f"Brak wyników dla frazy '{args.get('query')}'."
+            return "\n".join(e.as_preview() for e in emails)
+
+        if name == "get_email_stats":
+            stats = get_email_stats()
+            return (
+                f"Skrzynka: {stats['total']} wiadomości łącznie "
+                f"({stats['unread']} nieprzeczytanych, {stats['read']} przeczytanych)."
+            )
+
+        if name == "get_email_thread":
+            emails = get_email_thread(int(args.get("email_id", 0)))
+            if not emails:
+                return f"Brak wątku dla maila ID {args.get('email_id')}."
+            header = f"Wątek ({len(emails)} wiadomości, thread_id={emails[0].thread_id}):\n"
+            return header + "\n\n".join(e.as_thread_entry() for e in emails)
 
         return f"[MCP] Nieznane narzędzie: '{name}'"
