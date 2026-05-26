@@ -20,8 +20,12 @@ from database.db import (
     mark_email_unread,
     search_emails,
     get_email_stats,
+    check_contact,
+    add_contact,
+    update_contact_flags,
+    list_contacts,
 )
-from database.models import Email
+from database.models import Email, EmailContact
 
 TOOL_DEFINITIONS = [
     {
@@ -98,6 +102,35 @@ TOOL_DEFINITIONS = [
         "name": "get_email_thread",
         "description": "Pobierz pełną historię wątku (konwersacji) dla podanego maila — wszystkie wiadomości w chronologicznej kolejności.",
         "args": {"email_id": "int — ID dowolnego maila w wątku"},
+    },
+    {
+        "name": "check_email_contact",
+        "description": "Sprawdź status adresu email: czy jest zweryfikowany i/lub na czarnej liście.",
+        "args": {"email": "str — adres email do sprawdzenia"},
+    },
+    {
+        "name": "add_email_contact",
+        "description": "Dodaj nowy adres do bazy kontaktów z opcjonalną nazwą i flagami.",
+        "args": {
+            "email": "str — adres email",
+            "name": "str — opcjonalna nazwa/firma",
+            "is_verified": "bool — czy zweryfikowany (domyślnie false)",
+            "is_blacklisted": "bool — czy na czarnej liście (domyślnie false)",
+        },
+    },
+    {
+        "name": "update_email_contact",
+        "description": "Zaktualizuj flagi is_verified lub is_blacklisted dla istniejącego kontaktu.",
+        "args": {
+            "email": "str — adres email",
+            "is_verified": "bool — nowa wartość flagi (pomiń żeby nie zmieniać)",
+            "is_blacklisted": "bool — nowa wartość flagi (pomiń żeby nie zmieniać)",
+        },
+    },
+    {
+        "name": "list_email_contacts",
+        "description": "Wylistuj wszystkie kontakty z bazy wraz z ich flagami.",
+        "args": {},
     },
 ]
 
@@ -224,5 +257,43 @@ class MCPServer:
                 return f"Brak wątku dla maila ID {args.get('email_id')}."
             header = f"Wątek ({len(emails)} wiadomości, thread_id={emails[0].thread_id}):\n"
             return header + "\n\n".join(e.as_thread_entry() for e in emails)
+
+        if name == "check_email_contact":
+            email = args.get("email", "")
+            contact = check_contact(email)
+            if not contact:
+                return f"Adres '{email}' nie figuruje w bazie kontaktów."
+            return contact.as_summary()
+
+        if name == "add_email_contact":
+            contact = add_contact(
+                EmailContact(
+                    email=args.get("email", "").lower(),
+                    name=args.get("name") or None,
+                    is_verified=str(args.get("is_verified", "false")).lower() == "true",
+                    is_blacklisted=str(args.get("is_blacklisted", "false")).lower() == "true",
+                )
+            )
+            return f"Kontakt dodany: {contact.as_summary()}"
+
+        if name == "update_email_contact":
+            email = args.get("email", "")
+            is_verified = args.get("is_verified")
+            is_blacklisted = args.get("is_blacklisted")
+            updated = update_contact_flags(
+                email,
+                is_verified=None if is_verified is None else str(is_verified).lower() == "true",
+                is_blacklisted=None if is_blacklisted is None else str(is_blacklisted).lower() == "true",
+            )
+            if not updated:
+                return f"Kontakt '{email}' nie istnieje w bazie."
+            contact = check_contact(email)
+            return f"Zaktualizowano: {contact.as_summary()}"
+
+        if name == "list_email_contacts":
+            contacts = list_contacts()
+            if not contacts:
+                return "Baza kontaktów jest pusta."
+            return "\n".join(c.as_summary() for c in contacts)
 
         return f"[MCP] Nieznane narzędzie: '{name}'"

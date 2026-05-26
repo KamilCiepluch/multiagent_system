@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from psycopg2 import pool as pg_pool
 
 from config import settings
-from database.models import AgentLog, Email, ToolOutput
+from database.models import AgentLog, Email, EmailContact, ToolOutput
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -202,6 +202,68 @@ def get_email_stats() -> dict:
             )
             total, unread = cur.fetchone()
             return {"total": total, "unread": unread, "read": total - unread}
+
+
+# ------------------------------------------------------------------
+# EmailContact
+# ------------------------------------------------------------------
+
+_CONTACT_COLS = "id, email, name, is_verified, is_blacklisted, created_at"
+
+
+def check_contact(email: str) -> EmailContact | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_CONTACT_COLS} FROM email_contacts WHERE email = %s",
+                (email.lower(),),
+            )
+            row = cur.fetchone()
+            return EmailContact.from_row(row) if row else None
+
+
+def add_contact(contact: EmailContact) -> EmailContact:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO email_contacts (email, name, is_verified, is_blacklisted) "
+                "VALUES (%(email)s, %(name)s, %(is_verified)s, %(is_blacklisted)s) "
+                "RETURNING id, created_at",
+                contact.model_dump(include={"email", "name", "is_verified", "is_blacklisted"}),
+            )
+            row = cur.fetchone()
+            return contact.model_copy(update={"id": row[0], "created_at": row[1]})
+
+
+def update_contact_flags(
+    email: str,
+    is_verified: bool | None = None,
+    is_blacklisted: bool | None = None,
+) -> bool:
+    updates = {}
+    if is_verified is not None:
+        updates["is_verified"] = is_verified
+    if is_blacklisted is not None:
+        updates["is_blacklisted"] = is_blacklisted
+    if not updates:
+        return False
+    set_clause = ", ".join(f"{col} = %s" for col in updates)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE email_contacts SET {set_clause} WHERE email = %s",
+                (*updates.values(), email.lower()),
+            )
+            return cur.rowcount > 0
+
+
+def list_contacts() -> list[EmailContact]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_CONTACT_COLS} FROM email_contacts ORDER BY email ASC"
+            )
+            return [EmailContact.from_row(r) for r in cur.fetchall()]
 
 
 # ------------------------------------------------------------------

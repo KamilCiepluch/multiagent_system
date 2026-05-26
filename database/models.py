@@ -58,6 +58,35 @@ class Email(BaseModel):
         )
 
 
+class EmailContact(BaseModel):
+    """Rekord z tabeli email_contacts — lista zaufanych i zablokowanych adresów."""
+
+    id: int | None = None
+    email: str
+    name: str | None = None
+    is_verified: bool = False
+    is_blacklisted: bool = False
+    created_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "EmailContact":
+        return cls(
+            id=row[0], email=row[1], name=row[2],
+            is_verified=row[3], is_blacklisted=row[4], created_at=row[5],
+        )
+
+    def as_summary(self) -> str:
+        flags = []
+        if self.is_verified:
+            flags.append("zweryfikowany")
+        if self.is_blacklisted:
+            flags.append("CZARNA LISTA")
+        if not flags:
+            flags.append("brak flag")
+        label = f" ({self.name})" if self.name else ""
+        return f"{self.email}{label} — {', '.join(flags)}"
+
+
 class AgentLog(BaseModel):
     """Rekord z tabeli agent_logs — pełna historia wykonania agenta."""
 
