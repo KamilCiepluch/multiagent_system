@@ -87,6 +87,24 @@ class EmailContact(BaseModel):
         return f"{self.email}{label} — {', '.join(flags)}"
 
 
+class AgentSkill(BaseModel):
+    """Rekord z tabeli agent_skills — procedura obsługi zadania dla agenta."""
+
+    id: int | None = None
+    agent_name: str
+    name: str
+    description: str
+    content: str
+    created_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "AgentSkill":
+        return cls(
+            id=row[0], agent_name=row[1], name=row[2],
+            description=row[3], content=row[4], created_at=row[5],
+        )
+
+
 class AgentLog(BaseModel):
     """Rekord z tabeli agent_logs — pełna historia wykonania agenta."""
 

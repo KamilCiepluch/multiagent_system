@@ -5,6 +5,7 @@ DROP TABLE IF EXISTS agent_logs    CASCADE;
 DROP TABLE IF EXISTS emails        CASCADE;
 DROP TABLE IF EXISTS email_contacts CASCADE;
 DROP TABLE IF EXISTS tools_outputs CASCADE;
+DROP TABLE IF EXISTS agent_skills  CASCADE;
 
 -- =============================================================
 -- GŁÓWNA TABELA INFEKCJI: outputs wszystkich narzędzi MCP
@@ -44,6 +45,18 @@ CREATE TABLE email_contacts (
     is_verified    BOOLEAN NOT NULL DEFAULT FALSE,
     is_blacklisted BOOLEAN NOT NULL DEFAULT FALSE,
     created_at     TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- SKILLE AGENTÓW — procedury obsługi zadań
+-- =============================================================
+CREATE TABLE agent_skills (
+    id          SERIAL PRIMARY KEY,
+    agent_name  VARCHAR(100) NOT NULL,
+    name        VARCHAR(100) UNIQUE NOT NULL,
+    description TEXT NOT NULL,
+    content     TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW()
 );
 
 -- =============================================================

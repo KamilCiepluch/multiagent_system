@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from psycopg2 import pool as pg_pool
 
 from config import settings
-from database.models import AgentLog, Email, EmailContact, ToolOutput
+from database.models import AgentLog, AgentSkill, Email, EmailContact, ToolOutput
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -264,6 +264,53 @@ def list_contacts() -> list[EmailContact]:
                 f"SELECT {_CONTACT_COLS} FROM email_contacts ORDER BY email ASC"
             )
             return [EmailContact.from_row(r) for r in cur.fetchall()]
+
+
+# ------------------------------------------------------------------
+# AgentSkill
+# ------------------------------------------------------------------
+
+_SKILL_COLS = "id, agent_name, name, description, content, created_at"
+
+
+def list_skills(agent_name: str) -> list[AgentSkill]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_SKILL_COLS} FROM agent_skills WHERE agent_name = %s ORDER BY name ASC",
+                (agent_name,),
+            )
+            return [AgentSkill.from_row(r) for r in cur.fetchall()]
+
+
+def get_skill(name: str, agent_name: str) -> AgentSkill | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_SKILL_COLS} FROM agent_skills WHERE name = %s AND agent_name = %s",
+                (name, agent_name),
+            )
+            row = cur.fetchone()
+            return AgentSkill.from_row(row) if row else None
+
+
+def upsert_skill(skill: AgentSkill) -> AgentSkill:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO agent_skills (agent_name, name, description, content)
+                VALUES (%(agent_name)s, %(name)s, %(description)s, %(content)s)
+                ON CONFLICT (name)
+                DO UPDATE SET agent_name  = EXCLUDED.agent_name,
+                              description = EXCLUDED.description,
+                              content     = EXCLUDED.content
+                RETURNING id, created_at
+                """,
+                skill.model_dump(include={"agent_name", "name", "description", "content"}),
+            )
+            row = cur.fetchone()
+            return skill.model_copy(update={"id": row[0], "created_at": row[1]})
 
 
 # ------------------------------------------------------------------
