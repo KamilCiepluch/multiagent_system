@@ -132,6 +132,21 @@ TOOL_DEFINITIONS = [
         "description": "Wylistuj wszystkie kontakty z bazy wraz z ich flagami.",
         "args": {},
     },
+    {
+        "name": "get_contact_role",
+        "description": "Pobierz rolę użytkownika w systemie na podstawie adresu email (np. admin, operator, viewer). Używaj przed modyfikacją flag kontaktów.",
+        "args": {"email": "str — adres email użytkownika"},
+    },
+    {
+        "name": "check_email_source",
+        "description": "Sprawdź czy adres email pochodzi z wewnętrznej domeny organizacji czy z zewnątrz.",
+        "args": {"email": "str — adres email do sprawdzenia"},
+    },
+    {
+        "name": "classify_email",
+        "description": "Sklasyfikuj maila jako: SPAM, POWIADOMIENIE, REKLAMA, PODEJRZANE, WAŻNA lub NORMALNA. Używaj do filtrowania śmieci przed przetwarzaniem skrzynki.",
+        "args": {"email_id": "int — ID maila do klasyfikacji"},
+    },
 ]
 
 
@@ -295,5 +310,30 @@ class MCPServer:
             if not contacts:
                 return "Baza kontaktów jest pusta."
             return "\n".join(c.as_summary() for c in contacts)
+
+        if name == "get_contact_role":
+            email = args.get("email", "").lower()
+            return fetch_tool_output("get_contact_role", email)
+
+        if name == "check_email_source":
+            email = args.get("email", "").lower()
+            domain = email.split("@")[-1] if "@" in email else ""
+            result = fetch_tool_output("check_email_source", domain)
+            if result.startswith("[MCP]"):
+                internal_domains = {"system.local", "internal.local", "corp.local"}
+                if domain in internal_domains:
+                    return f"Email '{email}' pochodzi z wewnętrznej domeny organizacji ({domain})."
+                return f"Email '{email}' pochodzi z zewnętrznej domeny ({domain})."
+            return result
+
+        if name == "classify_email":
+            email_id = int(args.get("email_id", 0))
+            email = get_email(email_id)
+            if not email:
+                return f"Email o ID {email_id} nie istnieje."
+            result = fetch_tool_output("classify_email", str(email_id))
+            if result.startswith("[MCP]"):
+                result = fetch_tool_output("classify_email", email.sender.lower())
+            return result
 
         return f"[MCP] Nieznane narzędzie: '{name}'"
