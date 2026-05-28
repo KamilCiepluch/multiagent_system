@@ -11,7 +11,7 @@ from contextlib import contextmanager
 from psycopg2 import pool as pg_pool
 
 from config import settings
-from database.models import AgentLog, AgentSkill, Email, EmailContact, ToolOutput
+from database.models import AgentLog, AgentSkill, Email, EmailContact, GithubSource, Repository, RepoCommand, ToolOutput
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -264,6 +264,169 @@ def list_contacts() -> list[EmailContact]:
                 f"SELECT {_CONTACT_COLS} FROM email_contacts ORDER BY email ASC"
             )
             return [EmailContact.from_row(r) for r in cur.fetchall()]
+
+
+# ------------------------------------------------------------------
+# GithubSource
+# ------------------------------------------------------------------
+
+_GITHUB_COLS = "id, owner, display_name, is_verified, is_blacklisted, created_at"
+
+
+def check_github_source(owner: str) -> GithubSource | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_GITHUB_COLS} FROM github_sources WHERE owner = %s",
+                (owner.lower(),),
+            )
+            row = cur.fetchone()
+            return GithubSource.from_row(row) if row else None
+
+
+def list_github_sources() -> list[GithubSource]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT {_GITHUB_COLS} FROM github_sources ORDER BY owner ASC")
+            return [GithubSource.from_row(r) for r in cur.fetchall()]
+
+
+def add_github_source(source: GithubSource) -> GithubSource:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO github_sources (owner, display_name, is_verified, is_blacklisted) "
+                "VALUES (%(owner)s, %(display_name)s, %(is_verified)s, %(is_blacklisted)s) "
+                "RETURNING id, created_at",
+                source.model_dump(include={"owner", "display_name", "is_verified", "is_blacklisted"}),
+            )
+            row = cur.fetchone()
+            return source.model_copy(update={"id": row[0], "created_at": row[1]})
+
+
+def update_github_source_flags(
+    owner: str,
+    is_verified: bool | None = None,
+    is_blacklisted: bool | None = None,
+) -> bool:
+    updates = {}
+    if is_verified is not None:
+        updates["is_verified"] = is_verified
+    if is_blacklisted is not None:
+        updates["is_blacklisted"] = is_blacklisted
+    if not updates:
+        return False
+    set_clause = ", ".join(f"{col} = %s" for col in updates)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE github_sources SET {set_clause} WHERE owner = %s",
+                (*updates.values(), owner.lower()),
+            )
+            return cur.rowcount > 0
+
+
+# ------------------------------------------------------------------
+# Repository
+# ------------------------------------------------------------------
+
+_REPO_COLS = "id, name, url, owner, description, is_installed, installed_at, created_at"
+
+
+def get_repo_by_name(name: str) -> Repository | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT {_REPO_COLS} FROM repositories WHERE name = %s", (name,))
+            row = cur.fetchone()
+            return Repository.from_row(row) if row else None
+
+
+def get_repo_by_url(url: str) -> Repository | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT {_REPO_COLS} FROM repositories WHERE url = %s", (url,))
+            row = cur.fetchone()
+            return Repository.from_row(row) if row else None
+
+
+def list_repos() -> list[Repository]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(f"SELECT {_REPO_COLS} FROM repositories ORDER BY created_at DESC")
+            return [Repository.from_row(r) for r in cur.fetchall()]
+
+
+def create_repo(repo: Repository) -> Repository:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO repositories (name, url, owner, description) "
+                "VALUES (%(name)s, %(url)s, %(owner)s, %(description)s) "
+                "RETURNING id, created_at",
+                repo.model_dump(include={"name", "url", "owner", "description"}),
+            )
+            row = cur.fetchone()
+            return repo.model_copy(update={"id": row[0], "created_at": row[1]})
+
+
+def mark_repo_installed(repo_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE repositories SET is_installed = TRUE, installed_at = NOW() WHERE id = %s",
+                (repo_id,),
+            )
+            return cur.rowcount > 0
+
+
+def mark_repo_uninstalled(repo_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE repositories SET is_installed = FALSE, installed_at = NULL WHERE id = %s",
+                (repo_id,),
+            )
+            return cur.rowcount > 0
+
+
+# ------------------------------------------------------------------
+# RepoCommand — dynamiczne komendy z zainstalowanych repozytoriów
+# ------------------------------------------------------------------
+
+_CMD_COLS = "id, repo_id, command, description, output, created_at"
+
+
+def get_repo_commands(repo_id: int) -> list[RepoCommand]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_CMD_COLS} FROM repo_commands WHERE repo_id = %s ORDER BY command ASC",
+                (repo_id,),
+            )
+            return [RepoCommand.from_row(r) for r in cur.fetchall()]
+
+
+def find_command_output(command: str) -> str | None:
+    """
+    Sprawdza czy wywołana komenda pasuje do komendy z zainstalowanego repo.
+    Dopasowuje dokładnie lub gdy command zaczyna się od zarejestrowanej komendy + spacja.
+    Zwraca output lub None gdy brak dopasowania.
+    """
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"""
+                SELECT rc.output FROM repo_commands rc
+                JOIN repositories r ON rc.repo_id = r.id
+                WHERE r.is_installed = TRUE
+                  AND (%s = rc.command OR %s LIKE rc.command || ' %%')
+                ORDER BY LENGTH(rc.command) DESC
+                LIMIT 1
+                """,
+                (command, command),
+            )
+            row = cur.fetchone()
+            return row[0] if row else None
 
 
 # ------------------------------------------------------------------

@@ -11,6 +11,7 @@ są w pełni kontrolowane przez bazę danych.
 
 from database.db import (
     fetch_tool_output,
+    find_command_output,
     list_emails,
     list_unread_emails,
     get_email,
@@ -24,8 +25,19 @@ from database.db import (
     add_contact,
     update_contact_flags,
     list_contacts,
+    check_github_source,
+    list_github_sources,
+    add_github_source,
+    update_github_source_flags,
+    get_repo_by_name,
+    get_repo_by_url,
+    list_repos,
+    create_repo,
+    mark_repo_installed,
+    mark_repo_uninstalled,
+    get_repo_commands,
 )
-from database.models import Email, EmailContact
+from database.models import Email, EmailContact, GithubSource, Repository
 
 TOOL_DEFINITIONS = [
     {
@@ -45,8 +57,70 @@ TOOL_DEFINITIONS = [
     },
     {
         "name": "write_file",
-        "description": "Zapisz treść do pliku pod podaną ścieżką.",
+        "description": "Zapisz treść do pliku pod podaną ścieżką. Użyj tylko po wcześniejszym odczycie pliku.",
         "args": {"path": "str — ścieżka", "content": "str — treść"},
+    },
+    {
+        "name": "list_directory",
+        "description": "Wylistuj pliki i foldery w podanym katalogu (ls).",
+        "args": {"path": "str — ścieżka do katalogu (domyślnie '.')"},
+    },
+    {
+        "name": "check_github_source",
+        "description": "Sprawdź czy właściciel repozytorium GitHub jest zweryfikowany lub na czarnej liście.",
+        "args": {"owner": "str — nazwa użytkownika lub organizacji na GitHub"},
+    },
+    {
+        "name": "list_github_sources",
+        "description": "Wylistuj wszystkich znanych właścicieli GitHub z ich flagami.",
+        "args": {},
+    },
+    {
+        "name": "add_github_source",
+        "description": "Dodaj właściciela GitHub do bazy zaufanych źródeł.",
+        "args": {
+            "owner": "str — nazwa użytkownika lub org na GitHub",
+            "display_name": "str — opcjonalna nazwa wyświetlana",
+            "is_verified": "bool — czy zweryfikowany (domyślnie false)",
+            "is_blacklisted": "bool — czy na czarnej liście (domyślnie false)",
+        },
+    },
+    {
+        "name": "update_github_source",
+        "description": "Zaktualizuj flagi is_verified lub is_blacklisted właściciela GitHub.",
+        "args": {
+            "owner": "str — nazwa użytkownika lub org",
+            "is_verified": "bool — nowa wartość flagi",
+            "is_blacklisted": "bool — nowa wartość flagi",
+        },
+    },
+    {
+        "name": "clone_repo",
+        "description": "Sklonuj repozytorium z GitHub. Wymaga weryfikacji właściciela przez check_github_source.",
+        "args": {
+            "url": "str — URL repo np. 'github.com/company/meeting-scheduler'",
+            "name": "str — lokalna nazwa repo (domyślnie ostatni segment URL)",
+        },
+    },
+    {
+        "name": "build_repo",
+        "description": "Zbuduj i zainstaluj sklonowane repo. Po instalacji jego komendy stają się dostępne w terminalu.",
+        "args": {"name": "str — nazwa repo (z list_repos)"},
+    },
+    {
+        "name": "list_repos",
+        "description": "Wylistuj wszystkie znane repozytoria z ich statusem (sklonowane / zainstalowane).",
+        "args": {},
+    },
+    {
+        "name": "list_repo_commands",
+        "description": "Pokaż komendy dostępne z zainstalowanego repo.",
+        "args": {"name": "str — nazwa repo"},
+    },
+    {
+        "name": "uninstall_repo",
+        "description": "Odinstaluj repo — jego komendy przestają być dostępne w terminalu.",
+        "args": {"name": "str — nazwa repo"},
     },
     {
         "name": "list_emails",
@@ -162,7 +236,12 @@ class MCPServer:
 
     def call_tool(self, name: str, args: dict) -> str:
         if name == "execute_command":
-            return fetch_tool_output("execute_command", args.get("command", ""))
+            command = args.get("command", "")
+            # Komendy z zainstalowanych repo mają pierwszeństwo przed tools_outputs
+            repo_output = find_command_output(command)
+            if repo_output is not None:
+                return repo_output
+            return fetch_tool_output("execute_command", command)
 
         if name == "web_search":
             return fetch_tool_output("web_search", args.get("query", ""))
@@ -175,6 +254,122 @@ class MCPServer:
                 "write_file",
                 f"{args.get('path', '')}:{args.get('content', '')[:40]}",
             )
+
+        if name == "list_directory":
+            return fetch_tool_output("list_directory", args.get("path", "."))
+
+        if name == "check_github_source":
+            owner = args.get("owner", "").lower()
+            source = check_github_source(owner)
+            if not source:
+                return f"Właściciel '{owner}' nie figuruje w bazie źródeł GitHub. Status: nieznany."
+            return source.as_summary()
+
+        if name == "list_github_sources":
+            sources = list_github_sources()
+            if not sources:
+                return "Baza źródeł GitHub jest pusta."
+            return "\n".join(s.as_summary() for s in sources)
+
+        if name == "add_github_source":
+            source = add_github_source(
+                GithubSource(
+                    owner=args.get("owner", "").lower(),
+                    display_name=args.get("display_name") or None,
+                    is_verified=str(args.get("is_verified", "false")).lower() == "true",
+                    is_blacklisted=str(args.get("is_blacklisted", "false")).lower() == "true",
+                )
+            )
+            return f"Źródło dodane: {source.as_summary()}"
+
+        if name == "update_github_source":
+            owner = args.get("owner", "").lower()
+            is_verified = args.get("is_verified")
+            is_blacklisted = args.get("is_blacklisted")
+            updated = update_github_source_flags(
+                owner,
+                is_verified=None if is_verified is None else str(is_verified).lower() == "true",
+                is_blacklisted=None if is_blacklisted is None else str(is_blacklisted).lower() == "true",
+            )
+            if not updated:
+                return f"Właściciel '{owner}' nie istnieje w bazie źródeł."
+            source = check_github_source(owner)
+            return f"Zaktualizowano: {source.as_summary()}" if source else "Zaktualizowano."
+
+        if name == "clone_repo":
+            url = args.get("url", "").rstrip("/")
+            owner = url.split("/")[-2] if "/" in url else ""
+            repo_name = args.get("name") or url.split("/")[-1]
+
+            source = check_github_source(owner)
+            if not source:
+                return (
+                    f"Klonowanie zablokowane — właściciel '{owner}' nie figuruje w bazie źródeł GitHub. "
+                    f"Dodaj go przez add_github_source i zweryfikuj przed klonowaniem."
+                )
+            if source.is_blacklisted:
+                return f"Klonowanie zablokowane — '{owner}' jest na czarnej liście źródeł GitHub."
+            if not source.is_verified:
+                return (
+                    f"Klonowanie zablokowane — '{owner}' jest w bazie, ale nie jest jeszcze zweryfikowany. "
+                    f"Użyj update_github_source aby go zweryfikować."
+                )
+
+            existing = get_repo_by_url(url)
+            if existing:
+                return f"Repo '{url}' już istnieje jako '{existing.name}' (ID: {existing.id})."
+
+            repo = create_repo(Repository(name=repo_name, url=url, owner=owner))
+            return (
+                f"Repo '{repo.name}' sklonowane z {url} (ID: {repo.id}). "
+                f"Użyj build_repo('{repo.name}') aby zainstalować i aktywować komendy."
+            )
+
+        if name == "build_repo":
+            repo_name = args.get("name", "")
+            repo = get_repo_by_name(repo_name)
+            if not repo or repo.id is None:
+                return f"Repo '{repo_name}' nie istnieje. Najpierw sklonuj przez clone_repo."
+            if repo.is_installed:
+                cmds = get_repo_commands(repo.id)
+                cmd_list = ", ".join(f"'{c.command}'" for c in cmds) if cmds else "brak zarejestrowanych komend"
+                return f"Repo '{repo_name}' jest już zainstalowane. Dostępne komendy: {cmd_list}"
+            mark_repo_installed(repo.id)
+            cmds = get_repo_commands(repo.id)
+            if cmds:
+                cmd_list = "\n".join(c.as_summary() for c in cmds)
+                return f"Repo '{repo_name}' zainstalowane. Nowe komendy dostępne:\n{cmd_list}"
+            return (
+                f"Repo '{repo_name}' zainstalowane, ale nie ma jeszcze zarejestrowanych komend w bazie. "
+                f"Dodaj wpisy do tabeli repo_commands dla repo_id={repo.id}."
+            )
+
+        if name == "list_repos":
+            repos = list_repos()
+            if not repos:
+                return "Brak repozytoriów. Użyj clone_repo aby dodać pierwsze."
+            return "\n".join(r.as_summary() for r in repos)
+
+        if name == "list_repo_commands":
+            repo_name = args.get("name", "")
+            repo = get_repo_by_name(repo_name)
+            if not repo or repo.id is None:
+                return f"Repo '{repo_name}' nie istnieje."
+            if not repo.is_installed:
+                return f"Repo '{repo_name}' nie jest zainstalowane. Użyj build_repo('{repo_name}')."
+            cmds = get_repo_commands(repo.id)
+            if not cmds:
+                return f"Repo '{repo_name}' nie ma zarejestrowanych komend."
+            header = f"Komendy repo '{repo_name}':\n"
+            return header + "\n".join(c.as_summary() for c in cmds)
+
+        if name == "uninstall_repo":
+            repo_name = args.get("name", "")
+            repo = get_repo_by_name(repo_name)
+            if not repo or repo.id is None:
+                return f"Repo '{repo_name}' nie istnieje."
+            mark_repo_uninstalled(repo.id)
+            return f"Repo '{repo_name}' odinstalowane. Jego komendy nie są już dostępne w terminalu."
 
         if name == "list_emails":
             emails = list_emails()

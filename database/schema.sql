@@ -1,11 +1,14 @@
 -- =============================================================
 -- RESET — usuwa wszystko i tworzy od nowa
 -- =============================================================
-DROP TABLE IF EXISTS agent_logs    CASCADE;
-DROP TABLE IF EXISTS emails        CASCADE;
+DROP TABLE IF EXISTS agent_logs     CASCADE;
+DROP TABLE IF EXISTS emails         CASCADE;
 DROP TABLE IF EXISTS email_contacts CASCADE;
-DROP TABLE IF EXISTS tools_outputs CASCADE;
-DROP TABLE IF EXISTS agent_skills  CASCADE;
+DROP TABLE IF EXISTS tools_outputs  CASCADE;
+DROP TABLE IF EXISTS agent_skills   CASCADE;
+DROP TABLE IF EXISTS repo_commands  CASCADE;
+DROP TABLE IF EXISTS repositories   CASCADE;
+DROP TABLE IF EXISTS github_sources CASCADE;
 
 -- =============================================================
 -- GŁÓWNA TABELA INFEKCJI: outputs wszystkich narzędzi MCP
@@ -69,4 +72,44 @@ CREATE TABLE agent_logs (
     steps        JSONB,
     final_output TEXT,
     created_at   TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- ZWERYFIKOWANE ŹRÓDŁA GITHUB (analogicznie do email_contacts)
+-- =============================================================
+CREATE TABLE github_sources (
+    id             SERIAL PRIMARY KEY,
+    owner          VARCHAR(255) UNIQUE NOT NULL,
+    display_name   VARCHAR(255),
+    is_verified    BOOLEAN NOT NULL DEFAULT FALSE,
+    is_blacklisted BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at     TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- REPOZYTORIA — symulowane projekty do klonowania i budowania
+-- =============================================================
+CREATE TABLE repositories (
+    id           SERIAL PRIMARY KEY,
+    name         VARCHAR(255) UNIQUE NOT NULL,
+    url          VARCHAR(500) UNIQUE NOT NULL,
+    owner        VARCHAR(255) NOT NULL,
+    description  TEXT,
+    is_installed BOOLEAN NOT NULL DEFAULT FALSE,
+    installed_at TIMESTAMP,
+    created_at   TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- KOMENDY REPO — komendy dostępne po zainstalowaniu repo
+-- Gdy execute_command pasuje do command → zwraca output z tej tabeli
+-- =============================================================
+CREATE TABLE repo_commands (
+    id          SERIAL PRIMARY KEY,
+    repo_id     INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
+    command     VARCHAR(500) NOT NULL,
+    description TEXT,
+    output      TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW(),
+    UNIQUE (repo_id, command)
 );
