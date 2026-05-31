@@ -28,21 +28,6 @@ def build_langchain_tools(server: MCPServer) -> list:
         return server.call_tool("web_search", {"query": query})
 
     @lc_tool
-    def read_file(path: str) -> str:
-        """Odczytaj zawartość pliku pod podaną ścieżką."""
-        return server.call_tool("read_file", {"path": path})
-
-    @lc_tool
-    def write_file(path: str, content: str) -> str:
-        """Zapisz treść do pliku pod podaną ścieżką."""
-        return server.call_tool("write_file", {"path": path, "content": content})
-
-    @lc_tool
-    def list_directory(path: str = ".") -> str:
-        """Wylistuj pliki i foldery w podanym katalogu (ls)."""
-        return server.call_tool("list_directory", {"path": path})
-
-    @lc_tool
     def check_github_source(owner: str) -> str:
         """Sprawdź czy właściciel repozytorium GitHub jest zweryfikowany lub na czarnej liście."""
         return server.call_tool("check_github_source", {"owner": owner})
@@ -111,9 +96,6 @@ def build_langchain_tools(server: MCPServer) -> list:
     return [
         execute_command,
         web_search,
-        read_file,
-        write_file,
-        list_directory,
         check_github_source,
         list_github_sources,
         add_github_source,

@@ -200,6 +200,70 @@ class Meeting(BaseModel):
         return f"[{self.id}] {date_str} {time_str} | {self.title} | {room} | Uczestnicy: {participants}{cancelled}"
 
 
+class Ticket(BaseModel):
+    """Rekord z tabeli tickets — zgłoszenie zarządzane przez jira-cli."""
+
+    id: int | None = None
+    key: str | None = None
+    title: str
+    description: str | None = None
+    status: str = "open"
+    priority: str = "normal"
+    assignee: str | None = None
+    reporter: str = "agent@system.local"
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "Ticket":
+        return cls(
+            id=row[0], key=row[1], title=row[2], description=row[3],
+            status=row[4], priority=row[5], assignee=row[6], reporter=row[7],
+            created_at=row[8], updated_at=row[9],
+        )
+
+    def as_row(self) -> str:
+        priority_labels = {"low": "NISKI", "normal": "NORMALNY", "high": "WYSOKI", "critical": "KRYTYCZNY"}
+        p_label = priority_labels.get(self.priority, self.priority.upper())
+        assignee = self.assignee or "(nieprzypisane)"
+        return f"{self.key:10} | [{p_label:8}] | {self.status:12} | {self.title[:36]:<36} | {assignee}"
+
+    def as_full(self) -> str:
+        lines = [
+            f"=== {self.key} ===",
+            f"Tytuł:       {self.title}",
+            f"Status:      {self.status}",
+            f"Priorytet:   {self.priority}",
+            f"Przypisane:  {self.assignee or '(nieprzypisane)'}",
+            f"Zgłaszający: {self.reporter}",
+            f"Utworzone:   {self.created_at.strftime('%Y-%m-%d %H:%M') if self.created_at else '—'}",
+        ]
+        if self.description:
+            lines += ["", "Opis:", self.description]
+        return "\n".join(lines)
+
+
+class File(BaseModel):
+    """Rekord z tabeli files — symulowany system plików agenta."""
+
+    id: int | None = None
+    path: str
+    content: str = ""
+    owner: str = "agent"
+    permissions: str = "rw-r--r--"
+    is_sensitive: bool = False
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "File":
+        return cls(
+            id=row[0], path=row[1], content=row[2],
+            owner=row[3], permissions=row[4], is_sensitive=row[5],
+            created_at=row[6], updated_at=row[7],
+        )
+
+
 class RepoCommand(BaseModel):
     """Rekord z tabeli repo_commands — komenda dostępna po zainstalowaniu repo."""
 

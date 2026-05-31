@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from psycopg2 import pool as pg_pool
 
 from config import settings
-from database.models import AgentLog, AgentSkill, Email, EmailContact, GithubSource, Meeting, Repository, RepoCommand, ToolOutput
+from database.models import AgentLog, AgentSkill, Email, EmailContact, File, GithubSource, Meeting, Repository, RepoCommand, Ticket, ToolOutput
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -477,6 +477,162 @@ def find_command_output(command: str) -> str | None:
                 args = parse_cli_args(command, matched_command)
                 output = _fill_output_template(output, args)
             return output
+
+
+# ------------------------------------------------------------------
+# Ticket — zgłoszenia zarządzane przez jira-cli
+# ------------------------------------------------------------------
+
+_TICKET_COLS = "id, key, title, description, status, priority, assignee, reporter, created_at, updated_at"
+
+VALID_TICKET_STATUSES  = {"open", "in-progress", "review", "done", "cancelled"}
+VALID_TICKET_PRIORITIES = {"low", "normal", "high", "critical"}
+
+
+def list_tickets(status: str | None = None, assignee: str | None = None) -> list[Ticket]:
+    conditions: list[str] = ["status != 'cancelled'"]
+    params: list = []
+    if status:
+        conditions.append("status = %s")
+        params.append(status)
+    if assignee:
+        conditions.append("assignee ILIKE %s")
+        params.append(f"%{assignee}%")
+    where = " AND ".join(conditions)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_TICKET_COLS} FROM tickets WHERE {where} ORDER BY created_at DESC",
+                params,
+            )
+            return [Ticket.from_row(r) for r in cur.fetchall()]
+
+
+def get_ticket(key: str) -> Ticket | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_TICKET_COLS} FROM tickets WHERE key = %s",
+                (key.upper(),),
+            )
+            row = cur.fetchone()
+            return Ticket.from_row(row) if row else None
+
+
+def create_ticket(ticket: Ticket) -> Ticket:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO tickets (title, description, status, priority, assignee, reporter) "
+                "VALUES (%(title)s, %(description)s, %(status)s, %(priority)s, %(assignee)s, %(reporter)s) "
+                "RETURNING id, created_at",
+                ticket.model_dump(include={"title", "description", "status", "priority", "assignee", "reporter"}),
+            )
+            row = cur.fetchone()
+            new_id, created_at = row
+            key = f"PROJ-{new_id:03d}"
+            cur.execute("UPDATE tickets SET key = %s WHERE id = %s", (key, new_id))
+            return ticket.model_copy(update={"id": new_id, "key": key, "created_at": created_at})
+
+
+def update_ticket_assignee(key: str, assignee: str) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE tickets SET assignee = %s, updated_at = NOW() WHERE key = %s",
+                (assignee, key.upper()),
+            )
+            return cur.rowcount > 0
+
+
+def update_ticket_status(key: str, status: str) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE tickets SET status = %s, updated_at = NOW() WHERE key = %s",
+                (status, key.upper()),
+            )
+            return cur.rowcount > 0
+
+
+# ------------------------------------------------------------------
+# File — symulowany system plików
+# ------------------------------------------------------------------
+
+_FILE_COLS = "id, path, content, owner, permissions, is_sensitive, created_at, updated_at"
+
+
+def get_file(path: str) -> File | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_FILE_COLS} FROM files WHERE path = %s",
+                (path,),
+            )
+            row = cur.fetchone()
+            return File.from_row(row) if row else None
+
+
+def upsert_file(file: File) -> File:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                INSERT INTO files (path, content, owner, permissions, is_sensitive)
+                VALUES (%(path)s, %(content)s, %(owner)s, %(permissions)s, %(is_sensitive)s)
+                ON CONFLICT (path) DO UPDATE
+                    SET content = EXCLUDED.content, updated_at = NOW()
+                RETURNING id, created_at, updated_at
+                """,
+                file.model_dump(include={"path", "content", "owner", "permissions", "is_sensitive"}),
+            )
+            row = cur.fetchone()
+            return file.model_copy(update={"id": row[0], "created_at": row[1], "updated_at": row[2]})
+
+
+def list_directory_entries(path: str) -> list[dict]:
+    """Zwraca bezpośrednie dzieci katalogu (jak ls) — bez rekurencji."""
+    path = path.rstrip("/")
+    prefix = path + "/"
+    # PostgreSQL substring jest 1-indeksowany; chcemy część po prefiksie
+    start = len(prefix) + 1
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                """
+                SELECT DISTINCT
+                    CASE
+                        WHEN position('/' IN substring(path, %s)) > 0
+                        THEN split_part(substring(path, %s), '/', 1)
+                        ELSE substring(path, %s)
+                    END AS child_name,
+                    CASE
+                        WHEN position('/' IN substring(path, %s)) > 0
+                        THEN 'dir'
+                        ELSE 'file'
+                    END AS entry_type,
+                    MAX(permissions) AS permissions,
+                    MAX(owner)       AS owner,
+                    BOOL_OR(is_sensitive) AS is_sensitive
+                FROM files
+                WHERE path LIKE %s
+                GROUP BY 1, 2
+                ORDER BY entry_type DESC, child_name ASC
+                """,
+                (start, start, start, start, prefix + "%"),
+            )
+            return [
+                {
+                    "name": row[0],
+                    "type": row[1],
+                    "permissions": row[2],
+                    "owner": row[3],
+                    "sensitive": row[4],
+                }
+                for row in cur.fetchall()
+                if row[0]
+            ]
 
 
 # ------------------------------------------------------------------

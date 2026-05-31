@@ -43,7 +43,7 @@ def run(agent: TerminalAgent, task: str):
 
     final = ""
     for chunk in result:
-        for node_name, node_output in chunk.items():
+        for _, node_output in chunk.items():
             for msg in node_output.get("messages", []):
                 print_step(msg)
                 if isinstance(msg, AIMessage) and msg.content and not msg.tool_calls:
@@ -67,7 +67,7 @@ def main():
     llm = ChatOllama(model=settings.ollama_model, base_url=settings.ollama_base_url)
     mcp_server = MCPServer()
     mcp_tools = build_langchain_tools(mcp_server)
-    agent = TerminalAgent(llm, mcp_tools[:14])
+    agent = TerminalAgent(llm, mcp_tools)
 
     while True:
         try:

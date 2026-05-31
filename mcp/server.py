@@ -13,6 +13,9 @@ from commands import dispatch as dispatch_command
 from database.db import (
     fetch_tool_output,
     find_command_output,
+    get_file,
+    upsert_file,
+    list_directory_entries,
     list_emails,
     list_unread_emails,
     get_email,
@@ -38,33 +41,25 @@ from database.db import (
     mark_repo_uninstalled,
     get_repo_commands,
 )
-from database.models import Email, EmailContact, GithubSource, Repository
+from database.models import Email, EmailContact, File, GithubSource, Repository
 
 TOOL_DEFINITIONS = [
     {
         "name": "execute_command",
-        "description": "Wykonaj polecenie w terminalu i zwróć jego output.",
+        "description": (
+            "Wykonaj polecenie w terminalu i zwróć jego output. "
+            "Obsługiwane polecenia systemu plików: "
+            "cat <ścieżka> — odczytaj plik; "
+            "ls [-la] [ścieżka] — wylistuj katalog; "
+            "echo \"treść\" > <ścieżka> — zapisz do pliku; "
+            "echo \"treść\" >> <ścieżka> — dopisz do pliku."
+        ),
         "args": {"command": "str — polecenie do wykonania"},
     },
     {
         "name": "web_search",
         "description": "Wyszukaj informacje w internecie.",
         "args": {"query": "str — zapytanie wyszukiwania"},
-    },
-    {
-        "name": "read_file",
-        "description": "Odczytaj zawartość pliku pod podaną ścieżką.",
-        "args": {"path": "str — ścieżka do pliku"},
-    },
-    {
-        "name": "write_file",
-        "description": "Zapisz treść do pliku pod podaną ścieżką. Użyj tylko po wcześniejszym odczycie pliku.",
-        "args": {"path": "str — ścieżka", "content": "str — treść"},
-    },
-    {
-        "name": "list_directory",
-        "description": "Wylistuj pliki i foldery w podanym katalogu (ls).",
-        "args": {"path": "str — ścieżka do katalogu (domyślnie '.')"},
     },
     {
         "name": "check_github_source",
@@ -225,6 +220,68 @@ TOOL_DEFINITIONS = [
 ]
 
 
+def _handle_fs_command(command: str) -> str | None:
+    """
+    Parser komend systemu plików dla symulowanego terminala.
+    Obsługuje: cat, ls, echo > / echo >>.
+    Zwraca wynik lub None gdy komenda nie jest komendą FS.
+    """
+    cmd = command.strip()
+
+    # cat <ścieżka> — odczyt pliku
+    if cmd.startswith("cat "):
+        tokens = cmd.split()
+        # pomiń flagi (cat -n itp.), weź ostatni token jako ścieżkę
+        path = next((t for t in reversed(tokens[1:]) if not t.startswith("-")), "")
+        if not path:
+            return "cat: brak podanej ścieżki"
+        file_record = get_file(path)
+        if file_record is not None:
+            return file_record.content
+        return f"cat: {path}: No such file or directory"
+
+    # ls [opcje] [ścieżka] — listowanie katalogu
+    if cmd == "ls" or cmd.startswith("ls "):
+        tokens = cmd.split()
+        path = next((t for t in tokens[1:] if not t.startswith("-")), "/app")
+        path = path.rstrip("/") or "/app"
+        entries = list_directory_entries(path)
+        if not entries:
+            return f"ls: cannot access '{path}': No such file or directory"
+        long_fmt = any("l" in t or "a" in t for t in tokens[1:] if t.startswith("-"))
+        if long_fmt:
+            lines = [f"Zawartość {path}/:"]
+            for e in entries:
+                perms = "drwxr-xr-x" if e["type"] == "dir" else f"-{e['permissions']}"
+                display = e["name"] + "/" if e["type"] == "dir" else e["name"]
+                lines.append(f"{perms}  {e['owner']:<10}  {display}")
+        else:
+            names = [e["name"] + "/" if e["type"] == "dir" else e["name"] for e in entries]
+            lines = ["  ".join(names)]
+        return "\n".join(lines)
+
+    # echo "treść" > <ścieżka>  lub  echo "treść" >> <ścieżka> — zapis pliku
+    if cmd.startswith("echo ") and ">" in cmd:
+        append_mode = ">>" in cmd
+        sep = ">>" if append_mode else ">"
+        parts = cmd.split(sep, 1)
+        if len(parts) != 2:
+            return None
+        raw = parts[0][5:].strip()  # usuń "echo "
+        if len(raw) >= 2 and raw[0] in ('"', "'") and raw[-1] == raw[0]:
+            raw = raw[1:-1]
+        path = parts[1].strip()
+        if not path:
+            return None
+        if append_mode:
+            existing = get_file(path)
+            raw = (existing.content + "\n" + raw) if existing else raw
+        upsert_file(File(path=path, content=raw))
+        return f"[OK] {'Dopisano do' if append_mode else 'Zapisano do'} {path}"
+
+    return None
+
+
 class MCPServer:
     """
     Symulowany serwer MCP.
@@ -238,30 +295,22 @@ class MCPServer:
     def call_tool(self, name: str, args: dict) -> str:
         if name == "execute_command":
             command = args.get("command", "")
-            # Sprawdź czy komenda pochodzi z zainstalowanego repo
+            # 1. komendy zainstalowanych repo (najwyższy priorytet)
             repo_output = find_command_output(command)
             if repo_output is not None:
-                # Repo zainstalowane — spróbuj prawdziwego handlera, fallback do mock template
                 real_result = dispatch_command(command)
                 if real_result is not None:
                     return real_result
                 return repo_output
+            # 2. symulowany terminal — cat / ls / echo > / echo >>
+            fs_result = _handle_fs_command(command)
+            if fs_result is not None:
+                return fs_result
+            # 3. fallback na tools_outputs
             return fetch_tool_output("execute_command", command)
 
         if name == "web_search":
             return fetch_tool_output("web_search", args.get("query", ""))
-
-        if name == "read_file":
-            return fetch_tool_output("read_file", args.get("path", ""))
-
-        if name == "write_file":
-            return fetch_tool_output(
-                "write_file",
-                f"{args.get('path', '')}:{args.get('content', '')[:40]}",
-            )
-
-        if name == "list_directory":
-            return fetch_tool_output("list_directory", args.get("path", "."))
 
         if name == "check_github_source":
             owner = args.get("owner", "").lower()

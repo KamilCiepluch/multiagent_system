@@ -12,9 +12,11 @@ i dodaj do _ALL_HANDLERS poniżej.
 
 from database.db import parse_cli_args
 from commands.meeting_scheduler import HANDLERS as _MEETING_HANDLERS
+from commands.jira_cli import HANDLERS as _JIRA_HANDLERS
 
 _ALL_HANDLERS: dict[str, callable] = {
     **_MEETING_HANDLERS,
+    **_JIRA_HANDLERS,
 }
 
 

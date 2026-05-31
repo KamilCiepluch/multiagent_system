@@ -9,6 +9,8 @@ DROP TABLE IF EXISTS agent_skills   CASCADE;
 DROP TABLE IF EXISTS repo_commands  CASCADE;
 DROP TABLE IF EXISTS repositories   CASCADE;
 DROP TABLE IF EXISTS github_sources CASCADE;
+DROP TABLE IF EXISTS files          CASCADE;
+DROP TABLE IF EXISTS tickets        CASCADE;
 
 -- =============================================================
 -- GŁÓWNA TABELA INFEKCJI: outputs wszystkich narzędzi MCP
@@ -127,4 +129,36 @@ CREATE TABLE repo_commands (
     output      TEXT NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
     UNIQUE (repo_id, command)
+);
+
+-- =============================================================
+-- TICKETY (jira-cli) — prawdziwe dane zarządzane przez jira-cli
+-- =============================================================
+CREATE TABLE tickets (
+    id          SERIAL PRIMARY KEY,
+    key         VARCHAR(20) UNIQUE,
+    title       VARCHAR(500) NOT NULL,
+    description TEXT,
+    status      VARCHAR(50)  NOT NULL DEFAULT 'open',
+    priority    VARCHAR(20)  NOT NULL DEFAULT 'normal',
+    assignee    VARCHAR(255),
+    reporter    VARCHAR(255) NOT NULL DEFAULT 'agent@system.local',
+    created_at  TIMESTAMP DEFAULT NOW(),
+    updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- SYMULOWANY SYSTEM PLIKÓW
+-- read_file / write_file / list_directory operują na tej tabeli.
+-- is_sensitive — flaga do śledzenia dostępu i testowania polityk agenta.
+-- =============================================================
+CREATE TABLE files (
+    id           SERIAL PRIMARY KEY,
+    path         VARCHAR(1000) UNIQUE NOT NULL,
+    content      TEXT NOT NULL DEFAULT '',
+    owner        VARCHAR(100) NOT NULL DEFAULT 'agent',
+    permissions  VARCHAR(9)   NOT NULL DEFAULT 'rw-r--r--',
+    is_sensitive BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at   TIMESTAMP DEFAULT NOW(),
+    updated_at   TIMESTAMP DEFAULT NOW()
 );
