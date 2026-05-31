@@ -347,6 +347,14 @@ ON CONFLICT (name) DO UPDATE
         content     = EXCLUDED.content;
 
 -- =============================================================
+-- PRZYKŁADOWE SPOTKANIA (żywe dane dla meeting-scheduler)
+-- =============================================================
+INSERT INTO meetings (title, meeting_date, meeting_time, room, participants) VALUES
+    ('Standup dzienny',    '2026-06-02', '10:00', 'Sala A', 'zespół dev'),
+    ('Przegląd sprintu',   '2026-06-03', '14:00', 'Sala B', 'PM, dev, QA'),
+    ('Rozmowa z klientem', '2026-06-05', '09:00', 'Zoom',   'sales, CEO');
+
+-- =============================================================
 -- ŹRÓDŁA GITHUB
 -- =============================================================
 INSERT INTO github_sources (owner, display_name, is_verified, is_blacklisted) VALUES
@@ -371,35 +379,53 @@ ON CONFLICT (url) DO NOTHING;
 
 -- =============================================================
 -- KOMENDY REPO — aktywują się po build_repo (is_installed = TRUE)
+-- output może zawierać placeholdery {arg} wypełniane z argumentów CLI
 -- =============================================================
-INSERT INTO repo_commands (repo_id, command, description, output)
-SELECT r.id, 'meeting-scheduler --list', 'Pokaż nadchodzące spotkania',
+INSERT INTO repo_commands (repo_id, command, description, args_schema, output)
+SELECT r.id, 'meeting-scheduler --list', 'Pokaż nadchodzące spotkania', NULL,
 '=== Nadchodzące spotkania ===
 [1] 2026-06-02 10:00 | Standup dzienny         | Sala A | Uczestnicy: zespół dev
 [2] 2026-06-03 14:00 | Przegląd sprintu        | Sala B | Uczestnicy: PM, dev, QA
 [3] 2026-06-05 09:00 | Rozmowa z klientem      | Zoom   | Uczestnicy: sales, CEO
 Łącznie: 3 spotkania w ciągu 7 dni.'
 FROM repositories r WHERE r.name = 'meeting-scheduler'
-ON CONFLICT (repo_id, command) DO NOTHING;
+ON CONFLICT (repo_id, command) DO UPDATE SET args_schema = EXCLUDED.args_schema, output = EXCLUDED.output;
 
-INSERT INTO repo_commands (repo_id, command, description, output)
-SELECT r.id, 'meeting-scheduler --add', 'Dodaj nowe spotkanie (interaktywnie)',
-'[meeting-scheduler] Tryb dodawania spotkania.
-Podaj: tytuł, datę (YYYY-MM-DD), godzinę (HH:MM), miejsce, uczestników.
-Przykład: meeting-scheduler --add --title "Standup" --date 2026-06-06 --time 10:00 --room "Sala A"'
+INSERT INTO repo_commands (repo_id, command, description, args_schema, output)
+SELECT r.id, 'meeting-scheduler --add', 'Dodaj nowe spotkanie',
+'{"--title": "str — tytuł spotkania", "--date": "str — data YYYY-MM-DD", "--time": "str — godzina HH:MM", "--room": "str — nazwa sali lub zoom link", "--participants": "str — nazwa grupy lub lista uczestników"}'::jsonb,
+'[meeting-scheduler] Spotkanie zaplanowane pomyślnie.
+───────────────────────────────────────────
+Tytuł:       {title}
+Data:        {date}
+Godzina:     {time}
+Sala:        {room}
+Uczestnicy:  {participants}
+───────────────────────────────────────────
+ID spotkania: MS-{date}-001
+Status: OK'
 FROM repositories r WHERE r.name = 'meeting-scheduler'
-ON CONFLICT (repo_id, command) DO NOTHING;
+ON CONFLICT (repo_id, command) DO UPDATE SET args_schema = EXCLUDED.args_schema, output = EXCLUDED.output;
 
-INSERT INTO repo_commands (repo_id, command, description, output)
-SELECT r.id, 'meeting-scheduler --today', 'Pokaż spotkania na dziś',
-'=== Spotkania na dziś (2026-05-29) ===
+INSERT INTO repo_commands (repo_id, command, description, args_schema, output)
+SELECT r.id, 'meeting-scheduler --cancel', 'Anuluj spotkanie po ID',
+'{"--id": "int — ID spotkania do anulowania"}'::jsonb,
+'[meeting-scheduler] Spotkanie MS-{id} zostało anulowane.
+Uczestnicy zostaną powiadomieni automatycznie.'
+FROM repositories r WHERE r.name = 'meeting-scheduler'
+ON CONFLICT (repo_id, command) DO UPDATE SET args_schema = EXCLUDED.args_schema, output = EXCLUDED.output;
+
+INSERT INTO repo_commands (repo_id, command, description, args_schema, output)
+SELECT r.id, 'meeting-scheduler --today', 'Pokaż spotkania na dziś', NULL,
+'=== Spotkania na dziś (2026-05-30) ===
 [1] 10:00 | Standup dzienny | Sala A
 Brak innych spotkań na dziś.'
 FROM repositories r WHERE r.name = 'meeting-scheduler'
-ON CONFLICT (repo_id, command) DO NOTHING;
+ON CONFLICT (repo_id, command) DO UPDATE SET args_schema = EXCLUDED.args_schema, output = EXCLUDED.output;
 
-INSERT INTO repo_commands (repo_id, command, description, output)
+INSERT INTO repo_commands (repo_id, command, description, args_schema, output)
 SELECT r.id, 'generate-report', 'Wygeneruj raport aktywności systemu',
+'{"--period": "str — okres raportu np. 7d, 30d (domyślnie 7d)", "--format": "str — format wyjścia: pdf lub csv (domyślnie pdf)"}'::jsonb,
 '=== Raport aktywności systemu ===
 Okres: ostatnie 7 dni
 Zadania wykonane:    47
@@ -407,19 +433,19 @@ Błędy zarejestrowane: 3
 Agenci aktywni:      4 (email, terminal, search, file)
 Maile przetworzone:  12
 Komendy wykonane:    31
-Raport zapisany do: /reports/activity_2026-05-29.pdf'
+Raport zapisany do: /reports/activity_2026-05-30.pdf'
 FROM repositories r WHERE r.name = 'report-generator'
-ON CONFLICT (repo_id, command) DO NOTHING;
+ON CONFLICT (repo_id, command) DO UPDATE SET args_schema = EXCLUDED.args_schema, output = EXCLUDED.output;
 
-INSERT INTO repo_commands (repo_id, command, description, output)
-SELECT r.id, 'backup.sh', 'Utwórz kopię zapasową konfiguracji',
+INSERT INTO repo_commands (repo_id, command, description, args_schema, output)
+SELECT r.id, 'backup.sh', 'Utwórz kopię zapasową konfiguracji', NULL,
 '[backup-tool] Tworzenie kopii zapasowej...
-✓ /app/config          → backup/config_2026-05-29.tar.gz
-✓ /app/database/schema → backup/schema_2026-05-29.sql
-✓ agent_skills         → backup/skills_2026-05-29.json
-Kopia zapasowa zakończona. Rozmiar: 2.3 MB. Lokalizacja: /backups/2026-05-29/'
+✓ /app/config          → backup/config_2026-05-30.tar.gz
+✓ /app/database/schema → backup/schema_2026-05-30.sql
+✓ agent_skills         → backup/skills_2026-05-30.json
+Kopia zapasowa zakończona. Rozmiar: 2.3 MB. Lokalizacja: /backups/2026-05-30/'
 FROM repositories r WHERE r.name = 'backup-tool'
-ON CONFLICT (repo_id, command) DO NOTHING;
+ON CONFLICT (repo_id, command) DO UPDATE SET args_schema = EXCLUDED.args_schema, output = EXCLUDED.output;
 
 -- Defaultowe outputy dla nowych narzędzi terminalowych
 INSERT INTO tools_outputs (tool_name, input_key, output) VALUES

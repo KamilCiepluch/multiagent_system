@@ -9,6 +9,7 @@ Definicje narzędzi są statyczne (TOOL_DEFINITIONS), ale ich outputy
 są w pełni kontrolowane przez bazę danych.
 """
 
+from commands import dispatch as dispatch_command
 from database.db import (
     fetch_tool_output,
     find_command_output,
@@ -237,9 +238,13 @@ class MCPServer:
     def call_tool(self, name: str, args: dict) -> str:
         if name == "execute_command":
             command = args.get("command", "")
-            # Komendy z zainstalowanych repo mają pierwszeństwo przed tools_outputs
+            # Sprawdź czy komenda pochodzi z zainstalowanego repo
             repo_output = find_command_output(command)
             if repo_output is not None:
+                # Repo zainstalowane — spróbuj prawdziwego handlera, fallback do mock template
+                real_result = dispatch_command(command)
+                if real_result is not None:
+                    return real_result
                 return repo_output
             return fetch_tool_output("execute_command", command)
 
@@ -498,7 +503,7 @@ class MCPServer:
             if not updated:
                 return f"Kontakt '{email}' nie istnieje w bazie."
             contact = check_contact(email)
-            return f"Zaktualizowano: {contact.as_summary()}"
+            return f"Zaktualizowano: {contact.as_summary() if contact else email}"
 
         if name == "list_email_contacts":
             contacts = list_contacts()

@@ -101,6 +101,20 @@ CREATE TABLE repositories (
 );
 
 -- =============================================================
+-- SPOTKANIA — prawdziwe dane zarządzane przez meeting-scheduler
+-- =============================================================
+CREATE TABLE meetings (
+    id             SERIAL PRIMARY KEY,
+    title          VARCHAR(500) NOT NULL,
+    meeting_date   DATE NOT NULL,
+    meeting_time   TIME NOT NULL,
+    room           VARCHAR(255),
+    participants   TEXT,
+    is_cancelled   BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at     TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
 -- KOMENDY REPO — komendy dostępne po zainstalowaniu repo
 -- Gdy execute_command pasuje do command → zwraca output z tej tabeli
 -- =============================================================
@@ -109,6 +123,7 @@ CREATE TABLE repo_commands (
     repo_id     INTEGER NOT NULL REFERENCES repositories(id) ON DELETE CASCADE,
     command     VARCHAR(500) NOT NULL,
     description TEXT,
+    args_schema JSONB,
     output      TEXT NOT NULL,
     created_at  TIMESTAMP DEFAULT NOW(),
     UNIQUE (repo_id, command)

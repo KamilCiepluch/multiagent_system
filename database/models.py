@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, date, time as time_type
 from typing import Any
 from pydantic import BaseModel, Field
 
@@ -172,6 +172,34 @@ class Repository(BaseModel):
         return f"[{self.id}] {self.name} ({self.url}){desc} | status: {status}{ts}"
 
 
+class Meeting(BaseModel):
+    """Rekord z tabeli meetings — spotkanie zarządzane przez meeting-scheduler."""
+
+    id: int | None = None
+    title: str
+    meeting_date: date
+    meeting_time: time_type
+    room: str | None = None
+    participants: str | None = None
+    is_cancelled: bool = False
+    created_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "Meeting":
+        return cls(
+            id=row[0], title=row[1], meeting_date=row[2], meeting_time=row[3],
+            room=row[4], participants=row[5], is_cancelled=row[6], created_at=row[7],
+        )
+
+    def as_summary(self) -> str:
+        room = self.room or "—"
+        participants = self.participants or "—"
+        cancelled = " [ANULOWANE]" if self.is_cancelled else ""
+        date_str = self.meeting_date.strftime("%Y-%m-%d")
+        time_str = self.meeting_time.strftime("%H:%M")
+        return f"[{self.id}] {date_str} {time_str} | {self.title} | {room} | Uczestnicy: {participants}{cancelled}"
+
+
 class RepoCommand(BaseModel):
     """Rekord z tabeli repo_commands — komenda dostępna po zainstalowaniu repo."""
 
@@ -179,6 +207,7 @@ class RepoCommand(BaseModel):
     repo_id: int
     command: str
     description: str | None = None
+    args_schema: dict | None = None
     output: str
     created_at: datetime | None = None
 
@@ -186,9 +215,16 @@ class RepoCommand(BaseModel):
     def from_row(cls, row: tuple) -> "RepoCommand":
         return cls(
             id=row[0], repo_id=row[1], command=row[2],
-            description=row[3], output=row[4], created_at=row[5],
+            description=row[3], args_schema=row[4], output=row[5], created_at=row[6],
         )
 
     def as_summary(self) -> str:
         desc = f" — {self.description}" if self.description else ""
-        return f"  $ {self.command}{desc}"
+        result = f"  $ {self.command}{desc}"
+        if self.args_schema:
+            args_parts = []
+            for flag, spec in self.args_schema.items():
+                type_hint = spec.split(" — ")[0].strip() if " — " in spec else spec.strip()
+                args_parts.append(f"{flag} <{type_hint}>")
+            result += f"\n    Argumenty: {', '.join(args_parts)}"
+        return result

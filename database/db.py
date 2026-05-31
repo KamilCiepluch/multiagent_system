@@ -7,11 +7,12 @@ Połączenia zarządzane przez SimpleConnectionPool — jeden pool na cały proc
 """
 
 import json
+import shlex
 from contextlib import contextmanager
 from psycopg2 import pool as pg_pool
 
 from config import settings
-from database.models import AgentLog, AgentSkill, Email, EmailContact, GithubSource, Repository, RepoCommand, ToolOutput
+from database.models import AgentLog, AgentSkill, Email, EmailContact, GithubSource, Meeting, Repository, RepoCommand, ToolOutput
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -393,7 +394,7 @@ def mark_repo_uninstalled(repo_id: int) -> bool:
 # RepoCommand — dynamiczne komendy z zainstalowanych repozytoriów
 # ------------------------------------------------------------------
 
-_CMD_COLS = "id, repo_id, command, description, output, created_at"
+_CMD_COLS = "id, repo_id, command, description, args_schema, output, created_at"
 
 
 def get_repo_commands(repo_id: int) -> list[RepoCommand]:
@@ -406,17 +407,60 @@ def get_repo_commands(repo_id: int) -> list[RepoCommand]:
             return [RepoCommand.from_row(r) for r in cur.fetchall()]
 
 
+def parse_cli_args(command_str: str, base_command: str) -> dict[str, str]:
+    """Parsuje argumenty CLI z pełnego łańcucha komendy po odcięciu base_command."""
+    remainder = command_str[len(base_command):].strip()
+    if not remainder:
+        return {}
+    try:
+        tokens = shlex.split(remainder)
+    except ValueError:
+        tokens = remainder.split()
+
+    result: dict[str, str] = {}
+    i = 0
+    while i < len(tokens):
+        token = tokens[i]
+        if token.startswith("--"):
+            key = token[2:]
+            if i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                result[key] = tokens[i + 1]
+                i += 2
+            else:
+                result[key] = "true"
+                i += 1
+        elif token.startswith("-") and len(token) == 2:
+            key = token[1:]
+            if i + 1 < len(tokens) and not tokens[i + 1].startswith("-"):
+                result[key] = tokens[i + 1]
+                i += 2
+            else:
+                result[key] = "true"
+                i += 1
+        else:
+            i += 1
+    return result
+
+
+def _fill_output_template(output: str, args: dict[str, str]) -> str:
+    """Wypełnia placeholdery {nazwa} w szablonie outputu wartościami z parsowanych argów."""
+    for key, value in args.items():
+        output = output.replace(f"{{{key}}}", value)
+    return output
+
+
 def find_command_output(command: str) -> str | None:
     """
     Sprawdza czy wywołana komenda pasuje do komendy z zainstalowanego repo.
     Dopasowuje dokładnie lub gdy command zaczyna się od zarejestrowanej komendy + spacja.
+    Jeśli output zawiera placeholdery {arg}, wypełnia je wartościami z podanych argów CLI.
     Zwraca output lub None gdy brak dopasowania.
     """
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                f"""
-                SELECT rc.output FROM repo_commands rc
+                """
+                SELECT rc.output, rc.command FROM repo_commands rc
                 JOIN repositories r ON rc.repo_id = r.id
                 WHERE r.is_installed = TRUE
                   AND (%s = rc.command OR %s LIKE rc.command || ' %%')
@@ -426,7 +470,13 @@ def find_command_output(command: str) -> str | None:
                 (command, command),
             )
             row = cur.fetchone()
-            return row[0] if row else None
+            if not row:
+                return None
+            output, matched_command = row
+            if "{" in output:
+                args = parse_cli_args(command, matched_command)
+                output = _fill_output_template(output, args)
+            return output
 
 
 # ------------------------------------------------------------------
@@ -474,6 +524,57 @@ def upsert_skill(skill: AgentSkill) -> AgentSkill:
             )
             row = cur.fetchone()
             return skill.model_copy(update={"id": row[0], "created_at": row[1]})
+
+
+# ------------------------------------------------------------------
+# Meeting — prawdziwe dane zarządzane przez meeting-scheduler
+# ------------------------------------------------------------------
+
+_MEETING_COLS = "id, title, meeting_date, meeting_time, room, participants, is_cancelled, created_at"
+
+
+def list_meetings() -> list[Meeting]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_MEETING_COLS} FROM meetings "
+                f"WHERE is_cancelled = FALSE ORDER BY meeting_date, meeting_time"
+            )
+            return [Meeting.from_row(r) for r in cur.fetchall()]
+
+
+def list_meetings_today() -> list[Meeting]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_MEETING_COLS} FROM meetings "
+                f"WHERE is_cancelled = FALSE AND meeting_date = CURRENT_DATE "
+                f"ORDER BY meeting_time"
+            )
+            return [Meeting.from_row(r) for r in cur.fetchall()]
+
+
+def create_meeting(meeting: Meeting) -> Meeting:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO meetings (title, meeting_date, meeting_time, room, participants) "
+                "VALUES (%(title)s, %(meeting_date)s, %(meeting_time)s, %(room)s, %(participants)s) "
+                "RETURNING id, created_at",
+                meeting.model_dump(include={"title", "meeting_date", "meeting_time", "room", "participants"}),
+            )
+            row = cur.fetchone()
+            return meeting.model_copy(update={"id": row[0], "created_at": row[1]})
+
+
+def cancel_meeting(meeting_id: int) -> bool:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE meetings SET is_cancelled = TRUE WHERE id = %s AND is_cancelled = FALSE",
+                (meeting_id,),
+            )
+            return cur.rowcount > 0
 
 
 # ------------------------------------------------------------------
