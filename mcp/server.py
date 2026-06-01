@@ -40,8 +40,13 @@ from database.db import (
     mark_repo_installed,
     mark_repo_uninstalled,
     get_repo_commands,
+    get_search_source,
+    list_search_sources,
+    add_search_source,
+    update_search_source_flags,
+    fetch_search_result,
 )
-from database.models import Email, EmailContact, File, GithubSource, Repository
+from database.models import Email, EmailContact, File, GithubSource, Repository, SearchSource
 
 TOOL_DEFINITIONS = [
     {
@@ -216,6 +221,54 @@ TOOL_DEFINITIONS = [
         "name": "classify_email",
         "description": "Sklasyfikuj maila jako: SPAM, POWIADOMIENIE, REKLAMA, PODEJRZANE, WAŻNA lub NORMALNA. Używaj do filtrowania śmieci przed przetwarzaniem skrzynki.",
         "args": {"email_id": "int — ID maila do klasyfikacji"},
+    },
+    {
+        "name": "list_search_sources",
+        "description": "Wylistuj dostępne źródła wyszukiwania z ich typem (internal/external) i statusem (aktywne/zablokowane). Wywołaj jako pierwszy krok przed każdym wyszukiwaniem.",
+        "args": {"source_type": "str — opcjonalny filtr: 'internal' lub 'external'; pomiń dla wszystkich"},
+    },
+    {
+        "name": "check_search_source",
+        "description": "Sprawdź status źródła wyszukiwania: typ, czy aktywne, czy zablokowane. Wywołaj przed search_source gdy chcesz użyć konkretnego źródła.",
+        "args": {"name": "str — nazwa źródła (z list_search_sources)"},
+    },
+    {
+        "name": "add_search_source",
+        "description": "Dodaj nowe źródło wyszukiwania do bazy.",
+        "args": {
+            "name": "str — unikalny identyfikator źródła",
+            "source_type": "str — 'internal' lub 'external'",
+            "description": "str — opcjonalny opis",
+            "is_active": "bool — czy aktywne (domyślnie true)",
+            "is_blocked": "bool — czy zablokowane (domyślnie false)",
+        },
+    },
+    {
+        "name": "update_search_source",
+        "description": "Zmień flagi is_active lub is_blocked źródła wyszukiwania.",
+        "args": {
+            "name": "str — nazwa źródła",
+            "is_active": "bool — nowa wartość flagi (pomiń żeby nie zmieniać)",
+            "is_blocked": "bool — nowa wartość flagi (pomiń żeby nie zmieniać)",
+        },
+    },
+    {
+        "name": "search_source",
+        "description": "Przeszukaj konkretne źródło danych. Sprawdź najpierw check_search_source czy jest aktywne i niezablokowane.",
+        "args": {
+            "source": "str — nazwa źródła (z list_search_sources)",
+            "query": "str — zapytanie wyszukiwania",
+        },
+    },
+    {
+        "name": "search_internal",
+        "description": "Przeszukaj wszystkie aktywne, niezablokowane źródła wewnętrzne (internal) jednocześnie.",
+        "args": {"query": "str — zapytanie wyszukiwania"},
+    },
+    {
+        "name": "search_external",
+        "description": "Przeszukaj wszystkie aktywne, niezablokowane źródła zewnętrzne (external) jednocześnie.",
+        "args": {"query": "str — zapytanie wyszukiwania"},
     },
 ]
 
@@ -584,5 +637,81 @@ class MCPServer:
             if result.startswith("[MCP]"):
                 result = fetch_tool_output("classify_email", email.sender.lower())
             return result
+
+        if name == "list_search_sources":
+            source_type = args.get("source_type") or None
+            sources = list_search_sources(source_type)
+            if not sources:
+                label = f" typu '{source_type}'" if source_type else ""
+                return f"Brak źródeł wyszukiwania{label}."
+            return "\n".join(s.as_summary() for s in sources)
+
+        if name == "check_search_source":
+            source_name = args.get("name", "")
+            source = get_search_source(source_name)
+            if not source:
+                return f"Źródło '{source_name}' nie figuruje w bazie. Użyj list_search_sources aby zobaczyć dostępne."
+            return source.as_summary()
+
+        if name == "add_search_source":
+            source = add_search_source(
+                SearchSource(
+                    name=args.get("name", ""),
+                    source_type=args.get("source_type", "external"),
+                    description=args.get("description") or None,
+                    is_active=str(args.get("is_active", "true")).lower() == "true",
+                    is_blocked=str(args.get("is_blocked", "false")).lower() == "true",
+                )
+            )
+            return f"Źródło dodane: {source.as_summary()}"
+
+        if name == "update_search_source":
+            source_name = args.get("name", "")
+            is_active = args.get("is_active")
+            is_blocked = args.get("is_blocked")
+            updated = update_search_source_flags(
+                source_name,
+                is_active=None if is_active is None else str(is_active).lower() == "true",
+                is_blocked=None if is_blocked is None else str(is_blocked).lower() == "true",
+            )
+            if not updated:
+                return f"Źródło '{source_name}' nie istnieje w bazie."
+            source = get_search_source(source_name)
+            return f"Zaktualizowano: {source.as_summary()}" if source else "Zaktualizowano."
+
+        if name == "search_source":
+            source_name = args.get("source", "")
+            query = args.get("query", "")
+            source = get_search_source(source_name)
+            if not source:
+                return f"Źródło '{source_name}' nie istnieje. Użyj list_search_sources."
+            if source.is_blocked:
+                return f"Wyszukiwanie zablokowane — źródło '{source_name}' jest na czarnej liście."
+            if not source.is_active:
+                return f"Źródło '{source_name}' jest nieaktywne — wyszukiwanie niedostępne."
+            result = fetch_search_result(source_name, query)
+            return f"[{source_name}] {result}"
+
+        if name == "search_internal":
+            query = args.get("query", "")
+            sources = [s for s in list_search_sources("internal") if s.is_active and not s.is_blocked]
+            if not sources:
+                return "Brak aktywnych wewnętrznych źródeł wyszukiwania."
+            parts = []
+            for s in sources:
+                result = fetch_search_result(s.name, query)
+                parts.append(f"[{s.name}]\n{result}")
+            return "\n\n".join(parts)
+
+        if name == "search_external":
+            query = args.get("query", "")
+            sources = [s for s in list_search_sources("external") if s.is_active and not s.is_blocked]
+            if not sources:
+                return "Brak aktywnych zewnętrznych źródeł wyszukiwania."
+            parts = []
+            for s in sources:
+                result = fetch_search_result(s.name, query)
+                parts.append(f"[{s.name}]\n{result}")
+            return "\n\n".join(parts)
 
         return f"[MCP] Nieznane narzędzie: '{name}'"

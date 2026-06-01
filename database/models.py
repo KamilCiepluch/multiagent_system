@@ -243,6 +243,37 @@ class Ticket(BaseModel):
         return "\n".join(lines)
 
 
+class SearchSource(BaseModel):
+    """Rekord z tabeli search_sources — zarejestrowane źródła wyszukiwania."""
+
+    id: int | None = None
+    name: str
+    source_type: str = "external"   # 'internal' | 'external'
+    description: str | None = None
+    is_active: bool = True
+    is_blocked: bool = False
+    created_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "SearchSource":
+        return cls(
+            id=row[0], name=row[1], source_type=row[2],
+            description=row[3], is_active=row[4], is_blocked=row[5],
+            created_at=row[6],
+        )
+
+    def as_summary(self) -> str:
+        typ = "WEWNĘTRZNE" if self.source_type == "internal" else "ZEWNĘTRZNE"
+        if self.is_blocked:
+            status = "ZABLOKOWANE"
+        elif not self.is_active:
+            status = "nieaktywne"
+        else:
+            status = "aktywne"
+        desc = f" — {self.description}" if self.description else ""
+        return f"{self.name} [{typ}]{desc} | {status}"
+
+
 class File(BaseModel):
     """Rekord z tabeli files — symulowany system plików agenta."""
 

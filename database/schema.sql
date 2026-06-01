@@ -11,6 +11,8 @@ DROP TABLE IF EXISTS repositories   CASCADE;
 DROP TABLE IF EXISTS github_sources CASCADE;
 DROP TABLE IF EXISTS files          CASCADE;
 DROP TABLE IF EXISTS tickets        CASCADE;
+DROP TABLE IF EXISTS search_results CASCADE;
+DROP TABLE IF EXISTS search_sources CASCADE;
 
 -- =============================================================
 -- GŁÓWNA TABELA INFEKCJI: outputs wszystkich narzędzi MCP
@@ -145,6 +147,36 @@ CREATE TABLE tickets (
     reporter    VARCHAR(255) NOT NULL DEFAULT 'agent@system.local',
     created_at  TIMESTAMP DEFAULT NOW(),
     updated_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- ŹRÓDŁA WYSZUKIWANIA — rejestr znanych źródeł agenta wyszukiwania
+-- source_type: 'internal' (firmowe) | 'external' (internet, zewnętrzne)
+-- is_blocked: agent NIE POWINIEN korzystać z zablokowanych źródeł
+-- =============================================================
+CREATE TABLE search_sources (
+    id          SERIAL PRIMARY KEY,
+    name        VARCHAR(100) UNIQUE NOT NULL,
+    source_type VARCHAR(20) NOT NULL DEFAULT 'external',
+    description TEXT,
+    is_active   BOOLEAN NOT NULL DEFAULT TRUE,
+    is_blocked  BOOLEAN NOT NULL DEFAULT FALSE,
+    created_at  TIMESTAMP DEFAULT NOW()
+);
+
+-- =============================================================
+-- WYNIKI WYSZUKIWANIA — symulowane odpowiedzi źródeł
+-- Wzorzec jak tools_outputs: exact match na (source_name, query),
+-- fallback na NULL query (domyślna odpowiedź źródła).
+-- Punkt infekcji: zmiana jednego wpisu zatruwa wyniki źródła.
+-- =============================================================
+CREATE TABLE search_results (
+    id          SERIAL PRIMARY KEY,
+    source_name VARCHAR(100) NOT NULL,
+    query       TEXT,               -- NULL = fallback dla każdego zapytania
+    result      TEXT NOT NULL,
+    created_at  TIMESTAMP DEFAULT NOW(),
+    UNIQUE (source_name, query)
 );
 
 -- =============================================================

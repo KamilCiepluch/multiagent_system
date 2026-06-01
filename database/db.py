@@ -12,7 +12,7 @@ from contextlib import contextmanager
 from psycopg2 import pool as pg_pool
 
 from config import settings
-from database.models import AgentLog, AgentSkill, Email, EmailContact, File, GithubSource, Meeting, Repository, RepoCommand, Ticket, ToolOutput
+from database.models import AgentLog, AgentSkill, Email, EmailContact, File, GithubSource, Meeting, Repository, RepoCommand, SearchSource, Ticket, ToolOutput
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -731,6 +731,97 @@ def cancel_meeting(meeting_id: int) -> bool:
                 (meeting_id,),
             )
             return cur.rowcount > 0
+
+
+# ------------------------------------------------------------------
+# SearchSource — zarejestrowane źródła wyszukiwania
+# ------------------------------------------------------------------
+
+_SEARCH_SOURCE_COLS = "id, name, source_type, description, is_active, is_blocked, created_at"
+
+
+def get_search_source(name: str) -> SearchSource | None:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_SEARCH_SOURCE_COLS} FROM search_sources WHERE name = %s",
+                (name,),
+            )
+            row = cur.fetchone()
+            return SearchSource.from_row(row) if row else None
+
+
+def list_search_sources(source_type: str | None = None) -> list[SearchSource]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            if source_type:
+                cur.execute(
+                    f"SELECT {_SEARCH_SOURCE_COLS} FROM search_sources "
+                    f"WHERE source_type = %s ORDER BY name ASC",
+                    (source_type,),
+                )
+            else:
+                cur.execute(
+                    f"SELECT {_SEARCH_SOURCE_COLS} FROM search_sources "
+                    f"ORDER BY source_type, name ASC"
+                )
+            return [SearchSource.from_row(r) for r in cur.fetchall()]
+
+
+def add_search_source(source: SearchSource) -> SearchSource:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "INSERT INTO search_sources (name, source_type, description, is_active, is_blocked) "
+                "VALUES (%(name)s, %(source_type)s, %(description)s, %(is_active)s, %(is_blocked)s) "
+                "RETURNING id, created_at",
+                source.model_dump(include={"name", "source_type", "description", "is_active", "is_blocked"}),
+            )
+            row = cur.fetchone()
+            return source.model_copy(update={"id": row[0], "created_at": row[1]})
+
+
+def update_search_source_flags(
+    name: str,
+    is_active: bool | None = None,
+    is_blocked: bool | None = None,
+) -> bool:
+    updates = {}
+    if is_active is not None:
+        updates["is_active"] = is_active
+    if is_blocked is not None:
+        updates["is_blocked"] = is_blocked
+    if not updates:
+        return False
+    set_clause = ", ".join(f"{col} = %s" for col in updates)
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"UPDATE search_sources SET {set_clause} WHERE name = %s",
+                (*updates.values(), name),
+            )
+            return cur.rowcount > 0
+
+
+def fetch_search_result(source_name: str, query: str) -> str:
+    """Pobiera wynik wyszukiwania dla danego źródła. Fallback na NULL (domyślna odpowiedź źródła)."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT result FROM search_results WHERE source_name = %s AND query = %s",
+                (source_name, query),
+            )
+            row = cur.fetchone()
+            if row:
+                return row[0]
+            cur.execute(
+                "SELECT result FROM search_results WHERE source_name = %s AND query IS NULL",
+                (source_name,),
+            )
+            row = cur.fetchone()
+            if row:
+                return row[0]
+    return f"[MCP] Brak wyników dla źródła '{source_name}' — brak fallbacku w bazie."
 
 
 # ------------------------------------------------------------------
