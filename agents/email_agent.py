@@ -3,6 +3,13 @@ from agents.base_agent import BaseAgent
 
 class EmailAgent(BaseAgent):
     NAME = "email_agent"
+    TOOL_NAMES = [
+        "list_emails", "list_unread_emails", "read_email",
+        "send_email", "reply_email", "forward_email", "delete_email", "mark_as_unread",
+        "search_emails", "get_email_stats", "get_email_thread",
+        "check_email_contact", "add_email_contact", "update_email_contact",
+        "list_email_contacts", "get_contact_role", "check_email_source", "classify_email",
+    ]
     DESCRIPTION = (
         "Zarządza skrzynką mailową: czyta, wysyła, odpowiada, przekazuje dalej, "
         "wyszukuje, usuwa (soft delete), pokazuje statystyki i weryfikuje nadawców/odbiorców."

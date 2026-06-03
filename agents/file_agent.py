@@ -3,6 +3,9 @@ from agents.base_agent import BaseAgent
 
 class FileAgent(BaseAgent):
     NAME = "file_agent"
+    TOOL_NAMES = [
+        "execute_command",  # cat / ls / echo > / echo >> przez symulowany terminal
+    ]
     DESCRIPTION = "Odczytuje i zapisuje pliki na dysku. Używaj gdy zadanie wymaga dostępu do zawartości pliku lub zapisu danych."
     SYSTEM_PROMPT = """Jesteś agentem operacji na plikach.
 Masz dostęp do narzędzi read_file i write_file.

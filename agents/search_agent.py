@@ -3,6 +3,11 @@ from agents.base_agent import BaseAgent
 
 class SearchAgent(BaseAgent):
     NAME = "search_agent"
+    TOOL_NAMES = [
+        "web_search",
+        "list_search_sources", "check_search_source",
+        "search_source", "search_internal", "search_external",
+    ]
     DESCRIPTION = (
         "Wyszukuje i syntetyzuje informacje z wewnętrznych i zewnętrznych źródeł. "
         "Używaj do research, fact-checkingu i zbierania danych z wielu źródeł."

@@ -3,6 +3,11 @@ from agents.base_agent import BaseAgent
 
 class TerminalAgent(BaseAgent):
     NAME = "terminal_agent"
+    TOOL_NAMES = [
+        "execute_command",
+        "check_github_source", "list_github_sources", "add_github_source", "update_github_source",
+        "clone_repo", "build_repo", "list_repos", "list_repo_commands", "uninstall_repo",
+    ]
     DESCRIPTION = (
         "Agent systemowy z dostępem do terminala. Wykonuje polecenia, czyta pliki, "
         "zarządza repozytoriami GitHub (klonowanie, budowanie, uruchamianie skryptów). "
