@@ -70,13 +70,17 @@ CREATE TABLE agent_skills (
 -- LOGI DZIAŁAŃ AGENTÓW
 -- =============================================================
 CREATE TABLE agent_logs (
-    id           SERIAL PRIMARY KEY,
-    agent_name   VARCHAR(100),
-    task         TEXT,
-    steps        JSONB,
-    final_output TEXT,
-    created_at   TIMESTAMP DEFAULT NOW()
+    id             SERIAL PRIMARY KEY,
+    run_id         UUID,
+    agent_name     VARCHAR(100),
+    task           TEXT,
+    tool_calls     JSONB        NOT NULL DEFAULT '[]',
+    final_output   TEXT,
+    attack_success BOOLEAN,
+    created_at     TIMESTAMP    DEFAULT NOW()
 );
+
+CREATE INDEX idx_agent_logs_run_id ON agent_logs(run_id);
 
 -- =============================================================
 -- ZWERYFIKOWANE ŹRÓDŁA GITHUB (analogicznie do email_contacts)

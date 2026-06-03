@@ -11,6 +11,7 @@ LangGraph StateGraph — dwa tryby pracy:
     Wyniki jednego agenta płyną jako kontekst do następnego.
 """
 
+import uuid
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from langchain_ollama import ChatOllama
@@ -24,16 +25,22 @@ from agents.email_agent import EmailAgent
 from agents.search_agent import SearchAgent
 from agents.file_agent import FileAgent
 from config import settings
+from tracing.run_context import set_run_id
 
 
 # ------------------------------------------------------------------
 # Stan grafu
+# Podział na wymagane (task) i opcjonalne (ustawiane przez węzły).
 # ------------------------------------------------------------------
 
-class WorkflowState(TypedDict):
+class _WorkflowRequired(TypedDict):
     task: str
+
+
+class WorkflowState(_WorkflowRequired, total=False):
     route: str
     result: str
+    run_id: str
 
 
 # ------------------------------------------------------------------
@@ -43,12 +50,12 @@ class WorkflowState(TypedDict):
 def _init_agents(llm):
     """Wspólna inicjalizacja agentów — LLM i MCP tworzone raz."""
     mcp_server = MCPServer()
-    mcp_tools = build_langchain_tools(mcp_server)
+    all_mcp_tools = build_langchain_tools(mcp_server)  # dict {name: tool}
     return [
-        TerminalAgent(llm, mcp_tools),
-        EmailAgent(llm, mcp_tools),
-        SearchAgent(llm, mcp_tools),
-        FileAgent(llm, mcp_tools),
+        TerminalAgent(llm, all_mcp_tools),
+        EmailAgent(llm, all_mcp_tools),
+        SearchAgent(llm, all_mcp_tools),
+        FileAgent(llm, all_mcp_tools),
     ]
 
 
@@ -61,28 +68,26 @@ def build_workflow() -> object:
     terminal_agent, email_agent, search_agent, file_agent = _init_agents(llm)
     orchestrator = Orchestrator(llm)
 
-    def orchestrate(state: WorkflowState) -> WorkflowState:
+    def orchestrate(state: WorkflowState):
+        run_id = state.get("run_id") or str(uuid.uuid4())
+        set_run_id(run_id)
         route = orchestrator.route(state["task"])
-        return {"route": route}
+        return {"route": route, "run_id": run_id}
 
-    def run_terminal(state: WorkflowState) -> WorkflowState:
-        result = terminal_agent.run(state["task"])
-        return {"result": result}
+    def run_terminal(state: WorkflowState):
+        return {"result": terminal_agent.run(state["task"])}
 
-    def run_email(state: WorkflowState) -> WorkflowState:
-        result = email_agent.run(state["task"])
-        return {"result": result}
+    def run_email(state: WorkflowState):
+        return {"result": email_agent.run(state["task"])}
 
-    def run_search(state: WorkflowState) -> WorkflowState:
-        result = search_agent.run(state["task"])
-        return {"result": result}
+    def run_search(state: WorkflowState):
+        return {"result": search_agent.run(state["task"])}
 
-    def run_file(state: WorkflowState) -> WorkflowState:
-        result = file_agent.run(state["task"])
-        return {"result": result}
+    def run_file(state: WorkflowState):
+        return {"result": file_agent.run(state["task"])}
 
     def route_decision(state: WorkflowState) -> Literal["terminal", "email", "search", "file"]:
-        return state["route"]
+        return state.get("route", "terminal")  # type: ignore[return-value]
 
     graph = StateGraph(WorkflowState)
 
@@ -120,8 +125,14 @@ def build_supervisor_workflow() -> object:
     agents = _init_agents(llm)
     supervisor = Supervisor(llm, agents)
 
-    def run_supervisor(state: WorkflowState) -> WorkflowState:
-        return {"result": supervisor.run(state["task"]), "route": "supervisor"}
+    def run_supervisor(state: WorkflowState):
+        run_id = state.get("run_id") or str(uuid.uuid4())
+        set_run_id(run_id)
+        return {
+            "result": supervisor.run(state["task"]),
+            "route": "supervisor",
+            "run_id": run_id,
+        }
 
     graph = StateGraph(WorkflowState)
     graph.add_node("supervisor", run_supervisor)

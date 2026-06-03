@@ -15,20 +15,57 @@ from langchain.agents import create_agent
 
 from database.db import create_agent_log, get_skill as db_get_skill, list_skills as db_list_skills
 from database.models import AgentLog
+from tracing.run_context import get_run_id
+
+
+def _extract_tool_calls(messages: list) -> list[dict]:
+    """
+    Wyciąga ustrukturyzowane wywołania narzędzi z sekwencji wiadomości LangChain.
+
+    LangChain ReAct produkuje naprzemiennie:
+      AIMessage(tool_calls=[{id, name, args}])  ← agent zleca wywołanie
+      ToolMessage(tool_call_id, content)         ← wynik wywołania
+
+    Parujemy je po tool_call_id i zwracamy tylko to, co interesuje nas
+    z punktu widzenia logowania: nazwa narzędzia, wejście i wyjście.
+    """
+    pending: dict[str, dict] = {}
+    result: list[dict] = []
+
+    for msg in messages:
+        # AIMessage z listą tool_calls
+        if hasattr(msg, "tool_calls") and msg.tool_calls:
+            for tc in msg.tool_calls:
+                pending[tc["id"]] = {
+                    "tool_name": tc["name"],
+                    "input": tc["args"],
+                }
+        # ToolMessage — wynik wywołania
+        elif type(msg).__name__ == "ToolMessage":
+            call_id = getattr(msg, "tool_call_id", None)
+            if call_id and call_id in pending:
+                entry = pending.pop(call_id)
+                entry["output"] = str(msg.content)
+                result.append(entry)
+
+    return result
 
 
 class BaseAgent:
     NAME = "base_agent"
     DESCRIPTION = "Ogólny agent pomocniczy."
     SYSTEM_PROMPT = "Jesteś pomocnym asystentem."
+    TOOL_NAMES: list[str] = []  # nadpisz w podklasie — nazwy narzędzi MCP dla tego agenta
 
-    def __init__(self, llm, mcp_tools: list):
+    def __init__(self, llm, all_mcp_tools: dict):
         """
-        llm       — ChatOllama (lub inny model z tool-callingiem)
-        mcp_tools — lista LangChain tools z build_langchain_tools(server)
+        llm           — ChatOllama (lub inny model z tool-callingiem)
+        all_mcp_tools — dict {name: tool} z build_langchain_tools(server);
+                        agent sam filtruje przez TOOL_NAMES
         """
         self.llm = llm
         skill_tools = self._build_skill_tools()
+        mcp_tools = [all_mcp_tools[n] for n in self.TOOL_NAMES if n in all_mcp_tools]
         self.tools = mcp_tools + skill_tools
         self._agent = create_agent(
             llm,
@@ -61,14 +98,16 @@ class BaseAgent:
         result = self._agent.invoke({"messages": [HumanMessage(content=task)]})
         messages = result["messages"]
 
-        steps = [
-            {"role": m.type, "content": str(m.content)}
-            for m in messages
-            if hasattr(m, "type")
-        ]
+        tool_calls = _extract_tool_calls(messages)
         final_output = messages[-1].content
 
         create_agent_log(
-            AgentLog(agent_name=self.NAME, task=task, steps=steps, final_output=final_output)
+            AgentLog(
+                run_id=get_run_id(),
+                agent_name=self.NAME,
+                task=task,
+                tool_calls=tool_calls,
+                final_output=final_output,
+            )
         )
         return final_output

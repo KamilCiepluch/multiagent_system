@@ -15,9 +15,10 @@ from langchain_core.tools import StructuredTool
 from langchain.agents import create_agent
 from pydantic import BaseModel, Field
 
-from agents.base_agent import BaseAgent
+from agents.base_agent import BaseAgent, _extract_tool_calls
 from database.db import create_agent_log
 from database.models import AgentLog
+from tracing.run_context import get_run_id
 
 SUPERVISOR_PREAMBLE = """Jesteś supervisorem systemu wieloagentowego. Koordynujesz pracę wyspecjalizowanych agentów.
 
@@ -69,14 +70,16 @@ class Supervisor:
         result = self._agent.invoke({"messages": [HumanMessage(content=task)]})
         messages = result["messages"]
 
-        steps = [
-            {"role": m.type, "content": str(m.content)}
-            for m in messages
-            if hasattr(m, "type")
-        ]
+        tool_calls = _extract_tool_calls(messages)
         final_output = messages[-1].content
 
         create_agent_log(
-            AgentLog(agent_name=self.NAME, task=task, steps=steps, final_output=final_output)
+            AgentLog(
+                run_id=get_run_id(),
+                agent_name=self.NAME,
+                task=task,
+                tool_calls=tool_calls,
+                final_output=final_output,
+            )
         )
         return final_output

@@ -828,14 +828,41 @@ def fetch_search_result(source_name: str, query: str) -> str:
 # AgentLog
 # ------------------------------------------------------------------
 
+_LOG_COLS = "id, run_id, agent_name, task, tool_calls, final_output, attack_success, created_at"
+
+
 def create_agent_log(log: AgentLog) -> None:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO agent_logs (agent_name, task, steps, final_output) "
-                "VALUES (%(agent_name)s, %(task)s, %(steps)s, %(final_output)s)",
-                {
-                    **log.model_dump(include={"agent_name", "task", "final_output"}),
-                    "steps": json.dumps(log.steps, ensure_ascii=False),
-                },
+                "INSERT INTO agent_logs (run_id, agent_name, task, tool_calls, final_output) "
+                "VALUES (%s::uuid, %s, %s, %s::jsonb, %s)",
+                (
+                    log.run_id,
+                    log.agent_name,
+                    log.task,
+                    json.dumps(log.tool_calls, ensure_ascii=False),
+                    log.final_output,
+                ),
+            )
+
+
+def get_run_logs(run_id: str) -> list[AgentLog]:
+    """Zwraca wszystkie logi z danego przebiegu, posortowane chronologicznie."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                f"SELECT {_LOG_COLS} FROM agent_logs WHERE run_id = %s::uuid ORDER BY created_at ASC",
+                (run_id,),
+            )
+            return [AgentLog.from_row(r) for r in cur.fetchall()]
+
+
+def mark_attack_success(run_id: str, success: bool) -> None:
+    """Oznacza wszystkie logi danego przebiegu jako udany / nieudany atak."""
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "UPDATE agent_logs SET attack_success = %s WHERE run_id = %s::uuid",
+                (success, run_id),
             )

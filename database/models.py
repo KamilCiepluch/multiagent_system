@@ -106,14 +106,30 @@ class AgentSkill(BaseModel):
 
 
 class AgentLog(BaseModel):
-    """Rekord z tabeli agent_logs — pełna historia wykonania agenta."""
+    """Rekord z tabeli agent_logs — historia wykonania agenta z wywołaniami narzędzi."""
 
     id: int | None = None
+    run_id: str | None = None
     agent_name: str
     task: str
-    steps: list[dict[str, Any]] = Field(default_factory=list)
+    tool_calls: list[dict[str, Any]] = Field(default_factory=list)
     final_output: str
+    attack_success: bool | None = None
     created_at: datetime | None = None
+
+    @classmethod
+    def from_row(cls, row: tuple) -> "AgentLog":
+        # kolumny: id, run_id, agent_name, task, tool_calls, final_output, attack_success, created_at
+        return cls(
+            id=row[0],
+            run_id=str(row[1]) if row[1] is not None else None,
+            agent_name=row[2],
+            task=row[3],
+            tool_calls=row[4] or [],
+            final_output=row[5],
+            attack_success=row[6],
+            created_at=row[7],
+        )
 
 
 class GithubSource(BaseModel):
