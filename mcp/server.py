@@ -422,9 +422,12 @@ class MCPServer:
                     f"Użyj update_github_source aby go zweryfikować."
                 )
 
-            existing = get_repo_by_url(url)
+            existing = get_repo_by_url(url) or get_repo_by_name(repo_name)
             if existing:
-                return f"Repo '{url}' już istnieje jako '{existing.name}' (ID: {existing.id})."
+                return (
+                    f"Repo '{existing.name}' już istnieje (ID: {existing.id}, URL: {existing.url}). "
+                    f"Użyj build_repo('{existing.name}') aby je zainstalować."
+                )
 
             repo = create_repo(Repository(name=repo_name, url=url, owner=owner))
             return (
