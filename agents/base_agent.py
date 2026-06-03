@@ -95,7 +95,10 @@ class BaseAgent:
         return [list_skills, load_skill]
 
     def run(self, task: str) -> str:
-        result = self._agent.invoke({"messages": [HumanMessage(content=task)]})
+        result = self._agent.invoke(
+            {"messages": [HumanMessage(content=task)]},
+            config={"recursion_limit": 50},
+        )
         messages = result["messages"]
 
         tool_calls = _extract_tool_calls(messages)
