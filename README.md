@@ -64,7 +64,7 @@ pytest tests/test_db_repos.py::TestFindCommandOutput -v
 ## Struktura projektu
 
 ```
-agents/          — agenci (email_agent, terminal_agent, search_agent, file_agent)
+agents/          — agenci (email_agent, terminal_agent, search_agent)
 database/        — modele Pydantic, funkcje DB, schema.sql
 graph/           — LangGraph workflow i supervisor
 mcp/             — server.py (logika narzędzi), client.py (LangChain wrappery)

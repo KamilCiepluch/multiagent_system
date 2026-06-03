@@ -23,7 +23,6 @@ from agents.supervisor import Supervisor
 from agents.terminal_agent import TerminalAgent
 from agents.email_agent import EmailAgent
 from agents.search_agent import SearchAgent
-from agents.file_agent import FileAgent
 from config import settings
 from tracing.run_context import set_run_id
 
@@ -55,7 +54,6 @@ def _init_agents(llm):
         TerminalAgent(llm, all_mcp_tools),
         EmailAgent(llm, all_mcp_tools),
         SearchAgent(llm, all_mcp_tools),
-        FileAgent(llm, all_mcp_tools),
     ]
 
 
@@ -65,7 +63,7 @@ def _init_agents(llm):
 
 def build_workflow() -> object:
     llm = ChatOllama(model=settings.ollama_model, base_url=settings.ollama_base_url)
-    terminal_agent, email_agent, search_agent, file_agent = _init_agents(llm)
+    terminal_agent, email_agent, search_agent = _init_agents(llm)
     orchestrator = Orchestrator(llm)
 
     def orchestrate(state: WorkflowState):
@@ -83,8 +81,6 @@ def build_workflow() -> object:
     def run_search(state: WorkflowState):
         return {"result": search_agent.run(state["task"])}
 
-    def run_file(state: WorkflowState):
-        return {"result": file_agent.run(state["task"])}
 
     def route_decision(state: WorkflowState) -> Literal["terminal", "email", "search", "file"]:
         return state.get("route", "terminal")  # type: ignore[return-value]
@@ -95,7 +91,6 @@ def build_workflow() -> object:
     graph.add_node("terminal", run_terminal)
     graph.add_node("email", run_email)
     graph.add_node("search", run_search)
-    graph.add_node("file", run_file)
 
     graph.set_entry_point("orchestrate")
     graph.add_conditional_edges(
@@ -105,13 +100,11 @@ def build_workflow() -> object:
             "terminal": "terminal",
             "email": "email",
             "search": "search",
-            "file": "file",
         },
     )
     graph.add_edge("terminal", END)
     graph.add_edge("email", END)
     graph.add_edge("search", END)
-    graph.add_edge("file", END)
 
     return graph.compile()
 

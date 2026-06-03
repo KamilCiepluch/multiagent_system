@@ -11,15 +11,14 @@ from langchain_ollama import ChatOllama
 
 ROUTING_PROMPT = """Twoim jedynym zadaniem jest zdecydować, który agent powinien obsłużyć podane zadanie.
 Dostępni agenci:
-- terminal  : wykonywanie poleceń systemowych, skrypty, procesy
+- terminal  : wykonywanie poleceń systemowych, skrypty, procesy, operacje na plikach
 - email     : czytanie, wysyłanie, zarządzanie pocztą
 - search    : wyszukiwanie informacji, research
-- file      : czytanie i zapisywanie plików
 
-Odpowiedz TYLKO jednym słowem: terminal, email, search lub file.
+Odpowiedz TYLKO jednym słowem: terminal, email lub search.
 Nie dodawaj żadnych innych słów ani znaków."""
 
-VALID_ROUTES = {"terminal", "email", "search", "file"}
+VALID_ROUTES = {"terminal", "email", "search"}
 
 
 class Orchestrator:
