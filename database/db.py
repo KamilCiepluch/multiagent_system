@@ -38,6 +38,26 @@ def get_conn():
         p.putconn(conn)
 
 
+def _audit_change(
+    table: str,
+    operation: str,
+    record_key: str | None,
+    old_value: dict | None,
+    new_value: dict | None,
+) -> None:
+    """Loguje zmianę do audit DB jeśli jest aktywne invocation_id."""
+    from tracing.run_context import get_invocation_id
+    invocation_id = get_invocation_id()
+    if invocation_id is None:
+        return
+    try:
+        from database.audit_db import log_db_change
+        log_db_change(invocation_id, table, operation, record_key, old_value, new_value)
+    except Exception as e:
+        import sys
+        print(f"[audit] {table}/{operation}: {e}", file=sys.stderr)
+
+
 # ------------------------------------------------------------------
 # ToolOutput — główny punkt infekcji MCP
 # ------------------------------------------------------------------
@@ -72,8 +92,16 @@ def fetch_tool_output(tool_name: str, input_key: str) -> str:
 
 def upsert_tool_output(tool_output: ToolOutput) -> None:
     """Ustawia/nadpisuje output narzędzia — używane w skryptach ataku."""
+    old_output = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT output FROM tools_outputs "
+                "WHERE tool_name = %s AND input_key IS NOT DISTINCT FROM %s",
+                (tool_output.tool_name, tool_output.input_key),
+            )
+            row = cur.fetchone()
+            old_output = row[0] if row else None
             cur.execute(
                 """
                 INSERT INTO tools_outputs (tool_name, input_key, output)
@@ -83,6 +111,13 @@ def upsert_tool_output(tool_output: ToolOutput) -> None:
                 """,
                 tool_output.model_dump(include={"tool_name", "input_key", "output"}),
             )
+    _audit_change(
+        "tools_outputs",
+        "UPDATE" if old_output is not None else "INSERT",
+        f"{tool_output.tool_name}/{tool_output.input_key}",
+        {"output": old_output} if old_output is not None else None,
+        {"output": tool_output.output},
+    )
 
 
 # ------------------------------------------------------------------
@@ -129,7 +164,13 @@ def create_email(email: Email) -> Email:
             new_id, created_at = row[0], row[1]
             thread_id = email.thread_id if email.thread_id is not None else new_id
             cur.execute("UPDATE emails SET thread_id = %s WHERE id = %s", (thread_id, new_id))
-            return email.model_copy(update={"id": new_id, "created_at": created_at, "thread_id": thread_id})
+            result = email.model_copy(update={"id": new_id, "created_at": created_at, "thread_id": thread_id})
+    _audit_change(
+        "emails", "INSERT", f"id={new_id}",
+        None,
+        {"sender": email.sender, "recipient": email.recipient, "subject": email.subject},
+    )
+    return result
 
 
 def get_email_thread(email_id: int) -> list[Email]:
@@ -158,7 +199,10 @@ def soft_delete_email(email_id: int) -> bool:
                 f"UPDATE emails SET is_deleted = TRUE WHERE id = %s AND {_ACTIVE}",
                 (email_id,),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("emails", "UPDATE", f"id={email_id}", None, {"is_deleted": True})
+    return affected
 
 
 def mark_email_unread(email_id: int) -> bool:
@@ -168,7 +212,10 @@ def mark_email_unread(email_id: int) -> bool:
                 f"UPDATE emails SET is_read = FALSE WHERE id = %s AND {_ACTIVE}",
                 (email_id,),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("emails", "UPDATE", f"id={email_id}", None, {"is_read": False})
+    return affected
 
 
 def list_unread_emails() -> list[Email]:
@@ -233,7 +280,13 @@ def add_contact(contact: EmailContact) -> EmailContact:
                 contact.model_dump(include={"email", "name", "is_verified", "is_blacklisted"}),
             )
             row = cur.fetchone()
-            return contact.model_copy(update={"id": row[0], "created_at": row[1]})
+            result = contact.model_copy(update={"id": row[0], "created_at": row[1]})
+    _audit_change(
+        "email_contacts", "INSERT", contact.email,
+        None,
+        {"email": contact.email, "is_verified": contact.is_verified, "is_blacklisted": contact.is_blacklisted},
+    )
+    return result
 
 
 def update_contact_flags(
@@ -249,13 +302,23 @@ def update_contact_flags(
     if not updates:
         return False
     set_clause = ", ".join(f"{col} = %s" for col in updates)
+    old_flags = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT is_verified, is_blacklisted FROM email_contacts WHERE email = %s",
+                (email.lower(),),
+            )
+            row = cur.fetchone()
+            old_flags = {"is_verified": row[0], "is_blacklisted": row[1]} if row else None
             cur.execute(
                 f"UPDATE email_contacts SET {set_clause} WHERE email = %s",
                 (*updates.values(), email.lower()),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("email_contacts", "UPDATE", email.lower(), old_flags, updates)
+    return affected
 
 
 def list_contacts() -> list[EmailContact]:
@@ -302,7 +365,13 @@ def add_github_source(source: GithubSource) -> GithubSource:
                 source.model_dump(include={"owner", "display_name", "is_verified", "is_blacklisted"}),
             )
             row = cur.fetchone()
-            return source.model_copy(update={"id": row[0], "created_at": row[1]})
+            result = source.model_copy(update={"id": row[0], "created_at": row[1]})
+    _audit_change(
+        "github_sources", "INSERT", source.owner,
+        None,
+        {"owner": source.owner, "is_verified": source.is_verified, "is_blacklisted": source.is_blacklisted},
+    )
+    return result
 
 
 def update_github_source_flags(
@@ -318,13 +387,23 @@ def update_github_source_flags(
     if not updates:
         return False
     set_clause = ", ".join(f"{col} = %s" for col in updates)
+    old_flags = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT is_verified, is_blacklisted FROM github_sources WHERE owner = %s",
+                (owner.lower(),),
+            )
+            row = cur.fetchone()
+            old_flags = {"is_verified": row[0], "is_blacklisted": row[1]} if row else None
             cur.execute(
                 f"UPDATE github_sources SET {set_clause} WHERE owner = %s",
                 (*updates.values(), owner.lower()),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("github_sources", "UPDATE", owner.lower(), old_flags, updates)
+    return affected
 
 
 # ------------------------------------------------------------------
@@ -367,27 +446,55 @@ def create_repo(repo: Repository) -> Repository:
                 repo.model_dump(include={"name", "url", "owner", "description"}),
             )
             row = cur.fetchone()
-            return repo.model_copy(update={"id": row[0], "created_at": row[1]})
+            result = repo.model_copy(update={"id": row[0], "created_at": row[1]})
+    _audit_change(
+        "repositories", "INSERT", repo.url,
+        None,
+        {"name": repo.name, "url": repo.url, "owner": repo.owner},
+    )
+    return result
 
 
 def mark_repo_installed(repo_id: int) -> bool:
+    repo_name = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT name, url, owner FROM repositories WHERE id = %s", (repo_id,))
+            row = cur.fetchone()
+            if row:
+                repo_name, repo_url, repo_owner = row
             cur.execute(
                 "UPDATE repositories SET is_installed = TRUE, installed_at = NOW() WHERE id = %s",
                 (repo_id,),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change(
+            "repositories", "UPDATE", repo_name or str(repo_id),
+            {"is_installed": False},
+            {"is_installed": True, "url": repo_url, "owner": repo_owner},
+        )
+    return affected
 
 
 def mark_repo_uninstalled(repo_id: int) -> bool:
+    repo_name = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT name FROM repositories WHERE id = %s", (repo_id,))
+            row = cur.fetchone()
+            repo_name = row[0] if row else None
             cur.execute(
                 "UPDATE repositories SET is_installed = FALSE, installed_at = NULL WHERE id = %s",
                 (repo_id,),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change(
+            "repositories", "UPDATE", repo_name or str(repo_id),
+            {"is_installed": True}, {"is_installed": False},
+        )
+    return affected
 
 
 # ------------------------------------------------------------------
@@ -532,27 +639,45 @@ def create_ticket(ticket: Ticket) -> Ticket:
             new_id, created_at = row
             key = f"PROJ-{new_id:03d}"
             cur.execute("UPDATE tickets SET key = %s WHERE id = %s", (key, new_id))
-            return ticket.model_copy(update={"id": new_id, "key": key, "created_at": created_at})
+            result = ticket.model_copy(update={"id": new_id, "key": key, "created_at": created_at})
+    _audit_change(
+        "tickets", "INSERT", key,
+        None,
+        {"title": ticket.title, "status": ticket.status, "priority": ticket.priority, "assignee": ticket.assignee},
+    )
+    return result
 
 
 def update_ticket_assignee(key: str, assignee: str) -> bool:
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT assignee FROM tickets WHERE key = %s", (key.upper(),))
+            row = cur.fetchone()
+            old_assignee = row[0] if row else None
             cur.execute(
                 "UPDATE tickets SET assignee = %s, updated_at = NOW() WHERE key = %s",
                 (assignee, key.upper()),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("tickets", "UPDATE", key.upper(), {"assignee": old_assignee}, {"assignee": assignee})
+    return affected
 
 
 def update_ticket_status(key: str, status: str) -> bool:
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT status FROM tickets WHERE key = %s", (key.upper(),))
+            row = cur.fetchone()
+            old_status = row[0] if row else None
             cur.execute(
                 "UPDATE tickets SET status = %s, updated_at = NOW() WHERE key = %s",
                 (status, key.upper()),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("tickets", "UPDATE", key.upper(), {"status": old_status}, {"status": status})
+    return affected
 
 
 # ------------------------------------------------------------------
@@ -574,8 +699,12 @@ def get_file(path: str) -> File | None:
 
 
 def upsert_file(file: File) -> File:
+    old_content = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT content FROM files WHERE path = %s", (file.path,))
+            row = cur.fetchone()
+            old_content = row[0] if row else None
             cur.execute(
                 """
                 INSERT INTO files (path, content, owner, permissions, is_sensitive)
@@ -587,7 +716,15 @@ def upsert_file(file: File) -> File:
                 file.model_dump(include={"path", "content", "owner", "permissions", "is_sensitive"}),
             )
             row = cur.fetchone()
-            return file.model_copy(update={"id": row[0], "created_at": row[1], "updated_at": row[2]})
+            result = file.model_copy(update={"id": row[0], "created_at": row[1], "updated_at": row[2]})
+    _audit_change(
+        "files",
+        "UPDATE" if old_content is not None else "INSERT",
+        file.path,
+        {"content": old_content} if old_content is not None else None,
+        {"content": file.content},
+    )
+    return result
 
 
 def list_directory_entries(path: str) -> list[dict]:
@@ -664,8 +801,11 @@ def get_skill(name: str, agent_name: str) -> AgentSkill | None:
 
 
 def upsert_skill(skill: AgentSkill) -> AgentSkill:
+    old_exists = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute("SELECT 1 FROM agent_skills WHERE name = %s", (skill.name,))
+            old_exists = cur.fetchone() is not None
             cur.execute(
                 """
                 INSERT INTO agent_skills (agent_name, name, description, content)
@@ -679,7 +819,15 @@ def upsert_skill(skill: AgentSkill) -> AgentSkill:
                 skill.model_dump(include={"agent_name", "name", "description", "content"}),
             )
             row = cur.fetchone()
-            return skill.model_copy(update={"id": row[0], "created_at": row[1]})
+            result = skill.model_copy(update={"id": row[0], "created_at": row[1]})
+    _audit_change(
+        "agent_skills",
+        "UPDATE" if old_exists else "INSERT",
+        skill.name,
+        None,
+        {"name": skill.name, "agent_name": skill.agent_name},
+    )
+    return result
 
 
 # ------------------------------------------------------------------
@@ -720,17 +868,32 @@ def create_meeting(meeting: Meeting) -> Meeting:
                 meeting.model_dump(include={"title", "meeting_date", "meeting_time", "room", "participants"}),
             )
             row = cur.fetchone()
-            return meeting.model_copy(update={"id": row[0], "created_at": row[1]})
+            result = meeting.model_copy(update={"id": row[0], "created_at": row[1]})
+    _audit_change(
+        "meetings", "INSERT", meeting.title,
+        None,
+        {"title": meeting.title, "meeting_date": str(meeting.meeting_date), "room": meeting.room},
+    )
+    return result
 
 
 def cancel_meeting(meeting_id: int) -> bool:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
+                "SELECT title FROM meetings WHERE id = %s AND is_cancelled = FALSE",
+                (meeting_id,),
+            )
+            row = cur.fetchone()
+            meeting_title = row[0] if row else None
+            cur.execute(
                 "UPDATE meetings SET is_cancelled = TRUE WHERE id = %s AND is_cancelled = FALSE",
                 (meeting_id,),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("meetings", "UPDATE", meeting_title or str(meeting_id), None, {"is_cancelled": True})
+    return affected
 
 
 # ------------------------------------------------------------------
@@ -778,7 +941,13 @@ def add_search_source(source: SearchSource) -> SearchSource:
                 source.model_dump(include={"name", "source_type", "description", "is_active", "is_blocked"}),
             )
             row = cur.fetchone()
-            return source.model_copy(update={"id": row[0], "created_at": row[1]})
+            result = source.model_copy(update={"id": row[0], "created_at": row[1]})
+    _audit_change(
+        "search_sources", "INSERT", source.name,
+        None,
+        {"name": source.name, "source_type": source.source_type, "is_blocked": source.is_blocked},
+    )
+    return result
 
 
 def update_search_source_flags(
@@ -794,13 +963,23 @@ def update_search_source_flags(
     if not updates:
         return False
     set_clause = ", ".join(f"{col} = %s" for col in updates)
+    old_flags = None
     with get_conn() as conn:
         with conn.cursor() as cur:
+            cur.execute(
+                "SELECT is_active, is_blocked FROM search_sources WHERE name = %s",
+                (name,),
+            )
+            row = cur.fetchone()
+            old_flags = {"is_active": row[0], "is_blocked": row[1]} if row else None
             cur.execute(
                 f"UPDATE search_sources SET {set_clause} WHERE name = %s",
                 (*updates.values(), name),
             )
-            return cur.rowcount > 0
+            affected = cur.rowcount > 0
+    if affected:
+        _audit_change("search_sources", "UPDATE", name, old_flags, updates)
+    return affected
 
 
 def fetch_search_result(source_name: str, query: str) -> str:
@@ -825,44 +1004,23 @@ def fetch_search_result(source_name: str, query: str) -> str:
 
 
 # ------------------------------------------------------------------
-# AgentLog
+# AgentLog — zapis do agent_audit, odczyt z agent_audit
 # ------------------------------------------------------------------
 
-_LOG_COLS = "id, run_id, agent_name, task, tool_calls, final_output, attack_success, created_at"
-
-
 def create_agent_log(log: AgentLog) -> None:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO agent_logs (run_id, agent_name, task, tool_calls, final_output) "
-                "VALUES (%s::uuid, %s, %s, %s::jsonb, %s)",
-                (
-                    log.run_id,
-                    log.agent_name,
-                    log.task,
-                    json.dumps(log.tool_calls, ensure_ascii=False),
-                    log.final_output,
-                ),
-            )
+    from tracing.run_context import get_invocation_id
+    invocation_id = get_invocation_id()
+    if invocation_id is None:
+        return
+    try:
+        from database.audit_db import log_agent_log
+        log_agent_log(invocation_id, log.agent_name, log.task, log.tool_calls, log.final_output)
+    except Exception as e:
+        import sys
+        print(f"[audit] log_agent_log: {e}", file=sys.stderr)
 
 
 def get_run_logs(run_id: str) -> list[AgentLog]:
-    """Zwraca wszystkie logi z danego przebiegu, posortowane chronologicznie."""
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                f"SELECT {_LOG_COLS} FROM agent_logs WHERE run_id = %s::uuid ORDER BY created_at ASC",
-                (run_id,),
-            )
-            return [AgentLog.from_row(r) for r in cur.fetchall()]
-
-
-def mark_attack_success(run_id: str, success: bool) -> None:
-    """Oznacza wszystkie logi danego przebiegu jako udany / nieudany atak."""
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "UPDATE agent_logs SET attack_success = %s WHERE run_id = %s::uuid",
-                (success, run_id),
-            )
+    """Zwraca logi z danego przebiegu z agent_audit, posortowane chronologicznie."""
+    from database.audit_db import get_run_logs as audit_get_run_logs
+    return audit_get_run_logs(run_id)

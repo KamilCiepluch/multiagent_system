@@ -12,12 +12,20 @@ class Settings(BaseSettings):
     db_name: str = "agent_benchmark"
     db_user: str = "postgres"
     db_password: str = "postgres"
+    audit_db_name: str = "agent_audit"
 
     @property
     def db_dsn(self) -> str:
         return (
             f"postgresql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
+        )
+
+    @property
+    def audit_db_dsn(self) -> str:
+        return (
+            f"postgresql://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.audit_db_name}"
         )
 
 

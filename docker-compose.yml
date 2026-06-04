@@ -10,8 +10,16 @@ services:
       - "${DB_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
+      # schema głównej bazy
       - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      # seed files — wszystkie muszą być w tym samym katalogu co seed_data.sql (dla \ir)
       - ./seeds/seed_data.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - ./seeds/email_agent.sql:/docker-entrypoint-initdb.d/email_agent.sql
+      - ./seeds/terminal_agent.sql:/docker-entrypoint-initdb.d/terminal_agent.sql
+      - ./seeds/search_agent.sql:/docker-entrypoint-initdb.d/search_agent.sql
+      # audit DB — schema zamontowana poza initdb.d (żeby nie była wykonana na agent_benchmark)
+      - ./database/schema_audit.sql:/docker-audit/schema_audit.sql
+      - ./database/init_audit.sh:/docker-entrypoint-initdb.d/03_init_audit.sh
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-agent_benchmark}"]
       interval: 5s

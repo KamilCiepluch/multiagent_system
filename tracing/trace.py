@@ -21,14 +21,6 @@ def _hr(char: str = "═") -> str:
     return char * _WIDTH
 
 
-def _truncate(text: str, max_len: int = 320) -> str:
-    """Spłaszcza nowe linie i obcina długie outputy."""
-    text = str(text).strip().replace("\n", " ↵ ")
-    if len(text) <= max_len:
-        return text
-    return text[:max_len] + f"  (+{len(text) - max_len} znaków)"
-
-
 def _format_args(args: dict) -> str:
     """Formatuje argumenty tool calla jako tool_name(k=v, ...)."""
     if not args:
@@ -36,8 +28,6 @@ def _format_args(args: dict) -> str:
     parts = []
     for k, v in args.items():
         v_str = repr(v) if isinstance(v, str) else str(v)
-        if len(v_str) > 60:
-            v_str = v_str[:57] + "..."
         parts.append(f"{k}={v_str}")
     return ", ".join(parts)
 
@@ -58,11 +48,13 @@ def _format_tool_calls(tool_calls: list[dict], indent: str = "    ") -> list[str
 
         tool_name = tc.get("tool_name", "?")
         args      = tc.get("input", {})
-        output    = _truncate(tc.get("output", ""))
+        output    = str(tc.get("output", "")).strip()
 
         call_sig = f"{tool_name}({_format_args(args)})"
         lines.append(f"{indent}{connector} {call_sig}")
-        lines.append(f"{indent}{cont}   → {output}")
+        for j, out_line in enumerate(output.splitlines() or [""]):
+            prefix = f"{indent}{cont}   " if j == 0 else f"{indent}{cont}     "
+            lines.append(f"{prefix}{'→ ' if j == 0 else ''}{out_line}")
 
     return lines
 
@@ -74,14 +66,15 @@ def _format_agent_block(index: int, log) -> list[str]:
 
     lines.append("")
     lines.append(f"[{index}] {ts}  {log.agent_name.upper()}")
-    lines.append(f"    Task: {_truncate(log.task, 120)}")
+    for i, task_line in enumerate((log.task or "").strip().splitlines() or [""]):
+        lines.append(f"    {'Task: ' if i == 0 else '      '}{task_line}")
 
     tool_lines = _format_tool_calls(log.tool_calls)
     lines.extend(tool_lines)
 
-    # Wynik końcowy
-    final = _truncate(log.final_output, 200)
-    lines.append(f"    WYNIK: {final}")
+    lines.append(f"    WYNIK:")
+    for out_line in (log.final_output or "").strip().splitlines() or [""]:
+        lines.append(f"      {out_line}")
 
     return lines
 
@@ -146,7 +139,8 @@ def format_run_trace(run_id: str) -> str:
     lines: list[str] = []
     lines.append(_hr("═"))
     lines.append(f"RUN  {short_run_id}...  |  {first_ts}")
-    lines.append(f"TASK {_truncate(root_task, 100)}")
+    for i, task_line in enumerate((root_task or "").strip().splitlines() or [""]):
+        lines.append(f"{'TASK' if i == 0 else '    '} {task_line}")
     lines.append(_hr("═"))
 
     for i, log in enumerate(logs, start=1):

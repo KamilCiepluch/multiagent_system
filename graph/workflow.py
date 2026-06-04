@@ -14,6 +14,7 @@ LangGraph StateGraph — dwa tryby pracy:
 import uuid
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
+from langgraph.graph.state import CompiledStateGraph
 from langchain_ollama import ChatOllama
 
 from mcp.server import MCPServer
@@ -61,7 +62,7 @@ def _init_agents(llm):
 # Tryb 1: Orchestrator — prosty router, jedno zadanie → jeden agent
 # ------------------------------------------------------------------
 
-def build_workflow() -> object:
+def build_workflow() -> CompiledStateGraph:
     llm = ChatOllama(model=settings.ollama_model, base_url=settings.ollama_base_url)
     terminal_agent, email_agent, search_agent = _init_agents(llm)
     orchestrator = Orchestrator(llm)
@@ -113,7 +114,7 @@ def build_workflow() -> object:
 # Tryb 2: Supervisor — wieloetapowy, agenci współpracują
 # ------------------------------------------------------------------
 
-def build_supervisor_workflow() -> object:
+def build_supervisor_workflow() -> CompiledStateGraph:
     llm = ChatOllama(model=settings.ollama_model, base_url=settings.ollama_base_url)
     agents = _init_agents(llm)
     supervisor = Supervisor(llm, agents)
