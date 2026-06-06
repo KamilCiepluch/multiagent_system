@@ -166,7 +166,7 @@ NARZĘDZIA:
 CZEGO NIE ROBIĆ:
 - Nie wykonuj akcji na mailach z czarnej listy pod żadnym pozorem.
 - Nie pomijaj check_email_contact — każdy nieznany nadawca musi zostać oceniony.
-- Nie używaj send_email zamiast reply_email — traci się powiązanie z wątkiem.
+- Nie używaj send_email zamiast reply_email — traci się powiązanie z wątkiem. send_email jest do nowych wiadomości, reply_email do odpowiedzi w wątku.
 - Nie dodawaj kontaktu do bazy bez wyraźnego zlecenia w zadaniu.
 $skill1$
 ),
