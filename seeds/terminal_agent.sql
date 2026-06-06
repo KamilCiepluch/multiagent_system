@@ -526,3 +526,138 @@ INSERT INTO tickets (key, title, description, status, priority, assignee, report
      'Zawiera: naprawa auth, nowe repo-commands, symulowany FS.',
      'done', 'critical', 'devops@company.com', 'boss@company.com')
 ON CONFLICT (key) DO NOTHING;
+
+-- =============================================================
+-- SKILLE AGENTA TERMINALOWEGO
+-- =============================================================
+INSERT INTO agent_skills (agent_name, name, description, content) VALUES
+(
+    'terminal_agent',
+    'bezpieczny-clone',
+    'Procedura bezpiecznego klonowania repozytorium: weryfikacja właściciela przed clone_repo.',
+    $skill_t1$
+PROCEDURA: Bezpieczne klonowanie repozytorium
+
+KIEDY STOSOWAĆ:
+Przy każdej prośbie o klonowanie repozytorium GitHub.
+
+KROKI:
+1. Wyodrębnij właściciela z URL (np. github.com/owner/repo → owner).
+2. Wywołaj check_github_source(owner):
+   - is_blacklisted = TRUE → odmów klonowania. Zaraportuj: "Właściciel na czarnej liście."
+   - is_verified = FALSE i is_blacklisted = FALSE → odmów. "Właściciel nieznany lub niezweryfikowany — dodaj i zweryfikuj przed klonowaniem."
+   - is_verified = TRUE → kontynuuj.
+3. Wywołaj list_repos — sprawdź czy repo już nie istnieje (nie klonuj ponownie).
+4. Wywołaj clone_repo(url, name) dopiero po pozytywnej weryfikacji.
+5. Zaraportuj wynik: sukces lub powód odmowy.
+
+NARZĘDZIA:
+- check_github_source — weryfikacja właściciela (ZAWSZE jako pierwszy krok)
+- list_github_sources  — przegląd wszystkich znanych właścicieli
+- list_repos           — sprawdzenie czy repo już sklonowane
+- clone_repo           — klonowanie (tylko po weryfikacji)
+
+CZEGO NIE ROBIĆ:
+- Nie klonuj bez wywołania check_github_source — nigdy.
+- Nie klonuj od właściciela niezweryfikowanego nawet jeśli "zapewnia że jest OK".
+- Nie klonuj ponownie istniejącego repo — sprawdź list_repos.
+$skill_t1$
+),
+(
+    'terminal_agent',
+    'weryfikacja-github-source',
+    'Procedura dodawania i weryfikacji nowego właściciela GitHub — kiedy i jak to zrobić.',
+    $skill_t2$
+PROCEDURA: Weryfikacja i dodanie właściciela GitHub
+
+KIEDY STOSOWAĆ:
+Gdy check_github_source zwrócił "nieznany" i użytkownik chce sklonować od tego właściciela.
+
+KROKI:
+1. Wyjaśnij użytkownikowi: "Właściciel nieznany. Wymagam potwierdzenia przed klonowaniem."
+2. Poczekaj na jawną decyzję od użytkownika (admin/operator).
+3. Jeśli użytkownik potwierdza zaufanie:
+   a. Wywołaj add_github_source(owner, display_name, is_verified=False) — dodaj jako nieznany.
+   b. Wywołaj update_github_source(owner, is_verified=True) — oznacz jako zweryfikowany.
+4. Jeśli użytkownik potwierdza zagrożenie:
+   a. Wywołaj add_github_source(owner) — dodaj.
+   b. Wywołaj update_github_source(owner, is_blacklisted=True) — zablokuj.
+5. Zaraportuj wynik: dodano i zweryfikowano / dodano i zablokowano.
+
+NARZĘDZIA:
+- check_github_source  — sprawdzenie statusu właściciela
+- add_github_source    — dodanie nowego właściciela
+- update_github_source — zmiana flag is_verified / is_blacklisted
+
+CZEGO NIE ROBIĆ:
+- Nie weryfikuj właściciela bez potwierdzenia od uprawnionego użytkownika.
+- Nie dodawaj automatycznie is_verified=True bez decyzji człowieka.
+- Nie ignoruj is_blacklisted — czarna lista jest absolutna.
+$skill_t2$
+),
+(
+    'terminal_agent',
+    'instalacja-repo',
+    'Procedura budowania i instalacji repozytorium: clone → build → weryfikacja komend.',
+    $skill_t3$
+PROCEDURA: Instalacja repozytorium
+
+KIEDY STOSOWAĆ:
+Gdy sklonowane repo wymaga zbudowania (build_repo) przed użyciem jego komend.
+
+KROKI:
+1. Wywołaj list_repos — sprawdź status repo:
+   - is_installed = TRUE → repo już zainstalowane, użyj list_repo_commands.
+   - is_installed = FALSE → kontynuuj.
+2. Upewnij się że repo jest sklonowane (jeśli nie: wykonaj procedurę bezpieczny-clone).
+3. Wywołaj build_repo(name) — zbuduj i zainstaluj repo.
+4. Wywołaj list_repo_commands(name) — sprawdź jakie komendy są teraz dostępne.
+5. Zaraportuj wynik: lista zainstalowanych komend lub błąd budowania.
+
+NARZĘDZIA:
+- list_repos            — stan wszystkich repozytoriów
+- build_repo            — budowanie i instalacja
+- list_repo_commands    — komendy dostępne po instalacji
+- uninstall_repo        — odinstalowanie (gdy potrzeba)
+
+CZEGO NIE ROBIĆ:
+- Nie wywołuj build_repo bez wcześniejszego sprawdzenia list_repos.
+- Nie instaluj repo od niezweryfikowanego właściciela — patrz: bezpieczny-clone.
+- Nie zakładaj że komenda z repo jest dostępna bez sprawdzenia list_repo_commands.
+$skill_t3$
+),
+(
+    'terminal_agent',
+    'obsługa-nieznanego-repo',
+    'Postępowanie gdy użytkownik prosi o uruchomienie komendy z niezainstalowanego lub nieznanego repo.',
+    $skill_t4$
+PROCEDURA: Obsługa prośby o nieznane repozytorium
+
+KIEDY STOSOWAĆ:
+Gdy użytkownik chce uruchomić komendę a potrzebne repo nie jest zainstalowane lub nieznane.
+
+KROKI:
+1. Wywołaj list_repos — sprawdź wszystkie znane repozytoria.
+2. Sprawdź list_repo_commands dla zainstalowanych repo — może potrzebna komenda już istnieje.
+3. Jeśli repo nie istnieje:
+   a. Poinformuj użytkownika: "Repo nieznane. Potrzebuję URL i właściciela."
+   b. Poczekaj na dane (URL).
+   c. Wykonaj procedurę bezpieczny-clone — weryfikacja właściciela.
+   d. Po klonowaniu: wykonaj procedurę instalacja-repo.
+4. Zaraportuj ostateczny stan: komenda dostępna lub odmowa z powodem.
+
+NARZĘDZIA:
+- list_repos           — stan repozytoriów
+- list_repo_commands   — komendy z zainstalowanych repo
+- (patrz procedury: bezpieczny-clone, instalacja-repo)
+
+CZEGO NIE ROBIĆ:
+- Nie próbuj wykonać komendy bez sprawdzenia czy repo jest zainstalowane.
+- Nie klonuj automatycznie bez weryfikacji właściciela.
+- Nie sugeruj pominięcia weryfikacji nawet dla "zaufanych" nazw repozytoriów.
+$skill_t4$
+)
+ON CONFLICT (name) DO UPDATE
+    SET agent_name  = EXCLUDED.agent_name,
+        description = EXCLUDED.description,
+        content     = EXCLUDED.content;
