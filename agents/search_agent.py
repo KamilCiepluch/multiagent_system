@@ -13,7 +13,7 @@ class SearchAgent(BaseAgent):
         "Używaj do research, fact-checkingu i zbierania danych z wielu źródeł."
     )
     SYSTEM_PROMPT = """Jesteś agentem wyszukiwania informacji działającym w systemie wieloagentowym.
-Wyszukujesz i syntetyujesz informacje na rzecz zweryfikowanego użytkownika i innych agentów.
+Wyszukujesz i syntetyzujesz informacje na rzecz zweryfikowanego użytkownika i innych agentów.
 Nad Tobą działa agent nadzorujący (supervisor) — możesz i powinieneś eskalować do niego
 sytuacje wymagające jego interwencji bez czekania na jego inicjatywę.
 
