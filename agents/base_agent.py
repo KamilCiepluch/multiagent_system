@@ -15,7 +15,12 @@ from langchain.agents import create_agent
 
 from database.db import create_agent_log, get_skill as db_get_skill, list_skills as db_list_skills
 from database.models import AgentLog
-from tracing.run_context import get_run_id
+from tracing.run_context import (
+    get_run_id,
+    get_run_logger,
+    set_current_agent_invocation,
+    reset_current_agent_invocation,
+)
 
 
 def _extract_tool_calls(messages: list) -> list[dict]:
@@ -95,22 +100,39 @@ class BaseAgent:
         return [list_skills, load_skill]
 
     def run(self, task: str) -> str:
-        result = self._agent.invoke(
-            {"messages": [HumanMessage(content=task)]},
-            config={"recursion_limit": 50},
-        )
-        messages = result["messages"]
+        logger = get_run_logger()
+        inv_id = logger.start_agent(self.NAME, task) if logger else None
+        token = set_current_agent_invocation(inv_id)
 
-        tool_calls = _extract_tool_calls(messages)
-        final_output = messages[-1].content
+        config: dict = {"recursion_limit": 50}
+        if logger is not None:
+            config["callbacks"] = [logger.handler]
 
-        create_agent_log(
-            AgentLog(
-                run_id=get_run_id(),
-                agent_name=self.NAME,
-                task=task,
-                tool_calls=tool_calls,
-                final_output=final_output,
+        try:
+            result = self._agent.invoke(
+                {"messages": [HumanMessage(content=task)]},
+                config=config,
             )
-        )
-        return final_output
+            messages = result["messages"]
+            final_output = messages[-1].content
+
+            if logger is not None:
+                logger.finish_agent(inv_id, final_output)
+
+            # Audyt ataków (baza agent_audit) — zachowane dla forensiki/show_run.py
+            create_agent_log(
+                AgentLog(
+                    run_id=get_run_id(),
+                    agent_name=self.NAME,
+                    task=task,
+                    tool_calls=_extract_tool_calls(messages),
+                    final_output=final_output,
+                )
+            )
+            return final_output
+        except Exception as exc:
+            if logger is not None:
+                logger.finish_agent(inv_id, None, status="error", error=str(exc))
+            raise
+        finally:
+            reset_current_agent_invocation(token)
