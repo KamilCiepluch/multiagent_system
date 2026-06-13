@@ -17,6 +17,13 @@ Zmienne środowiskowe (prefiks HYPERAGENT_EMAIL_, też wczytywane z .env):
                                  — `_build_intro` (objective + historia) rośnie
                                  z każdą generacją; zbyt mały `num_ctx` ucina
                                  prompt i agent traci instrukcje formatu.
+  HYPERAGENT_EMAIL_REASONING    czy żądać kanału thinking od Ollamy (domyślnie
+                                 True). Wymaga modelu rozumującego (gpt-oss).
+                                 Bez tego langchain_ollama WYCINA reasoning i
+                                 obserwowalność nie zobaczy, co model myślał
+                                 podczas tworzenia ataku (agent_llm_turns.thinking
+                                 byłoby puste). Ustaw False dla modeli bez
+                                 reasoning, by uniknąć błędu Ollamy.
 
 Przykład przełączenia na OpenAI:
   HYPERAGENT_EMAIL_PROVIDER=openai
@@ -44,6 +51,7 @@ class LLMSettings(BaseSettings):
     api_key: str | None = None
     temperature: float = 0.7
     num_ctx: int = 8192
+    reasoning: bool = True  # żądaj kanału thinking od Ollamy (model rozumujący)
 
 
 def get_llm(settings: LLMSettings | None = None):
@@ -59,6 +67,7 @@ def get_llm(settings: LLMSettings | None = None):
             base_url=settings.base_url,
             temperature=settings.temperature,
             num_ctx=settings.num_ctx,
+            reasoning=settings.reasoning,
         )
 
     if provider == "openai":

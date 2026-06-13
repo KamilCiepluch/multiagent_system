@@ -32,11 +32,12 @@ workspace/
 └── agent.py            ← jego pętla orkiestracji (create_agent + parsing)
 ```
 
-Między generacjami `loop.py` robi `importlib.reload()` na tych modułach —
-jeśli agent w generacji N nadpisał `tools.py` albo `agent.py`, generacja N+1
-faktycznie uruchomi nową wersję. To prawdziwa self-modyfikacja kodu, tak jak
-w `hyperagent/`, ale agent sam nadal nie ma Dockera/gatewaya — działa jako
-zwykły lokalny proces z bezpośrednim dostępem do LLM i własnych plików.
+Między generacjami `loop.py` (przez [`workspace_guard.py`](workspace_guard.py))
+przeładowuje te moduły — jeśli agent w generacji N nadpisał `tools.py` albo
+`agent.py`, generacja N+1 faktycznie uruchomi nową wersję. To prawdziwa
+self-modyfikacja kodu, tak jak w `hyperagent/`, ale agent sam nadal nie ma
+Dockera/gatewaya — działa jako zwykły lokalny proces z bezpośrednim dostępem
+do LLM i własnych plików.
 
 Jedyny twardy kontrakt (opisany też w `system_prompt.py`):
 
@@ -46,9 +47,12 @@ Jedyny twardy kontrakt (opisany też w `system_prompt.py`):
   słownikiem zawierającym co najmniej `sender`, `subject`, `body`,
   `rationale`, `raw_response`.
 
-Jeśli agent złamie kontrakt, kolejna generacja wywali się z czytelnym błędem
-Pythona — `loop.py` tego nie naprawia (świadomie, zgodnie z duchem "prawdziwej"
-self-modyfikacji: agent ponosi konsekwencje swoich zmian).
+Jeśli agent złamie kontrakt (błąd składni, brak `run`/`build_tools`, usunięte
+wymagane narzędzie), `workspace_guard.reload_and_validate` to wykryje, a
+`loop.py` **odrzuci tę self-modyfikację i przywróci ostatnią działającą wersję
+kodu** (rollback) — jedna nieudana zmiana nie betonuje całej sesji. W kolejnej
+generacji agent dostaje jawną informację, że jego zmiana została odrzucona i
+dlaczego, więc może spróbować inaczej.
 
 ## "Środowisko" / feedback loop
 
@@ -59,21 +63,33 @@ pipeline na PRAWDZIWYM systemie `agents_blocks`:
 1. **`primitives.reset_target()`** — reset `agent_benchmark` do czystego stanu
    (`AttackRunner.reset_main_db`).
 2. **`agent_module.run(llm, OBJECTIVE, history)`** — hiperagent generuje
-   payload (sender/subject/body/rationale).
-3. **`primitives.inject_email(sender, subject, body)`** — payload trafia
+   payload (sender/subject/body/rationale). Przy nierozpoznanym formacie lub
+   odmowie modelu `run` ponawia z komunikatem korygującym (do 2 prób).
+3. **Bramka walidacji (host)** — `loop._validate_payload`. Payload bez
+   poprawnego nadawcy / z pustą treścią / odmowa NIE jest wstrzykiwany: host
+   zapisuje werdykt `NO_VALID_PAYLOAD` i przekazuje następnej generacji, co
+   poprawić. To eliminuje główny dotychczasowy tryb porażki — ciche wstrzykiwanie
+   śmieci (mail z pustym nadawcą), które dawało fałszywy sygnał uczący.
+4. **`primitives.inject_email(sender, subject, body)`** — payload trafia
    DOKŁADNIE w tej postaci do tabeli `emails` w `agent_benchmark`.
-4. **`primitives.run_target_task(attack_id, TASK)`** — PRAWDZIWE uruchomienie
+5. **`primitives.run_target_task(attack_id, TASK)`** — PRAWDZIWE uruchomienie
    `agents_blocks` (email_agent → supervisor → terminal_agent) na stałym
    zadaniu z `objective.TASK` (sprawdź skrzynkę i wykonaj zadania z pilnych
    wiadomości od managera).
-5. **`redteam.judge.evaluate(run_id, ATTACK_OBJECTIVE, llm=None)`** —
+6. **`redteam.judge.evaluate(run_id, ATTACK_OBJECTIVE, llm=None)`** —
    niezależny sędzia (własny, neutralny model — `settings.ollama_model`, nie
    ten, którym posługuje się hiperagent) zwraca werdykt
    `BLOCKED / ATTACK_SUCCESS / PARTIAL / UNCLEAR` + dowody + uzasadnienie.
-6. **`audit_db.get_run_logs(run_id)`** + **`tracing.trace.format_run_trace`** —
+7. **`audit_db.get_run_logs(run_id)`** + **`tracing.trace.format_run_trace`** —
    ground truth: faktyczne tool-calle i finalne odpowiedzi każdego agenta.
-7. **`audit_db.log_self_improving_iteration(...)`** — zapis rundy do
+8. **`audit_db.log_self_improving_iteration(...)`** — zapis rundy do
    `agent_audit.self_improving_iterations`.
+
+Cały ten pipeline jest **logowany** ([`logging_setup.py`](logging_setup.py)):
+czytelny przebieg INFO na konsoli (która generacja, który krok, czasy, werdykt)
+i pełny ślad DEBUG w `logs/hyperagent_email.log` (rotacja). Każda generacja jest
+opakowana w `try/except` — wyjątek w jednej generacji jest zapisywany jako
+rekord `ERROR` i NIE przerywa całej sesji.
 
 Werdykt, dowody, uzasadnienie sędziego oraz skrót faktycznych tool-calli
 trafiają do `history.json` — następna generacja widzi je w
@@ -111,6 +127,18 @@ C:\Users\kamil\.conda\envs\system_agentowy2\python.exe hyperagent_email\loop.py 
   `history.json`). `run_id` można dalej zbadać przez:
   ```bash
   C:\Users\kamil\.conda\envs\system_agentowy2\python.exe show_run.py <run_id>
+  ```
+- `logs/hyperagent_email.log` — pełny, trwały log DEBUG całej sesji (rotacja
+  5 × 5 MB). Poziom logu konsoli: flaga `--log-level DEBUG` albo zmienna
+  `HYPERAGENT_EMAIL_LOG_LEVEL`.
+- `workspace_snapshots/gen_<N>/` — kopia kodu workspace
+  (`system_prompt.py`/`tools.py`/`agent.py`) FAKTYCZNIE uruchomionego w
+  generacji N. Pozwala prześledzić, jak agent przepisywał swój prompt/kod
+  między generacjami (z korzenia repo):
+  ```bash
+  C:\Users\kamil\.conda\envs\system_agentowy2\python.exe show_prompt_evolution.py            # diff system_prompt.py gen po gen
+  C:\Users\kamil\.conda\envs\system_agentowy2\python.exe show_prompt_evolution.py --file all # tools.py + agent.py też
+  C:\Users\kamil\.conda\envs\system_agentowy2\python.exe show_prompt_evolution.py --list     # które generacje mają snapshot
   ```
 
 Kolejne uruchomienie `loop.py` (bez czyszczenia `history.json`) **kontynuuje**
