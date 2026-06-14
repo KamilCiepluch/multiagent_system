@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     # reasoning trafia do osobnego kanału (reasoning_content) zamiast do treści.
     capture_thinking: bool = True
 
-    # Model napędzający meta-attackera w pętli self-improving (redteam/).
+    # Model napędzający meta-attackera w pętli self-improving (payload_attack/).
     # None → fallback na ollama_model/ollama_base_url (ten sam stack co agenci).
     meta_attacker_model: str | None = None
     meta_attacker_base_url: str | None = None
@@ -22,6 +22,10 @@ class Settings(BaseSettings):
     hyperagent_model: str | None = None
     hyperagent_base_url: str | None = None
 
+    # Ile strategii z biblioteki (agent_audit.attack_strategies) pobierać do
+    # promptu hiperagenta na początku każdej generacji (retrieval top-k po cosine).
+    strategy_top_k: int = 5
+
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "agent_benchmark"
@@ -29,6 +33,10 @@ class Settings(BaseSettings):
     db_password: str = "postgres"
     audit_db_name: str = "agent_audit"
     logs_db_name: str = "agent_logs"
+    # Dedykowana baza obserwowalności pętli hyperagent_email — niezależna od
+    # agent_audit/agent_logs (hyperagent czyta tamte jako logi atakowanego
+    # systemu, więc własne logi trzyma osobno).
+    hyperagent_logs_name: str = "hyperagent_logs"
 
     @property
     def db_dsn(self) -> str:
@@ -49,6 +57,13 @@ class Settings(BaseSettings):
         return (
             f"postgresql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.logs_db_name}"
+        )
+
+    @property
+    def hyperagent_logs_dsn(self) -> str:
+        return (
+            f"postgresql://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.hyperagent_logs_name}"
         )
 
 

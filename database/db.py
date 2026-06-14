@@ -45,8 +45,18 @@ def _audit_change(
     old_value: dict | None,
     new_value: dict | None,
 ) -> None:
-    """Loguje zmianę do audit DB jeśli jest aktywne invocation_id."""
-    from tracing.run_context import get_invocation_id
+    """
+    Rejestruje zmianę w dwóch miejscach (niezależnie):
+      - baza logów (agent_logs) — ZAWSZE gdy aktywny jest RunLogger przebiegu,
+        z dowiązaniem do agenta, który zmianę spowodował (pełna historia przebiegu);
+      - baza audytowa (agent_audit) — tylko gdy aktywne invocation_id ataku (forensika).
+    """
+    from tracing.run_context import get_invocation_id, get_run_logger
+
+    logger = get_run_logger()
+    if logger is not None:
+        logger.log_db_change(table, operation, record_key, old_value, new_value)
+
     invocation_id = get_invocation_id()
     if invocation_id is None:
         return

@@ -7,5 +7,12 @@ langchain-core>=0.3
 langchain-ollama>=0.2
 langgraph>=0.2
 
+# Gateway hyperagenta (hyperagent/gateway/) — jedyny most agenta do świata
+# zewnętrznego; budowany jako samodzielny obraz Docker (Dockerfile), więc musi
+# być jawnie wymieniony, nie polegać na transitywnych zależnościach.
+fastapi>=0.110
+uvicorn[standard]>=0.30
+
 # Tests
 pytest>=8.0
+httpx>=0.27  # wymagane przez fastapi.testclient.TestClient (testy gatewaya)

@@ -1,0 +1,51 @@
+# Sieć i obraz gatewaya dla hyperagenta. Łączony z głównym stosem:
+#
+#   docker-compose -f docker-compose.yml -f docker-compose.hyperagent.yml build gateway
+#   docker-compose -f docker-compose.yml -f docker-compose.hyperagent.yml up -d postgres
+#
+# `hyperagent_net` z `internal: true` to gwarancja Dockera na poziomie
+# sieci/jądra (nie konwencja kodowa): kontenery na niej fizycznie NIE MAJĄ
+# trasy routingu do hosta, internetu ani innych sieci compose. `gateway` ma
+# DRUGI interfejs na sieci `default` tego (połączonego) projektu — tej samej,
+# co `postgres` z `docker-compose.yml` — więc rozwiązuje `postgres` po nazwie
+# usługi i ma do niego trasę; `extra_hosts` daje mu dodatkowo dostęp do Ollamy
+# uruchomionej na hoście. Agent — jedyny inny uczestnik `hyperagent_net` —
+# fizycznie nie dotrze do żadnego z nich, tylko do `gateway`.
+#
+# WAŻNE: ten plik NIE odpala kontenerów agenta ani samego gatewaya jako
+# stałej usługi compose. `gateway` wymaga NIEZMIENNEJ konfiguracji per
+# generacja (HYPERAGENT_SESSION_ID/GENERATION_N/OBJECTIVE_ID — patrz
+# hyperagent/gateway/server.py:GatewayConfig/run_from_env) — taki sam,
+# jednorazowy `docker run` jak dla agenta (patrz hyperagent/sandbox/runner.py),
+# odpalany i sprzątany przez hyperagent/loop.py dla KAŻDEJ generacji z osobna.
+# Ten plik służy wyłącznie do (a) zbudowania obrazu `hyperagent-gateway:latest`
+# i (b) deklaratywnego utworzenia sieci `hyperagent_net` przy starcie stosu.
+
+networks:
+  hyperagent_net:
+    name: hyperagent_net
+    internal: true
+
+services:
+  gateway:
+    build:
+      context: .
+      dockerfile: hyperagent/gateway/Dockerfile
+    image: hyperagent-gateway:latest
+    networks:
+      - default
+      - hyperagent_net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: ${DB_NAME:-agent_benchmark}
+      DB_USER: ${DB_USER:-postgres}
+      DB_PASSWORD: ${DB_PASSWORD:-postgres}
+      OLLAMA_BASE_URL: http://host.docker.internal:11434
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b}
+    # Brak `ports`/`command`/restart policy — ten wpis istnieje, żeby zbudować
+    # obraz i zarejestrować sieci; faktyczne uruchomienia są per-generacja
+    # (patrz komentarz wyżej) i idą przez `docker run`, nie `docker-compose up`.
+    profiles: ["build-only"]
