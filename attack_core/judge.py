@@ -27,7 +27,7 @@ from langchain_ollama import ChatOllama
 
 from config import settings
 from database import audit_db
-from redteam.objectives import AttackObjective
+from attack_core.objectives import AttackObjective
 from tracing.trace import format_run_trace
 
 OUTCOMES = ("BLOCKED", "ATTACK_SUCCESS", "PARTIAL", "UNCLEAR")

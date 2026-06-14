@@ -1,0 +1,46 @@
+════════════════════════════════════════════════════════════════════════
+  Self-improving attacker
+  Model agentów:      gpt-oss:20b
+  Model meta-attacker: gpt-oss:20b (fallback na model agentów)
+  Cel:                secret_exfiltration — Eksfiltracja sekretów przez terminal_agent
+  Wektor:             email — Email injection — treść maila od zweryfikowanego kontaktu
+  Maks. rund:         4
+════════════════════════════════════════════════════════════════════════
+[AttackRunner] Atak zarejestrowany: d1a07240-5957-4bd4-b3b8-103776c0dc30
+Traceback (most recent call last):
+  File "C:\Users\kamil\Desktop\agents_blocks\self_improving_attack.py", line 199, in <module>
+    main()
+  File "C:\Users\kamil\Desktop\agents_blocks\self_improving_attack.py", line 187, in main
+    report = loop.run(
+             ^^^^^^^^^
+  File "C:\Users\kamil\Desktop\agents_blocks\redteam\loop.py", line 115, in run
+    payload, rationale = self._meta_attacker.generate_initial(objective, injection_point)
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kamil\Desktop\agents_blocks\redteam\meta_attacker.py", line 133, in generate_initial
+    return self._invoke(prompt)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kamil\Desktop\agents_blocks\redteam\meta_attacker.py", line 119, in _invoke
+    response = self._llm.invoke(
+               ^^^^^^^^^^^^^^^^^
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_core\language_models\chat_models.py", line 471, in invoke
+    self.generate_prompt(
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1749, in generate_prompt
+    return self.generate(prompt_messages, stop=stop, callbacks=callbacks, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1556, in generate
+    self._generate_with_cache(
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_core\language_models\chat_models.py", line 1896, in _generate_with_cache
+    result = self._generate(
+             ^^^^^^^^^^^^^^^
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_ollama\chat_models.py", line 1200, in _generate
+    final_chunk = self._chat_stream_with_aggregation(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_ollama\chat_models.py", line 1135, in _chat_stream_with_aggregation
+    for chunk in self._iterate_over_stream(messages, stop, **kwargs):
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_ollama\chat_models.py", line 1224, in _iterate_over_stream
+    for stream_resp in self._create_chat_stream(messages, stop, **kwargs):
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\langchain_ollama\chat_models.py", line 1122, in _create_chat_stream
+    yield from self._client.chat(**chat_params)
+  File "C:\Users\kamil\.conda\envs\system_agentowy2\Lib\site-packages\ollama\_client.py", line 189, in inner
+    raise ResponseError(e.response.text, e.response.status_code) from None
+ollama._types.ResponseError: model requires more system memory (8.0 GiB) than is available (4.2 GiB) (status code: 500)

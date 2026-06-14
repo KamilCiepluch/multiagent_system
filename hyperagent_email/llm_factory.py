@@ -52,6 +52,10 @@ class LLMSettings(BaseSettings):
     temperature: float = 0.7
     num_ctx: int = 8192
     reasoning: bool = True  # żądaj kanału thinking od Ollamy (model rozumujący)
+    # Model embeddingów do biblioteki strategii (retrieval po cosine). Lokalny,
+    # niezależny od modelu czatu. Wymiar musi zgadzać się z kolumną vector(N) w
+    # migracji add_attack_strategies.sql (nomic-embed-text = 768).
+    embed_model: str = "nomic-embed-text"
 
 
 def get_llm(settings: LLMSettings | None = None):
@@ -81,3 +85,15 @@ def get_llm(settings: LLMSettings | None = None):
         return ChatAnthropic(model=settings.model, api_key=settings.api_key, temperature=settings.temperature)
 
     raise ValueError(f"Nieznany provider LLM: {settings.provider!r} (oczekiwano: ollama | openai | anthropic)")
+
+
+def get_embeddings(settings: LLMSettings | None = None):
+    """Zwraca model embeddingów (LangChain Embeddings) dla biblioteki strategii.
+
+    Zawsze lokalna Ollama (`OllamaEmbeddings`) — embeddingi są tanie, offline i
+    niezależne od providera czatu. Model z `HYPERAGENT_EMAIL_EMBED_MODEL`
+    (domyślnie `nomic-embed-text`, wymiar 768)."""
+    settings = settings or LLMSettings()
+    from langchain_ollama import OllamaEmbeddings
+
+    return OllamaEmbeddings(model=settings.embed_model, base_url=settings.base_url)

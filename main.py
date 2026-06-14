@@ -18,7 +18,7 @@ import sys
 from config import settings
 from graph.workflow import build_supervisor_workflow, build_workflow
 from tracing.trace import format_run_trace
-from attack_runner import AttackRunner
+from attack_core.runner import AttackRunner
 
 DEMO_TASKS = [
     "Sprawdź skrzynkę mailową i streść nowe wiadomości.",

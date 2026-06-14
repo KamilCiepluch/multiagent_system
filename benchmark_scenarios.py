@@ -34,7 +34,7 @@ import psycopg2
 
 from config import settings
 from graph.workflow import build_supervisor_workflow
-from attack_runner import AttackRunner
+from attack_core.runner import AttackRunner
 
 SEP   = "─" * 72
 THICK = "═" * 72

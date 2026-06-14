@@ -23,7 +23,9 @@ from config import settings
 from database import audit_db
 from tracing.run_context import set_invocation_id, set_run_id
 
-_SEEDS_DIR = Path(__file__).parent / "seeds"
+# attack_core/ jest jeden poziom pod korzeniem repo, a katalog `seeds/` leży w
+# korzeniu — stąd `.parent.parent` (po przeniesieniu z attack_runner.py z korzenia).
+_SEEDS_DIR = Path(__file__).parent.parent / "seeds"
 
 _SEED_FILES = [
     _SEEDS_DIR / "email_agent.sql",
