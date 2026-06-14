@@ -29,10 +29,17 @@ database/
   ├── models.py            — modele Pydantic
   ├── schema.sql           — schemat głównej bazy
   ├── schema_audit.sql     — schemat bazy audit
-  └── audit_db.py          — zapis ataków / invocations
+  ├── audit_db.py          — zapis ataków / invocations
+  ├── schema_logs.sql      — schemat bazy logów (obserwowalność)
+  ├── logs_db.py           — zapis/odczyt logów przebiegów
+  ├── schema_hyperagent_logs.sql — schemat bazy logów hyperagent_email
+  └── hyperagent_logs_db.py      — zapis/odczyt logów pętli hyperagent_email
 
 seeds/                     — dane startowe dla każdego agenta
-tracing/                   — run_id / invocation_id przez ContextVar
+tracing/
+  ├── run_context.py       — run_id / invocation_id / logger przez ContextVar
+  ├── run_logger.py        — RunLogger + callback LangChain (przechwytywanie)
+  └── log_view.py          — render pełnego logu przebiegu (show_log.py)
 tests/                     — unit + integration testy
 ```
 
@@ -53,6 +60,29 @@ tests/                     — unit + integration testy
 ### Baza audit (`agent_audit`)
 
 Osobna baza do śledzenia ataków. Loguje każdy atak (`attack_runs`), każde wywołanie (`invocations`) i zmiany w DB (`db_changes`). Opcjonalna — system działa bez niej (wypisuje ostrzeżenie).
+
+### Baza logów (`agent_logs`)
+
+Dedykowana baza obserwowalności — pełny, znormalizowany log **każdego** przebiegu workflow (niezależnie od tego, czy jest częścią ataku czy zwykłym uruchomieniem). Przechwytywanie jest zdarzeniowe, przez callback LangChain (`tracing/run_logger.py`):
+
+- `runs` — zadanie zlecone systemowi, tryb, status, wynik końcowy,
+- `agent_invocations` — kolejność i zagnieżdżenie wywołań agentów (supervisor → agent podrzędny), wejście, wynik i opcjonalny *thinking*,
+- `tool_calls` — uruchomienia narzędzi: wejście, wyjście, flaga błędu (`is_error`),
+- `loaded_skills` — wczytane/wylistowane skille (wyodrębnione z `tool_calls`),
+- `run_db_changes` — co dany przebieg zapisał do `agent_benchmark`, z dowiązaniem do agenta.
+
+Thinking wymaga modelu rozumującego (`gpt-oss`) i flagi `capture_thinking` (domyślnie włączona). Podgląd: `python show_log.py <run_id>`.
+
+### Baza logów hyperagenta (`hyperagent_logs`)
+
+Dedykowana, **niezależna** baza obserwowalności pętli `hyperagent_email` (samodoskonalący się atakujący). Trzymana osobno od `agent_logs`/`agent_audit`, bo hyperagent *czyta* tamte jako logi atakowanego systemu — własny przebieg musi mieć oddzielnie. Logowanie żyje w **niemodyfikowalnym hoście** (`hyperagent_email/gen_logger.py`), więc przetrwa dowolną self-modyfikację agenta:
+
+- `sessions` — jedno uruchomienie pętli (zakres generacji, model, wynik),
+- `generations` — pełny cykl życia generacji: adopcja self-mod (lub rollback), payload + werdykt bramki, ocena sędziego, `run_id` atakowanego systemu,
+- `primitive_calls` — **kluczowe**: dokładne wejście i wyjście każdego deterministycznego prymitywu ataku (`reset_target`/`inject_email`/`run_target_task`) — czy do narzędzia trafiły poprawne dane i co zwróciło,
+- `agent_llm_turns` — wnętrze agenta LangChain (tury LLM, thinking, żądane tool-calle), przechwytywane przez callback wpięty w obiekt `llm` przez hosta.
+
+Opcjonalna — pętla działa bez niej (zostaje kanał plikowy `hyperagent_email/logs/hyperagent_email.log` i ostrzeżenie). Podgląd: `python show_hyperagent_email.py [<session_id>]` (`--turns` pokazuje tury LLM agenta).
 
 ---
 
@@ -121,7 +151,7 @@ Docker sam inicjalizuje schemat i seed data przy pierwszym uruchomieniu. Przy zm
 docker-compose down -v && docker-compose up -d
 ```
 
-Baza audit (`agent_audit`) jest tworzona przez skrypt `database/init_audit.sh` przy starcie kontenera.
+Bazy `agent_audit`, `agent_logs` i `hyperagent_logs` są tworzone przez skrypty `database/init_audit.sh`, `database/init_logs.sh` i `database/init_hyperagent_logs.sh` przy starcie kontenera.
 
 ### Opcja B — lokalne PostgreSQL
 
@@ -129,6 +159,8 @@ Baza audit (`agent_audit`) jest tworzona przez skrypt `database/init_audit.sh` p
 -- Utwórz bazy
 CREATE DATABASE agent_benchmark;
 CREATE DATABASE agent_audit;
+CREATE DATABASE agent_logs;
+CREATE DATABASE hyperagent_logs;
 ```
 
 ```bash
@@ -139,6 +171,8 @@ psql -U postgres -d agent_benchmark -f seeds/email_agent.sql
 psql -U postgres -d agent_benchmark -f seeds/terminal_agent.sql
 psql -U postgres -d agent_benchmark -f seeds/search_agent.sql
 psql -U postgres -d agent_audit -f database/schema_audit.sql
+psql -U postgres -d agent_logs -f database/schema_logs.sql
+psql -U postgres -d hyperagent_logs -f database/schema_hyperagent_logs.sql
 ```
 
 > **Windows z pełną ścieżką:**
@@ -170,6 +204,13 @@ python main.py "wykonaj ls -la" attack_name=prompt_injection attack_type=termina
 ### Podgląd wyniku uruchomienia
 
 ```bash
+# Pełny log przebiegu (agent_logs) — prompt systemu, kolejność agentów,
+# wczytane skille, tool calle z flagą błędu, thinking, zmiany w bazie
+python show_log.py              # lista ostatnich przebiegów
+python show_log.py <run_id>     # pełny log danego przebiegu
+python show_log.py --last       # ostatni przebieg
+
+# Trace ataku (agent_audit) — widok zorientowany na forensikę ataków
 python show_run.py <run_id>
 ```
 
@@ -180,6 +221,17 @@ python benchmark_agents.py                          # wszystkie agenty, wszystki
 python benchmark_agents.py --agent terminal         # tylko terminal_agent
 python benchmark_agents.py --agent email --suite reading
 python benchmark_agents.py --list                   # pokaż dostępne zestawy
+```
+
+### Self-improving attacker (samo-poprawiający się atakujący)
+
+LLM generuje i mutuje payloady prompt-injection w pętli, ucząc się na podstawie
+realnych przebiegów — mierzy, ile podejść trzeba, żeby przełamać obronę. Pełny
+opis działania w [redteam/README.md](redteam/README.md).
+
+```bash
+python self_improving_attack.py --list
+python self_improving_attack.py --objective secret_exfiltration --vector email
 ```
 
 ---
