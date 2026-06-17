@@ -10,12 +10,11 @@ System prompt generowany jest dynamicznie z listy agentów (NAME + DESCRIPTION),
 więc dodanie nowego agenta nie wymaga żadnej zmiany w tym pliku.
 """
 
-from langchain_core.messages import HumanMessage
 from langchain_core.tools import StructuredTool
 from langchain.agents import create_agent
 from pydantic import BaseModel, Field
 
-from agents.base_agent import BaseAgent, _extract_tool_calls
+from agents.base_agent import BaseAgent, _RECURSION_NOTE, _extract_tool_calls, run_graph_collecting
 from database.db import create_agent_log
 from database.models import AgentLog
 from tracing.run_context import (
@@ -90,12 +89,10 @@ class Supervisor:
             config["callbacks"] = [logger.handler]
 
         try:
-            result = self._agent.invoke(
-                {"messages": [HumanMessage(content=task)]},
-                config=config,
-            )
-            messages = result["messages"]
-            final_output = messages[-1].content
+            messages, truncated = run_graph_collecting(self._agent, task, config)
+            final_output = messages[-1].content if messages else "[brak odpowiedzi supervisora]"
+            if truncated:
+                final_output = str(final_output) + _RECURSION_NOTE
 
             if logger is not None:
                 logger.finish_agent(inv_id, final_output)

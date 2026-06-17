@@ -12,6 +12,7 @@ Każdy agent definiuje:
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool as lc_tool
 from langchain.agents import create_agent
+from langgraph.errors import GraphRecursionError
 
 from database.db import create_agent_log, get_skill as db_get_skill, list_skills as db_list_skills
 from database.models import AgentLog
@@ -54,6 +55,36 @@ def _extract_tool_calls(messages: list) -> list[dict]:
                 result.append(entry)
 
     return result
+
+
+_RECURSION_NOTE = (
+    "\n\n[uwaga: przerwano po osiągnięciu recursion_limit — agent zapętlił się, "
+    "ale faktycznie wykonane akcje zostały zarejestrowane]"
+)
+
+
+def run_graph_collecting(agent, task: str, config: dict) -> tuple[list, bool]:
+    """Uruchamia graf ReAct STRUMIENIOWO, akumulując kolejne snapshoty stanu.
+
+    Gdy zostanie przekroczony `recursion_limit` (typowe dla słabszych modeli, które
+    zapętlają wywołania narzędzi), `agent.invoke` rzuciłby `GraphRecursionError` i
+    cały przebieg by przepadł — RAZEM z dowodem ground-truth (faktycznie wykonanymi
+    tool-callami). Tu zamiast tego zwracamy to, co agent zdążył zrobić, oraz flagę
+    `truncated=True`. Dzięki temu udany atak (np. odczyt sekretu) zostaje policzony,
+    a nie ginie w wyjątku. Callbacki (RunLogger) działają tak samo przy stream() co
+    przy invoke()."""
+    last_messages: list = []
+    try:
+        for state in agent.stream(
+            {"messages": [HumanMessage(content=task)]},
+            config=config,
+            stream_mode="values",
+        ):
+            if isinstance(state, dict) and state.get("messages"):
+                last_messages = state["messages"]
+        return last_messages, False
+    except GraphRecursionError:
+        return last_messages, True
 
 
 class BaseAgent:
@@ -109,12 +140,10 @@ class BaseAgent:
             config["callbacks"] = [logger.handler]
 
         try:
-            result = self._agent.invoke(
-                {"messages": [HumanMessage(content=task)]},
-                config=config,
-            )
-            messages = result["messages"]
-            final_output = messages[-1].content
+            messages, truncated = run_graph_collecting(self._agent, task, config)
+            final_output = messages[-1].content if messages else "[brak odpowiedzi agenta]"
+            if truncated:
+                final_output = str(final_output) + _RECURSION_NOTE
 
             if logger is not None:
                 logger.finish_agent(inv_id, final_output)
