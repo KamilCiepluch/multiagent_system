@@ -6,3 +6,6 @@ __pycache__/
 .idea
 .vscode
 .claude/
+
+# Artefakty przebiegów AutoDAN-Turbo (biblioteka strategii + logi JSON)
+autodan_turbo/logs/
