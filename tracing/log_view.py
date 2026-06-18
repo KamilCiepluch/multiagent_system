@@ -5,11 +5,17 @@ odwzorowując strukturę idealnego logu:
     1.    Prompt do systemu
     2.    Wywołanie agenta (w kolejności, z zagnieżdżeniem supervisor → agent)
     2.1   Wejście do agenta
-    2.2   Wczytane skille
-    2.3   Uruchomienie narzędzi (input, output, flaga błędu)
-    (+)   Thinking agenta
+    2.2   Przebieg krok po kroku — scalona oś czasu (po `step`):
+            • myśl/decyzja modelu (reasoning_steps): thinking + treść + zlecone narzędzia
+            • wczytane skille (loaded_skills)
+            • uruchomienie narzędzi (tool_calls): input, output, flaga błędu
+          Dzięki temu widać dokładnie, co agent pomyślał PRZED i PO każdym
+          wywołaniu narzędzia oraz jaką decyzję podjął.
     (+)   Wynik agenta
     (+)   Zmiany w bazie agent_benchmark wykonane w trakcie przebiegu
+
+Thinking bywa długi, więc domyślnie jest skracany — pełny pokazuje się z
+show_thinking=True (flaga --thinking w show_log.py).
 
 Użycie:
     from tracing.log_view import format_run_log
@@ -49,6 +55,74 @@ def _format_args(args) -> str:
     return ", ".join(parts)
 
 
+def _format_decided_tools(decided) -> str:
+    """Zwięzły opis decyzji modelu: które narzędzia postanowił wywołać."""
+    if not decided:
+        return "odpowiedź końcowa (brak wywołań narzędzi)"
+    parts = []
+    for d in decided:
+        if isinstance(d, dict):
+            parts.append(f"{d.get('name', '?')}({_format_args(d.get('args'))})")
+        else:
+            parts.append(str(d))
+    return "wywołać: " + ", ".join(parts)
+
+
+def _build_timeline(inv_id: int) -> list[dict]:
+    """Scala reasoning_steps, loaded_skills i tool_calls w jedną listę zdarzeń
+    posortowaną po wspólnym `step` (oś czasu wywołania agenta)."""
+    events: list[dict] = []
+    for rs in logs_db.get_reasoning_steps(inv_id):
+        events.append({"step": rs["step"], "kind": "reason", "data": rs})
+    for sk in logs_db.get_loaded_skills(inv_id):
+        events.append({"step": sk["step"], "kind": "skill", "data": sk})
+    for tc in logs_db.get_tool_calls(inv_id):
+        events.append({"step": tc["step"], "kind": "tool", "data": tc})
+    # Stabilne sortowanie po step; przy remisie reason < skill/tool (tura modelu
+    # poprzedza zlecone w niej narzędzia, którym przydzielono kolejne stepy).
+    _kind_rank = {"reason": 0, "skill": 1, "tool": 1}
+    events.sort(key=lambda e: (e.get("step") or 0, _kind_rank.get(e["kind"], 9)))
+    return events
+
+
+def _render_reason(rs: dict, pad: str, show_thinking: bool) -> list[str]:
+    lines: list[str] = []
+    head = f"{pad}       [{rs['step']}] ● MYŚL MODELU"
+    lines.append(head)
+
+    thinking = rs.get("thinking")
+    if thinking:
+        if show_thinking:
+            lines.extend(_indent_block(thinking, f"{pad}           │ "))
+        else:
+            lines.append(f"{pad}           │ (thinking ukryty — użyj --thinking, "
+                         f"{len(str(thinking))} znaków)")
+    content = rs.get("content")
+    if content:
+        lines.append(f"{pad}           treść:")
+        lines.extend(_indent_block(content, f"{pad}           │ "))
+    lines.append(f"{pad}           → decyzja: {_format_decided_tools(rs.get('decided_tools'))}")
+    return lines
+
+
+def _render_skill(sk: dict, pad: str) -> list[str]:
+    head = f"load: {sk['skill_name']}" if sk["action"] == "load" else "list (dostępne skille)"
+    err = "  [BŁĄD]" if sk["is_error"] else ""
+    lines = [f"{pad}       [{sk['step']}] ▸ SKILL {head}{err}"]
+    lines.extend(_indent_block(sk["content"], f"{pad}           │ ", empty="(pusta treść)"))
+    return lines
+
+
+def _render_tool(tc: dict, pad: str) -> list[str]:
+    err = "  [BŁĄD]" if tc["is_error"] else ""
+    lines = [f"{pad}       [{tc['step']}] ▸ NARZĘDZIE {tc['tool_name']}({_format_args(tc['input'])}){err}"]
+    payload = tc["error"] if tc["is_error"] else tc["output"]
+    for j, out_line in enumerate((str(payload) if payload is not None else "").splitlines() or [""]):
+        arrow = "→ " if j == 0 else "  "
+        lines.append(f"{pad}           {arrow}{out_line}")
+    return lines
+
+
 def _format_invocation(inv: dict, depth: int, show_thinking: bool = False) -> list[str]:
     pad = "    " * depth
     lines: list[str] = []
@@ -63,43 +137,18 @@ def _format_invocation(inv: dict, depth: int, show_thinking: bool = False) -> li
     lines.append(f"{pad}   2.1 Wejście do agenta:")
     lines.extend(_indent_block(inv["input"], f"{pad}       "))
 
-    # 2.2 Wczytane skille
-    skills = logs_db.get_loaded_skills(inv["id"])
-    lines.append(f"{pad}   2.2 Wczytane skille:")
-    if not skills:
-        lines.append(f"{pad}       (brak)")
-    for sk in skills:
-        if sk["action"] == "load":
-            head = f"load: {sk['skill_name']}"
+    # 2.2 Przebieg krok po kroku — scalona oś czasu (myśl / skill / narzędzie)
+    timeline = _build_timeline(inv["id"])
+    lines.append(f"{pad}   2.2 Przebieg krok po kroku:")
+    if not timeline:
+        lines.append(f"{pad}       (brak zarejestrowanych kroków)")
+    for ev in timeline:
+        if ev["kind"] == "reason":
+            lines.extend(_render_reason(ev["data"], pad, show_thinking))
+        elif ev["kind"] == "skill":
+            lines.extend(_render_skill(ev["data"], pad))
         else:
-            head = "list (dostępne skille)"
-        err = "  [BŁĄD]" if sk["is_error"] else ""
-        lines.append(f"{pad}       • {head}{err}")
-        for line in _indent_block(sk["content"], f"{pad}         │ ", empty="(pusta treść)"):
-            lines.append(line)
-
-    # 2.3 Narzędzia
-    tools = logs_db.get_tool_calls(inv["id"])
-    lines.append(f"{pad}   2.3 Uruchomienie narzędzi:")
-    if not tools:
-        lines.append(f"{pad}       (brak wywołań narzędzi)")
-    for tc in tools:
-        is_last = tc is tools[-1]
-        connector = "└─" if is_last else "├─"
-        cont = "  " if is_last else "│ "
-        err = "  [BŁĄD]" if tc["is_error"] else ""
-        lines.append(f"{pad}       {connector} {tc['tool_name']}({_format_args(tc['input'])}){err}")
-        payload = tc["error"] if tc["is_error"] else tc["output"]
-        for j, out_line in enumerate((str(payload) if payload is not None else "").splitlines() or [""]):
-            arrow = "→ " if j == 0 else "  "
-            lines.append(f"{pad}       {cont}   {arrow}{out_line}")
-
-    # Thinking (opcjonalny — pokazywany tylko gdy show_thinking=True; bywa długi)
-    if show_thinking and inv["thinking"]:
-        lines.append(f"{pad}   ↳ Thinking:")
-        lines.extend(_indent_block(inv["thinking"], f"{pad}       "))
-    elif inv["thinking"]:
-        lines.append(f"{pad}   ↳ Thinking: (ukryty — użyj --thinking, {len(str(inv['thinking']))} znaków)")
+            lines.extend(_render_tool(ev["data"], pad))
 
     # Wynik agenta
     lines.append(f"{pad}   ↳ WYNIK:")

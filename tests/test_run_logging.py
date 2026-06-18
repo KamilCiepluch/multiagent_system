@@ -48,9 +48,19 @@ def cleanup_runs(logs_conn):
     logs_conn.commit()
 
 
-def _fake_llm_response(reasoning: str):
-    msg = SimpleNamespace(additional_kwargs={"reasoning_content": reasoning})
-    gen = SimpleNamespace(message=msg, generation_info=None)
+def _fake_llm_response(reasoning: str | None = None, content: str = "", tool_calls=None):
+    """Symuluje LLMResult jednej tury modelu.
+
+    reasoning  — ukryty kanał thinking (None gdy model go nie wspiera),
+    content    — widoczna treść wiadomości,
+    tool_calls — [{name, args}] narzędzi zleconych w tej turze.
+    """
+    msg = SimpleNamespace(
+        content=content,
+        additional_kwargs={"reasoning_content": reasoning} if reasoning else {},
+        tool_calls=tool_calls or [],
+    )
+    gen = SimpleNamespace(message=msg, generation_info=None, text=content)
     return SimpleNamespace(generations=[[gen]])
 
 
@@ -127,8 +137,10 @@ def test_full_run_structure(cleanup_runs):
     assert sup_row["seq"] < email_row["seq"]
     # wejście do agenta (2.1)
     assert email_row["input"] == "Przeczytaj maile"
-    # thinking
-    assert "zweryfikuję" in email_row["thinking"]
+    # reasoning step (2.2) — myśl agenta zapisana jako tura modelu
+    steps = logs_db.get_reasoning_steps(email_row["id"])
+    assert len(steps) == 1
+    assert "zweryfikuję" in steps[0]["thinking"]
     # wynik
     assert email_row["output"].startswith("Maile przeczytane")
 
@@ -185,6 +197,51 @@ def test_dedup_double_callback(cleanup_runs):
     tools = logs_db.get_tool_calls(inv)
     assert len(tools) == 1
     assert tools[0]["output"] == "plik1\nplik2"
+
+
+def test_reasoning_step_without_thinking(cleanup_runs):
+    """Model bez kanału thinking: rozumowanie/decyzja trafia do `content`.
+
+    Sprawdza odporność (brak thinkingu nie jest błędem) ORAZ wspólną oś czasu:
+    myśl → narzędzie → myśl końcowa rosną po `step`."""
+    run_id = str(uuid.uuid4())
+    cleanup_runs.append(run_id)
+    logger = RunLogger.start(run_id, task="Wyszukaj X", mode="orchestrator")
+    h = logger.handler
+
+    inv = logger.start_agent("search_agent", "Wyszukaj X")
+    tok = run_context.set_current_agent_invocation(inv)
+
+    # tura 1: BEZ reasoning_content — plan i decyzja są w widocznej treści
+    h.on_llm_end(_fake_llm_response(
+        content="Muszę wyszukać informacje, użyję web_search.",
+        tool_calls=[{"name": "web_search", "args": {"query": "X"}}],
+    ), run_id=uuid.uuid4())
+
+    rid = uuid.uuid4()
+    h.on_tool_start({"name": "web_search"}, "", run_id=rid, inputs={"query": "X"})
+    h.on_tool_end("znaleziono: ...", run_id=rid)
+
+    # tura 2: odpowiedź końcowa, bez narzędzi
+    h.on_llm_end(_fake_llm_response(content="Gotowe, oto wynik."), run_id=uuid.uuid4())
+
+    logger.finish_agent(inv, "Gotowe, oto wynik.")
+    run_context.reset_current_agent_invocation(tok)
+    logger.finish("completed", "Gotowe, oto wynik.", None)
+    run_context.set_run_logger(None)
+
+    steps = logs_db.get_reasoning_steps(inv)
+    assert len(steps) == 2
+    first, second = steps
+    # brak thinkingu nie jest błędem — rozumowanie jest w treści
+    assert first["thinking"] is None
+    assert "web_search" in first["content"]
+    assert first["decided_tools"][0]["name"] == "web_search"
+    # ostatnia tura — odpowiedź końcowa: brak zleconych narzędzi
+    assert not second["decided_tools"]
+    # wspólna oś czasu: myśl (1) < narzędzie (2) < myśl końcowa (3)
+    tools = logs_db.get_tool_calls(inv)
+    assert first["step"] < tools[0]["step"] < second["step"]
 
 
 def test_logging_never_raises_without_logger():

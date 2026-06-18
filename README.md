@@ -66,12 +66,15 @@ Osobna baza do śledzenia ataków. Loguje każdy atak (`attack_runs`), każde wy
 Dedykowana baza obserwowalności — pełny, znormalizowany log **każdego** przebiegu workflow (niezależnie od tego, czy jest częścią ataku czy zwykłym uruchomieniem). Przechwytywanie jest zdarzeniowe, przez callback LangChain (`tracing/run_logger.py`):
 
 - `runs` — zadanie zlecone systemowi, tryb, status, wynik końcowy,
-- `agent_invocations` — kolejność i zagnieżdżenie wywołań agentów (supervisor → agent podrzędny), wejście, wynik i opcjonalny *thinking*,
+- `agent_invocations` — kolejność i zagnieżdżenie wywołań agentów (supervisor → agent podrzędny), wejście, wynik,
+- `reasoning_steps` — kolejne tury modelu: *thinking* (ukryty kanał, jeśli model go zwraca), widoczna treść wiadomości oraz *decyzja* (które narzędzia model postanowił wywołać),
 - `tool_calls` — uruchomienia narzędzi: wejście, wyjście, flaga błędu (`is_error`),
 - `loaded_skills` — wczytane/wylistowane skille (wyodrębnione z `tool_calls`),
 - `run_db_changes` — co dany przebieg zapisał do `agent_benchmark`, z dowiązaniem do agenta.
 
-Thinking wymaga modelu rozumującego (`gpt-oss`) i flagi `capture_thinking` (domyślnie włączona). Podgląd: `python show_log.py <run_id>`.
+`reasoning_steps`, `tool_calls` i `loaded_skills` dzielą wspólny licznik `step` w obrębie wywołania agenta — scalenie po nim odtwarza **dokładny przebieg krok po kroku**: myśl → decyzja → wywołanie narzędzia → wynik → myśl PO wyniku → kolejna decyzja → odpowiedź końcowa.
+
+Thinking jako osobny kanał wymaga modelu rozumującego (`gpt-oss`) i flagi `capture_thinking` (domyślnie włączona); modele bez thinkingu są wspierane — ich rozumowanie trafia do widocznej treści (`content`) i również jest logowane. Podgląd: `python show_log.py <run_id>` (pełny thinking: `--thinking`).
 
 ### Baza logów hyperagenta (`hyperagent_logs`)
 
@@ -205,10 +208,16 @@ python main.py "wykonaj ls -la" attack_name=prompt_injection attack_type=termina
 
 ```bash
 # Pełny log przebiegu (agent_logs) — prompt systemu, kolejność agentów,
-# wczytane skille, tool calle z flagą błędu, thinking, zmiany w bazie
+# przebieg krok po kroku (myśl → decyzja → narzędzie → wynik), skille, zmiany w bazie
 python show_log.py              # lista ostatnich przebiegów
-python show_log.py <run_id>     # pełny log danego przebiegu
+python show_log.py <run_id>     # pełny log danego przebiegu (układ hierarchiczny)
 python show_log.py --last       # ostatni przebieg
+
+# Liniowy trace END-TO-END (agent_logs) — czyta się od góry do dołu, agent
+# podrzędny wstawiony w miejscu delegacji; wygodny do debugowania kolejności
+python trace_run.py             # lista ostatnich przebiegów
+python trace_run.py <run_id>    # pełny trace danego przebiegu
+python trace_run.py --last -t   # ostatni przebieg z pełnym thinking
 
 # Trace ataku (agent_audit) — widok zorientowany na forensikę ataków
 python show_run.py <run_id>

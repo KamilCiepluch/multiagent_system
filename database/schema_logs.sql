@@ -13,17 +13,24 @@
 --   1.   runs.task                  — zadanie całego systemu
 --   2.   agent_invocations          — kolejność i zagnieżdżenie wywołań agentów
 --   2.1  agent_invocations.input    — to co trafia do agenta
---   2.2  loaded_skills              — wczytane skille
---   2.3  tool_calls                 — uruchomienia narzędzi
---   2.3.1 tool_calls.input/output/is_error — wejście, wyjście, flaga błędu
---   (+)  agent_invocations.thinking — opcjonalny thinking agenta (debug)
+--   2.2  reasoning_steps            — kolejne tury modelu (myśl/treść/decyzja)
+--   2.3  loaded_skills              — wczytane skille
+--   2.4  tool_calls                 — uruchomienia narzędzi
+--   2.4.1 tool_calls.input/output/is_error — wejście, wyjście, flaga błędu
 --   (+)  run_db_changes            — co zostało zapisane do agent_benchmark w trakcie
+--
+-- Oś czasu wywołania agenta:
+--   reasoning_steps, loaded_skills i tool_calls dzielą wspólny, monotoniczny
+--   licznik `step` (per invocation). Scalenie wszystkich trzech po `step` odtwarza
+--   dokładny przebieg: myśl → decyzja → wywołanie narzędzia → wynik → myśl po
+--   wyniku → kolejna decyzja … → odpowiedź końcowa.
 -- =============================================================
 
 -- =============================================================
 -- RESET — usuwa wszystko i tworzy od nowa (kolejność wg zależności FK)
 -- =============================================================
 DROP TABLE IF EXISTS run_db_changes   CASCADE;
+DROP TABLE IF EXISTS reasoning_steps  CASCADE;
 DROP TABLE IF EXISTS loaded_skills    CASCADE;
 DROP TABLE IF EXISTS tool_calls       CASCADE;
 DROP TABLE IF EXISTS agent_invocations CASCADE;
@@ -56,7 +63,6 @@ CREATE TABLE agent_invocations (
     agent_name    TEXT        NOT NULL,
     input         TEXT,                                 -- to co trafia do agenta (pkt 2.1)
     output        TEXT,                                 -- dokładny output agenta
-    thinking      TEXT,                                 -- opcjonalny thinking (pkt: debug)
     status        TEXT        NOT NULL DEFAULT 'running',-- running | completed | error
     error         TEXT,
     started_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
@@ -67,7 +73,31 @@ CREATE INDEX idx_inv_run    ON agent_invocations(run_id);
 CREATE INDEX idx_inv_parent ON agent_invocations(parent_id);
 
 -- =============================================================
--- TOOL_CALLS — uruchomienie pojedynczego narzędzia MCP przez agenta (pkt 2.3)
+-- REASONING_STEPS — pojedyncza tura modelu w obrębie wywołania agenta (pkt 2.2)
+-- Jeden rekord = jedno wywołanie LLM (on_llm_end). Rejestruje, CO model
+-- pomyślał i jaką decyzję podjął w tej turze:
+--   thinking      — ukryty kanał rozumowania (reasoning_content). NULL gdy model
+--                   nie wspiera thinkingu — wtedy rozumowanie bywa w `content`.
+--   content       — widoczna treść wiadomości modelu (deliberacja / odpowiedź).
+--   decided_tools — narzędzia, które model POSTANOWIŁ wywołać w tej turze
+--                   ([{name, args}, ...]); puste/NULL = brak wywołań (zwykle tura
+--                   z odpowiedzią końcową).
+-- `step` plasuje turę na wspólnej osi czasu z tool_calls / loaded_skills.
+-- =============================================================
+CREATE TABLE reasoning_steps (
+    id            SERIAL      PRIMARY KEY,
+    invocation_id INT         NOT NULL REFERENCES agent_invocations(id) ON DELETE CASCADE,
+    step          INT         NOT NULL,                 -- pozycja na osi czasu wywołania
+    thinking      TEXT,                                 -- ukryty thinking (NULL gdy brak)
+    content       TEXT,                                 -- widoczna treść wiadomości modelu
+    decided_tools JSONB,                                -- [{name, args}] zlecone w tej turze
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_rs_inv ON reasoning_steps(invocation_id);
+
+-- =============================================================
+-- TOOL_CALLS — uruchomienie pojedynczego narzędzia MCP przez agenta (pkt 2.4)
 -- Wpis powstaje PRZED wykonaniem narzędzia (on_tool_start) i jest uzupełniany
 -- po zakończeniu (on_tool_end / on_tool_error) — ślad próby istnieje nawet gdy
 -- narzędzie zawiśnie lub rzuci wyjątek.
@@ -75,7 +105,8 @@ CREATE INDEX idx_inv_parent ON agent_invocations(parent_id);
 CREATE TABLE tool_calls (
     id            SERIAL      PRIMARY KEY,
     invocation_id INT         NOT NULL REFERENCES agent_invocations(id) ON DELETE CASCADE,
-    seq           INT         NOT NULL,                 -- kolejność wywołań w obrębie agenta
+    seq           INT         NOT NULL,                 -- kolejność wywołań narzędzi w obrębie agenta
+    step          INT         NOT NULL,                 -- pozycja na wspólnej osi czasu (z reasoning_steps)
     tool_name     TEXT        NOT NULL,
     input         JSONB,                                -- argumenty wejściowe (pkt 2.3.1)
     output        TEXT,                                 -- wynik narzędzia (pkt 2.3.1)
@@ -88,7 +119,7 @@ CREATE TABLE tool_calls (
 CREATE INDEX idx_tc_inv ON tool_calls(invocation_id);
 
 -- =============================================================
--- LOADED_SKILLS — wczytane / wylistowane skille agenta (pkt 2.2)
+-- LOADED_SKILLS — wczytane / wylistowane skille agenta (pkt 2.3)
 -- Wyodrębnione z tool_calls: list_skills / load_skill są narzędziami, ale
 -- z punktu widzenia logu to osobna kategoria — "jakie procedury agent wczytał".
 -- action: 'list' (wylistowanie dostępnych) | 'load' (wczytanie pełnej treści)
@@ -97,6 +128,7 @@ CREATE TABLE loaded_skills (
     id            SERIAL      PRIMARY KEY,
     invocation_id INT         NOT NULL REFERENCES agent_invocations(id) ON DELETE CASCADE,
     seq           INT         NOT NULL,
+    step          INT         NOT NULL,                 -- pozycja na wspólnej osi czasu (z reasoning_steps)
     action        TEXT        NOT NULL,                 -- 'list' | 'load'
     skill_name    TEXT,                                 -- NULL dla 'list'
     content       TEXT,                                 -- treść wczytanego skilla / wynik listy

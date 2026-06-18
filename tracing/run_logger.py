@@ -5,7 +5,18 @@ Jeden RunLogger = jeden workflow.invoke. Trzyma run_id, liczniki kolejności i
 callback LangChain (LogCallbackHandler), który ZDARZENIOWO przechwytuje:
   - on_tool_start/end/error  → tool_calls (input, output, flaga błędu)
                                lub loaded_skills (dla list_skills / load_skill)
-  - on_llm_end               → thinking agenta (best-effort, reasoning_content)
+  - on_llm_end               → reasoning_steps: pełna tura modelu — ukryty
+                               thinking (jeśli model go zwraca), widoczna treść
+                               wiadomości ORAZ decyzja (zlecone narzędzia).
+
+reasoning_steps, tool_calls i loaded_skills dzielą jeden monotoniczny licznik
+`step` w obrębie wywołania agenta. Callbacki przychodzą w kolejności wykonania
+(on_llm_end z daną turą → on_tool_start dla zleconych narzędzi → on_llm_end z
+kolejną turą), więc rosnący `step` odtwarza dokładny przebieg: myśl → decyzja →
+wywołanie narzędzia → wynik → myśl PO wyniku → kolejna decyzja → odpowiedź.
+
+Odporność na modele bez thinkingu: tura jest zapisywana także gdy `thinking`
+jest pusty — rozumowanie takich modeli trafia do widocznej treści (`content`).
 
 Granice agentów (BaseAgent.run / Supervisor.run) jawnie otwierają i zamykają
 agent_invocations — dzięki temu nazwa agenta i zagnieżdżenie (parent_id) są
@@ -51,24 +62,62 @@ def _to_text(value: Any) -> str:
     return str(content) if content is not None else str(value)
 
 
-def _extract_reasoning(response: Any) -> str | None:
-    """Wyciąga thinking/reasoning z LLMResult — best-effort, zależne od modelu."""
+def _content_to_text(content: Any) -> str:
+    """Normalizuje treść wiadomości modelu do tekstu.
+
+    Większość modeli zwraca `str`, ale część providerów oddaje listę bloków
+    (np. [{'type': 'text', 'text': ...}]). Sklejamy je w jeden tekst."""
+    if content is None:
+        return ""
+    if isinstance(content, str):
+        return content
+    if isinstance(content, list):
+        parts: list[str] = []
+        for block in content:
+            if isinstance(block, str):
+                parts.append(block)
+            elif isinstance(block, dict):
+                parts.append(str(block.get("text") or block.get("content") or ""))
+        return "\n".join(p for p in parts if p)
+    return str(content)
+
+
+def _extract_llm_step(response: Any) -> tuple[str | None, str, list[dict]]:
+    """Z LLMResult wyciąga jedną turę modelu: (thinking, content, decided_tools).
+
+    - thinking      — ukryty kanał rozumowania (reasoning_content / reasoning);
+                      None gdy model go nie zwraca (NIE jest to błąd),
+    - content       — widoczna treść wiadomości (''. gdy pusta) — tu trafia
+                      rozumowanie modeli bez osobnego kanału thinking,
+    - decided_tools — [{name, args}] narzędzi zleconych w tej turze ([] gdy brak).
+
+    W pełni best-effort — każdy wyjątek degraduje do pustej tury, logowanie nie
+    może wywrócić agenta."""
+    thinking: str | None = None
+    content = ""
+    decided: list[dict] = []
     try:
         gens = response.generations
         if not gens or not gens[0]:
-            return None
+            return None, "", []
         gen = gens[0][0]
         msg = getattr(gen, "message", None)
         if msg is not None:
             ak = getattr(msg, "additional_kwargs", None) or {}
-            reasoning = ak.get("reasoning_content") or ak.get("reasoning")
-            if reasoning:
-                return str(reasoning).strip()
+            thinking = ak.get("reasoning_content") or ak.get("reasoning")
+            content = _content_to_text(getattr(msg, "content", ""))
+            for tc in getattr(msg, "tool_calls", None) or []:
+                decided.append({"name": tc.get("name"), "args": tc.get("args")})
         gi = getattr(gen, "generation_info", None) or {}
-        reasoning = gi.get("reasoning") or gi.get("thinking")
-        return str(reasoning).strip() if reasoning else None
+        if not thinking:
+            thinking = gi.get("reasoning") or gi.get("thinking")
+        if not content:
+            content = _content_to_text(getattr(gen, "text", ""))
+        thinking = str(thinking).strip() if thinking else None
+        content = content.strip()
+        return thinking, content, decided
     except Exception:
-        return None
+        return None, "", []
 
 
 class RunLogger:
@@ -83,6 +132,7 @@ class RunLogger:
         self._dbchange_seq = 0        # licznik zmian DB (run-level)
         self._tool_seq: dict[int, int] = {}   # invocation_id -> licznik tool calli
         self._skill_seq: dict[int, int] = {}  # invocation_id -> licznik skilli
+        self._step_seq: dict[int, int] = {}   # invocation_id -> wspólna oś czasu (reasoning + tool + skill)
         self._pending: dict[UUID, dict] = {}  # callback run_id -> bufor start→end
         self._seen_llm: set[UUID] = set()      # dedup on_llm_end
 
@@ -191,6 +241,12 @@ class RunLogger:
         self._skill_seq[inv_id] = self._skill_seq.get(inv_id, 0) + 1
         return self._skill_seq[inv_id]
 
+    def _next_step(self, inv_id: int) -> int:
+        """Wspólna oś czasu wywołania — współdzielona przez reasoning_steps,
+        tool_calls i loaded_skills. Rosnący `step` odtwarza kolejność zdarzeń."""
+        self._step_seq[inv_id] = self._step_seq.get(inv_id, 0) + 1
+        return self._step_seq[inv_id]
+
     def tool_start(self, cb_run_id: UUID, tool_name: str, input_args: dict | None) -> None:
         if not self.enabled or cb_run_id in self._pending:
             return  # dedup: ten sam event może przyjść dwa razy (dziedziczenie callbacków)
@@ -198,19 +254,23 @@ class RunLogger:
         if inv_id is None:
             return
 
+        # `step` przydzielamy na starcie — w tym momencie narzędzie ma swoje miejsce
+        # na osi czasu (po turze modelu, która je zleciła).
+        step = self._next_step(inv_id)
+
         skill_action = _SKILL_TOOLS.get(tool_name)
         if skill_action is not None:
             # skill: rekord powstaje dopiero na końcu (potrzebujemy treści/wyniku)
             skill_name = (input_args or {}).get("name") if skill_action == "load" else None
             self._pending[cb_run_id] = {
-                "kind": "skill", "inv_id": inv_id,
+                "kind": "skill", "inv_id": inv_id, "step": step,
                 "action": skill_action, "skill_name": skill_name,
             }
             return
 
         try:
             tc_id = logs_db.start_tool_call(
-                inv_id, self._next_tool_seq(inv_id), tool_name, input_args
+                inv_id, self._next_tool_seq(inv_id), step, tool_name, input_args
             )
             self._pending[cb_run_id] = {"kind": "tool", "tc_id": tc_id, "inv_id": inv_id}
         except Exception as exc:
@@ -224,7 +284,7 @@ class RunLogger:
             if pending["kind"] == "skill":
                 logs_db.add_loaded_skill(
                     pending["inv_id"], self._next_skill_seq(pending["inv_id"]),
-                    pending["action"], pending["skill_name"],
+                    pending["step"], pending["action"], pending["skill_name"],
                     None if output is None else _to_text(output), is_error,
                 )
             else:
@@ -242,12 +302,17 @@ class RunLogger:
         inv_id = get_current_agent_invocation()
         if inv_id is None:
             return
-        reasoning = _extract_reasoning(response)
-        if reasoning:
-            try:
-                logs_db.append_thinking(inv_id, reasoning)
-            except Exception as exc:
-                _warn("append_thinking", exc)
+        thinking, content, decided = _extract_llm_step(response)
+        # Pusta tura (bez myśli, treści i decyzji) nic nie wnosi — pomijamy.
+        if not thinking and not content and not decided:
+            return
+        try:
+            logs_db.add_reasoning_step(
+                inv_id, self._next_step(inv_id),
+                thinking, content or None, decided or None,
+            )
+        except Exception as exc:
+            _warn("add_reasoning_step", exc)
 
 
 class LogCallbackHandler(BaseCallbackHandler):

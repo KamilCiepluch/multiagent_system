@@ -3,7 +3,10 @@ Warstwa dostępu do bazy logów (agent_logs).
 
 Dedykowana baza obserwowalności — zapisywana ZAWSZE przy każdym przebiegu
 workflow (niezależnie od ataku). Schemat znormalizowany: runs →
-agent_invocations → (tool_calls | loaded_skills), plus run_db_changes.
+agent_invocations → (reasoning_steps | tool_calls | loaded_skills), plus
+run_db_changes. Te trzy dzielą wspólny licznik `step` w obrębie wywołania —
+scalenie po `step` odtwarza pełną oś czasu (myśl → decyzja → narzędzie → wynik
+→ myśl po wyniku → …).
 
 Operacje są pisane tak, by były odporne na błędy — logowanie nigdy nie może
 wywrócić głównej logiki agentów. Funkcje zwracają surowe wartości/krotki;
@@ -118,14 +121,29 @@ def finish_invocation(
             )
 
 
-def append_thinking(invocation_id: int, text: str) -> None:
-    """Dokleja fragment thinkingu do bieżącego wywołania (agent ReAct woła model wielokrotnie)."""
+# ------------------------------------------------------------------
+# Reasoning steps — kolejne tury modelu (myśl / treść / decyzja)
+# ------------------------------------------------------------------
+
+def add_reasoning_step(
+    invocation_id: int,
+    step: int,
+    thinking: str | None,
+    content: str | None,
+    decided_tools: list | None,
+) -> None:
+    """Zapisuje jedną turę modelu w obrębie wywołania agenta (jedno on_llm_end).
+
+    thinking      — ukryty kanał rozumowania (None gdy model go nie zwraca),
+    content       — widoczna treść wiadomości modelu,
+    decided_tools — [{name, args}] narzędzi zleconych w tej turze (None gdy brak).
+    """
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "UPDATE agent_invocations "
-                "SET thinking = COALESCE(thinking || E'\\n---\\n', '') || %s WHERE id = %s",
-                (text, invocation_id),
+                "INSERT INTO reasoning_steps (invocation_id, step, thinking, content, decided_tools) "
+                "VALUES (%s, %s, %s, %s, %s)",
+                (invocation_id, step, thinking, content, _jsonb(decided_tools)),
             )
 
 
@@ -136,15 +154,16 @@ def append_thinking(invocation_id: int, text: str) -> None:
 def start_tool_call(
     invocation_id: int,
     seq: int,
+    step: int,
     tool_name: str,
     input_args: dict | None,
 ) -> int:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO tool_calls (invocation_id, seq, tool_name, input) "
-                "VALUES (%s, %s, %s, %s) RETURNING id",
-                (invocation_id, seq, tool_name, _jsonb(input_args)),
+                "INSERT INTO tool_calls (invocation_id, seq, step, tool_name, input) "
+                "VALUES (%s, %s, %s, %s, %s) RETURNING id",
+                (invocation_id, seq, step, tool_name, _jsonb(input_args)),
             )
             return cur.fetchone()[0]
 
@@ -171,6 +190,7 @@ def finish_tool_call(
 def add_loaded_skill(
     invocation_id: int,
     seq: int,
+    step: int,
     action: str,
     skill_name: str | None,
     content: str | None,
@@ -179,9 +199,9 @@ def add_loaded_skill(
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO loaded_skills (invocation_id, seq, action, skill_name, content, is_error) "
-                "VALUES (%s, %s, %s, %s, %s, %s)",
-                (invocation_id, seq, action, skill_name, content, is_error),
+                "INSERT INTO loaded_skills (invocation_id, seq, step, action, skill_name, content, is_error) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s)",
+                (invocation_id, seq, step, action, skill_name, content, is_error),
             )
 
 
@@ -243,13 +263,25 @@ def get_invocations(run_id: str) -> list[dict]:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, parent_id, seq, agent_name, input, output, thinking, "
+                "SELECT id, parent_id, seq, agent_name, input, output, "
                 "       status, error, started_at, finished_at "
                 "FROM agent_invocations WHERE run_id = %s::uuid ORDER BY seq ASC",
                 (run_id,),
             )
-            cols = ["id", "parent_id", "seq", "agent_name", "input", "output", "thinking",
+            cols = ["id", "parent_id", "seq", "agent_name", "input", "output",
                     "status", "error", "started_at", "finished_at"]
+            return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
+def get_reasoning_steps(invocation_id: int) -> list[dict]:
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, step, thinking, content, decided_tools, created_at "
+                "FROM reasoning_steps WHERE invocation_id = %s ORDER BY step ASC",
+                (invocation_id,),
+            )
+            cols = ["id", "step", "thinking", "content", "decided_tools", "created_at"]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
@@ -257,11 +289,11 @@ def get_tool_calls(invocation_id: int) -> list[dict]:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, seq, tool_name, input, output, is_error, error, started_at, finished_at "
+                "SELECT id, seq, step, tool_name, input, output, is_error, error, started_at, finished_at "
                 "FROM tool_calls WHERE invocation_id = %s ORDER BY seq ASC",
                 (invocation_id,),
             )
-            cols = ["id", "seq", "tool_name", "input", "output", "is_error", "error",
+            cols = ["id", "seq", "step", "tool_name", "input", "output", "is_error", "error",
                     "started_at", "finished_at"]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
 
@@ -270,11 +302,11 @@ def get_loaded_skills(invocation_id: int) -> list[dict]:
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "SELECT id, seq, action, skill_name, content, is_error, created_at "
+                "SELECT id, seq, step, action, skill_name, content, is_error, created_at "
                 "FROM loaded_skills WHERE invocation_id = %s ORDER BY seq ASC",
                 (invocation_id,),
             )
-            cols = ["id", "seq", "action", "skill_name", "content", "is_error", "created_at"]
+            cols = ["id", "seq", "step", "action", "skill_name", "content", "is_error", "created_at"]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
 
 
