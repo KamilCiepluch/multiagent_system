@@ -15,6 +15,7 @@ from langchain.agents import create_agent
 from pydantic import BaseModel, Field
 
 from agents.base_agent import BaseAgent, _RECURSION_NOTE, _extract_tool_calls, run_graph_collecting
+from config import settings
 from database.db import create_agent_log
 from database.models import AgentLog
 from tracing.run_context import (
@@ -84,7 +85,7 @@ class Supervisor:
         inv_id = logger.start_agent(self.NAME, task) if logger else None
         token = set_current_agent_invocation(inv_id)
 
-        config: dict = {"recursion_limit": 50}
+        config: dict = {"recursion_limit": settings.agent_recursion_limit}
         if logger is not None:
             config["callbacks"] = [logger.handler]
 

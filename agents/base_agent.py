@@ -9,11 +9,15 @@ Każdy agent definiuje:
 Żeby zainfekować WSZYSTKICH agentów wystarczy zmienić rekord w tools_outputs.
 """
 
+from typing import Annotated
+
 from langchain_core.messages import HumanMessage
-from langchain_core.tools import tool as lc_tool
+from langchain_core.tools import tool as lc_tool, InjectedToolCallId
 from langchain.agents import create_agent
 from langgraph.errors import GraphRecursionError
+from langgraph.prebuilt import InjectedState
 
+from config import settings
 from database.db import create_agent_log, get_skill as db_get_skill, list_skills as db_list_skills
 from database.models import AgentLog
 from tracing.run_context import (
@@ -55,6 +59,36 @@ def _extract_tool_calls(messages: list) -> list[dict]:
                 result.append(entry)
 
     return result
+
+
+def _called_before(
+    messages: list,
+    tool_name: str,
+    current_id: str,
+    match_name: str | None = None,
+) -> bool:
+    """Czy `tool_name` było już wywołane w bieżącej inwokacji grafu.
+
+    Limit „raz na przebieg" wyprowadzamy ze stanu inwokacji (historii wiadomości),
+    a nie ze stanu instancji agenta. Stan jest świeży przy każdym uruchomieniu
+    agenta (brak checkpointera), więc licznik zeruje się sam — niezależnie od
+    tego, czy ktoś woła przez BaseAgent.run(), czy bezpośrednio agent.stream()
+    (jak benchmark_agents.py).
+
+    Skanujemy tool_calls z AIMessage, pomijając bieżące wywołanie (po
+    tool_call_id). Gdy podano `match_name`, dopasowujemy też argument `name`
+    (dedup po nazwie skilla zamiast całkowitej blokady narzędzia).
+    """
+    for msg in messages:
+        for tc in getattr(msg, "tool_calls", None) or []:
+            if tc.get("name") != tool_name:
+                continue
+            if tc.get("id") == current_id:  # bieżące wywołanie — nie liczymy
+                continue
+            if match_name is not None and (tc.get("args") or {}).get("name") != match_name:
+                continue
+            return True
+    return False
 
 
 _RECURSION_NOTE = (
@@ -113,16 +147,35 @@ class BaseAgent:
         agent_name = self.NAME
 
         @lc_tool
-        def list_skills() -> str:
+        def list_skills(
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            messages: Annotated[list, InjectedState("messages")],
+        ) -> str:
             """Wylistuj dostępne procedury obsługi zadań (skille). Użyj gdy zadanie pasuje do złożonego scenariusza."""
+            if _called_before(messages, "list_skills", tool_call_id):
+                return (
+                    "list_skills zostało już wywołane w tym przebiegu. "
+                    "Użyj wcześniejszej listy zamiast wołać ponownie."
+                )
             skills = db_list_skills(agent_name)
             if not skills:
                 return "Brak dostępnych skillów."
             return "\n".join(f"{s.name} — {s.description}" for s in skills)
 
         @lc_tool
-        def load_skill(name: str) -> str:
+        def load_skill(
+            name: str,
+            tool_call_id: Annotated[str, InjectedToolCallId],
+            messages: Annotated[list, InjectedState("messages")],
+        ) -> str:
             """Wczytaj pełną treść skilla: kroki, narzędzia i ograniczenia."""
+            # Dedup po nazwie skilla — powtórka tego samego wczytania (także
+            # błędnej nazwy) nie wnosi nic i tylko zapętla agenta.
+            if _called_before(messages, "load_skill", tool_call_id, match_name=name):
+                return (
+                    f"Skill '{name}' został już wczytany w tym przebiegu. "
+                    "Użyj wcześniej zwróconej treści zamiast wołać ponownie."
+                )
             skill = db_get_skill(name, agent_name)
             if not skill:
                 return f"Skill '{name}' nie istnieje lub jest niedostępny."
@@ -135,7 +188,7 @@ class BaseAgent:
         inv_id = logger.start_agent(self.NAME, task) if logger else None
         token = set_current_agent_invocation(inv_id)
 
-        config: dict = {"recursion_limit": 50}
+        config: dict = {"recursion_limit": settings.agent_recursion_limit}
         if logger is not None:
             config["callbacks"] = [logger.handler]
 
