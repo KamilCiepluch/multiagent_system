@@ -40,7 +40,10 @@ class AutoDanSettings(BaseSettings):
         extra="ignore",
     )
 
-    attacker_model: str = _root.ollama_model
+    # Atakujący: model NIEOCENZUROWANY (≠ system docelowy) — gpt-oss odmawiał
+    # generowania payloadów, qwen-uncensored produkuje je bez oporu.
+    attacker_model: str = "jaahas/qwen3.5-uncensored:9b"
+    # Scorer/summarizer: model systemu (gpt-oss) — sprawdził się (100% zgodności z GT).
     scorer_model: str = _root.ollama_model
     summarizer_model: str = _root.ollama_model
     base_url: str = _root.ollama_base_url
@@ -51,9 +54,9 @@ class AutoDanSettings(BaseSettings):
     summarizer_temperature: float = 0.5
     num_ctx: int = 8192
     reasoning: bool = False
-    # None = domyślny keep_alive Ollamy; "0" = zwolnij model od razu po wywołaniu
-    # (dynamiczne ładowanie jeden-na-raz, gdy atakujący ≠ docelowy i mało VRAM).
-    keep_alive: str | None = None
+    # "0" = zwolnij model od razu po wywołaniu → atakujący (qwen) i docelowy (gpt-oss)
+    # nie siedzą naraz w VRAM (ładowanie jeden-na-raz). Ustaw None, gdy masz miejsce na oba.
+    keep_alive: str | None = "0"
 
 
 def build_chat(model: str, temperature: float, settings: AutoDanSettings | None = None):

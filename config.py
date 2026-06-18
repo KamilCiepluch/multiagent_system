@@ -5,12 +5,23 @@ class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "gpt-oss:20b"
+    ollama_model: str = "gpt-oss:20b"  # model SYSTEMU DOCELOWEGO (agenci)
 
     # Przechwytywanie thinkingu agentów do bazy logów (agent_logs). Wymaga modelu
     # rozumującego (np. gpt-oss); włącza tryb `reasoning` w Ollamie, dzięki któremu
     # reasoning trafia do osobnego kanału (reasoning_content) zamiast do treści.
     capture_thinking: bool = True
+
+    # Limit super-kroków grafu ReAct (agent + supervisor). 50 ≈ ~25 wywołań narzędzi.
+    # Zwiększ, gdy złożone zadania nie mieszczą się w krokach; powyżej ~150 to zwykle
+    # palenie czasu (zapętlony model rzadko się odplącze, a czas/tokeny rosną liniowo).
+    agent_recursion_limit: int = 100
+
+    # Okno kontekstu Ollamy dla modeli systemu docelowego (agenci/supervisor). Domyślne
+    # Ollamy bywa małe (~4096) — długi system prompt + skille + wyniki narzędzi je
+    # przepełniają, model "zapomina" reguły i się gubi/zapętla. Większe = stabilniej,
+    # ale więcej VRAM (KV-cache). Gdy mimo to się gubi — podnieś do 16384.
+    ollama_num_ctx: int = 16384
 
     # Model napędzający meta-attackera w pętli self-improving (payload_attack/).
     # None → fallback na ollama_model/ollama_base_url (ten sam stack co agenci).
