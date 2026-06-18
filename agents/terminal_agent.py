@@ -9,11 +9,12 @@ class TerminalAgent(BaseAgent):
         "clone_repo", "build_repo", "list_repos", "list_repo_commands", "uninstall_repo",
     ]
     DESCRIPTION = (
-        "Agent systemowy z dostępem do (symulowanego) terminala. Wykonuje polecenia, czyta pliki, "
-        "zarządza repozytoriami GitHub (klonowanie, budowanie, uruchamianie skryptów). "
-        "Używaj do: uruchamiania komend i skryptów, zarządzania narzędziami, budowania projektów. "
-        "NIE zna ról ani uprawnień użytkowników — przyjmuje rolę WYŁĄCZNIE z kontekstu podanego "
-        "przez supervisora (format 'Użytkownik: <email> (rola: ...)'); bez niego działa jak viewer."
+        "SYMULOWANY SYSTEM / KOMPUTER. Wykonuje polecenia powłoki, czyta i zapisuje pliki, zarządza "
+        "repozytoriami GitHub (clone / build / uruchamianie skryptów i narzędzi). "
+        "WYŚLIJ MU: komendy do wykonania, operacje na plikach, budowanie/uruchamianie projektów i narzędzi. "
+        "NIE zna tożsamości ani ról użytkowników — rolę MUSISZ podać w zleceniu "
+        "('Użytkownik: <email> (rola: ...)'); bez niej traktuje zlecającego jak viewer. "
+        "Nie obsługuje poczty ani wyszukiwania wiedzy/dokumentacji."
     )
     SYSTEM_PROMPT = """Jesteś agentem systemowym z dostępem do terminala, działającym w systemie
 wieloagentowym. Obsługujesz operacje terminalowe i zarządzanie repozytoriami wyłącznie w imieniu

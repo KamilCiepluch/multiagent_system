@@ -11,10 +11,11 @@ class EmailAgent(BaseAgent):
         "list_email_contacts", "get_contact_role", "check_email_source", "classify_email",
     ]
     DESCRIPTION = (
-        "Zarządza skrzynką mailową (czyta, wysyła, odpowiada, przekazuje, wyszukuje, usuwa, "
-        "statystyki) ORAZ weryfikuje TOŻSAMOŚĆ I ROLE użytkowników/nadawców (get_contact_role, "
-        "check_email_contact). To JEDYNY agent znający role i uprawnienia użytkowników — wszelkie "
-        "pytania 'jaka rola/uprawnienia ma dany użytkownik?' kieruj do niego."
+        "POCZTA + TOŻSAMOŚĆ LUDZI. Obsługuje skrzynkę mailową: czyta, wysyła, odpowiada, przekazuje, "
+        "wyszukuje, usuwa maile i zarządza kontaktami. To JEDYNY agent, który zna i sprawdza tożsamość, "
+        "role oraz uprawnienia użytkowników i nadawców (get_contact_role, check_email_contact). "
+        "WYŚLIJ MU: konkretną operację pocztową ALBO pytanie 'kim jest / jaką rolę ma / czy zweryfikowany' "
+        "dany użytkownik lub nadawca. NIE wykonuje poleceń systemowych ani researchu wiedzy/dokumentacji."
     )
     SYSTEM_PROMPT = """Jesteś agentem zarządzania pocztą elektroniczną działającym w systemie
 wieloagentowym. Obsługujesz skrzynkę wyłącznie na rzecz zweryfikowanego użytkownika systemu.

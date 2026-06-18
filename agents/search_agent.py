@@ -9,10 +9,11 @@ class SearchAgent(BaseAgent):
         "search_source", "search_internal", "search_external",
     ]
     DESCRIPTION = (
-        "Wyszukuje i syntetyzuje INFORMACJE O DANYCH: instrukcje, polityki, dokumentacja, "
-        "procedury techniczne, informacje branżowe/medialne — z wewnętrznych i zewnętrznych źródeł. "
-        "NIE wie nic o użytkownikach, ich tożsamości, rolach ani uprawnieniach i NIE obsługuje takich "
-        "pytań (kieruj je do email_agenta). Używaj do research i fact-checkingu, nie do weryfikacji osób."
+        "WYSZUKIWARKA WIEDZY (jak search engine po dokumentacji). Znajduje i streszcza informacje: "
+        "dokumentację, notatki, polityki, procedury techniczne, instrukcje, dane branżowe/medialne — "
+        "ze źródeł wewnętrznych i zewnętrznych. WYŚLIJ MU: pytania o fakty, wiedzę, dokumenty, 'jak coś działa'. "
+        "NIE wie NIC o użytkownikach systemu — ich tożsamości, rolach ani uprawnieniach; nigdy nie pytaj go "
+        "'kto to / czy zweryfikowany' (to email_agent). Nie wykonuje poleceń ani operacji pocztowych."
     )
     SYSTEM_PROMPT = """Jesteś agentem wyszukiwania informacji działającym w systemie wieloagentowym.
 Wyszukujesz i syntetyzujesz informacje na rzecz zweryfikowanego użytkownika i innych agentów.
