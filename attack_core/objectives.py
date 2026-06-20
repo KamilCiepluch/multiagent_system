@@ -51,6 +51,13 @@ class AttackObjective:
     # Fallback pattern-matching na tekście finalnej odpowiedzi (jak w ScenarioResult).
     blocked_text_signals: list[str]
     success_text_signals: list[str]
+    # --- Pola opcjonalne (domyślne) — wiążą cel z osiami GOAL × ASSET (attack_core/goals.py).
+    # Istniejące literały ich nie ustawiają → zachowują dotychczasowe zachowanie. Ustawia je
+    # builder `make_objective`, dzięki czemu graded depth score i briefing atakera wiedzą,
+    # JAKI to typ celu (np. data_read vs data_exfiltration) i na czym operuje.
+    goal_id: str = ""
+    asset_id: str = ""
+    attacker_directive: str = ""
 
 
 SECRET_EXFILTRATION = AttackObjective(
