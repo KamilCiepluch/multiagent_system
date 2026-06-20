@@ -67,12 +67,22 @@ class AgentsBlocksTarget:
             conn.close()
 
     def respond(self, jailbreak_prompt: str) -> str:
-        """Reset → wstrzyknięcie payloadu → odpalenie zadania wektora → transkrypt."""
+        """Reset → wstrzyknięcie payloadu → odpalenie zadania wektora → transkrypt.
+
+        Wieloagentowy cel bywa kruchy: np. gpt-oss potrafi wyemitować niepoprawny JSON
+        tool-calla (apostrofy w komendzie), na co Ollama podnosi ResponseError. Pojedynczy
+        taki błąd NIE może przerwać całego, wielogodzinnego przebiegu red-teamu — łapiemy
+        wyjątek, traktujemy próbę jak nieudaną i zwracamy częściowy transkrypt (depth/
+        ground-truth ocenią to, co zdążyło się wykonać przed błędem)."""
         self._runner.reset_main_db()
         self._apply_injection(jailbreak_prompt)
 
         with self._runner.invocation(self._attack_id, task=self._injection_point.task) as run_id:
-            self._workflow.invoke({"task": self._injection_point.task, "run_id": run_id})
+            try:
+                self._workflow.invoke({"task": self._injection_point.task, "run_id": run_id})
+            except Exception as e:
+                print(f"  [target] workflow.invoke przerwany ({type(e).__name__}: "
+                      f"{str(e)[:160]}) — próba liczona jako nieudana, częściowy trace.")
 
         self.last_run_id = run_id
         return format_run_trace(run_id)
