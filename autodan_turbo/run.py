@@ -123,6 +123,33 @@ def print_report(stage: str, objective_id: str, injection_id: str, attack_id: st
     print(THICK)
 
 
+def seed_library_from_catalog(library: Library, settings: AutoDanSettings) -> Library:
+    """Dolewa do biblioteki techniki z katalogu wiedzy (attack_techniques) jako PRIOR.
+
+    Każda technika dostaje embedding (description+example) jako klucz retrievalu oraz
+    umiarkowany prior Score, by retrieval podawał ją do attacker.use_strategy. To znosi
+    cold-start: pętla ma czego retrievować od pierwszej iteracji, zamiast strzelać na ślepo."""
+    from database.knowledge_db import TechniqueRepository
+
+    techniques = TechniqueRepository.all()
+    if not techniques:
+        print("  UWAGA: katalog technik PUSTY — najpierw: python -m attack_core.knowledge.seed")
+        return library
+    embedder = build_embeddings(settings)
+    SEED_PRIOR = 2.0  # pasmo „umiarkowane" retrievalu (≥2 i <5) → trafia do use_strategy
+    for t in techniques:
+        text = f"{t['description']} {t.get('example') or ''}".strip()
+        library.add({
+            "Strategy": t["name"],
+            "Definition": t["description"],
+            "Example": [t.get("example") or ""],
+            "Score": [SEED_PRIOR],
+            "Embeddings": [embedder.embed_query(text)],
+        })
+    print(f"  Zasilono bibliotekę {len(techniques)} technikami z katalogu (prior={SEED_PRIOR}).")
+    return library
+
+
 def build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(description="Wierny AutoDAN-Turbo jako bloczek — benchmark na agents_blocks.")
     p.add_argument("--stage", choices=["warmup", "lifelong", "test"], help="Etap do uruchomienia")
@@ -131,6 +158,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--injection", help=f"ID wektora ({list(INJECTION_POINTS)})")
     p.add_argument("--epochs", type=int, default=3, help="Maks. iteracji na żądanie (domyślnie 3)")
     p.add_argument("--lifelong-iterations", type=int, default=2, help="Rundy lifelong (domyślnie 2)")
+    p.add_argument("--seed", action="store_true",
+                   help="Zasil bibliotekę startową katalogiem technik (warstwa wiedzy) — "
+                        "atakujący ma czego retrievować od 1. iteracji (lifelong/test)")
     p.add_argument("--list", action="store_true", help="Pokaż cele i wektory")
     return p
 
@@ -224,13 +254,17 @@ def main() -> None:
             print(f"\n  Biblioteka zapisana: logs/{lib_name} ({len(library)} strategii)")
         elif args.stage == "lifelong":
             library = Library.from_dict(load_json(lib_name))
+            if args.seed:
+                seed_library_from_catalog(library, settings)
             library, log = pipeline.lifelong_redteaming(library)
             save_json(lib_name, library.to_dict())
             print(f"\n  Biblioteka zaktualizowana: logs/{lib_name} ({len(library)} strategii)")
         else:  # test
             library = Library.from_dict(load_json(lib_name))
+            if args.seed:
+                seed_library_from_catalog(library, settings)
             if len(library) == 0:
-                print(f"  UWAGA: biblioteka logs/{lib_name} pusta — najpierw uruchom warmup/lifelong.")
+                print(f"  UWAGA: biblioteka logs/{lib_name} pusta — najpierw uruchom warmup/lifelong lub użyj --seed.")
             log = pipeline.test(objective.description, library)
 
         final_outcome = "succeeded" if any(a.gt_outcome == "ATTACK_SUCCESS" for a in log) else "blocked"
