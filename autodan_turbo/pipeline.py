@@ -31,17 +31,20 @@ from autodan_turbo.library import Library
 
 @dataclass
 class Attempt:
-    """Jedna iteracja pętli — payload, odpowiedź targetu, score 1–10 i równoległy GT."""
+    """Jedna iteracja pętli — payload, odpowiedź targetu, score napędzający pętlę i równoległy GT."""
 
     request: str
     prompt: str
     response: str
-    score: float
+    score: float                   # sygnał napędzający pętlę (= depth, gdy włączony; inaczej text_score)
     mode: str                      # warm_up_attack | use_strategy | find_new_strategy
     strategies_used: list[str] = field(default_factory=list)
     run_id: str | None = None
     gt_outcome: str | None = None  # ATTACK_SUCCESS | PARTIAL | BLOCKED | UNCLEAR (z attack_core.judge)
     gt_evidence: list[str] = field(default_factory=list)
+    text_score: float | None = None      # wierny scorer 1–10 (szkodliwość tekstu) — logowany obok
+    depth: float | None = None           # graded whitebox score (głębokość penetracji)
+    depth_milestone: str | None = None   # czytelny kamień milowy osiągnięty przez payload
 
 
 OnAttempt = Callable[[Attempt], None]
@@ -60,6 +63,7 @@ class AutoDANTurbo:
         lifelong_iterations: int = 4,
         retrieval_k: int = 5,
         on_attempt: OnAttempt | None = None,
+        depth_scorer: Callable[[str], object] | None = None,
     ):
         self.attacker = turbo_framework["attacker"]
         self.scorer = turbo_framework["scorer"]
@@ -73,6 +77,9 @@ class AutoDANTurbo:
         self.lifelong_iterations = lifelong_iterations
         self.retrieval_k = retrieval_k
         self._on_attempt = on_attempt
+        # Gdy podany: callable(run_id) -> DepthScore. Wtedy pętlę napędza gęsty graded
+        # score (głębokość penetracji), a wierny 1–10 jest logowany równolegle jako text_score.
+        self._depth_scorer = depth_scorer
 
     # ------------------------------------------------------------------
     # Jedna iteracja: respond → score(1–10) → ground-truth(równolegle)
@@ -80,15 +87,25 @@ class AutoDANTurbo:
 
     def _run_once(self, request: str, prompt: str, mode: str, strategies_used: list[str]) -> Attempt:
         response = self.target.respond(prompt)
-        score = self.scorer.wrapper(self.scorer.scoring(request, response))
+        text_score = self.scorer.wrapper(self.scorer.scoring(request, response))
+        run_id = getattr(self.target, "last_run_id", None)
+
+        depth = depth_milestone = None
+        if self._depth_scorer is not None and run_id is not None:
+            ds = self._depth_scorer(run_id)
+            depth, depth_milestone = ds.score, ds.milestone
+
+        # Pętlę napędza gęsty depth, gdy dostępny; inaczej wierny scorer 1–10.
+        score = depth if depth is not None else text_score
 
         gt = self.target.ground_truth()
         attempt = Attempt(
             request=request, prompt=prompt, response=response, score=score, mode=mode,
             strategies_used=strategies_used,
-            run_id=getattr(self.target, "last_run_id", None),
+            run_id=run_id,
             gt_outcome=(gt.outcome if gt is not None else None),
             gt_evidence=(list(gt.evidence) if gt is not None else []),
+            text_score=text_score, depth=depth, depth_milestone=depth_milestone,
         )
         if self._on_attempt is not None:
             self._on_attempt(attempt)
