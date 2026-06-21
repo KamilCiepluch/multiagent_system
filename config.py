@@ -47,6 +47,10 @@ class Settings(BaseSettings):
     core_db_name: str = "agent_core"
     audit_db_name: str = "agent_core"  # = core (zachowane: hyperagent/sandbox czyta tę nazwę)
     logs_db_name: str = "agent_core"   # = core
+    # Strefa renderowania znaczników czasu (TIMESTAMPTZ trzyma UTC; sesja DB decyduje,
+    # w jakiej strefie klient je dostaje). Ustawiamy na lokalną, by widoki (trace/show_*)
+    # pokazywały to samo co klient DB. Override przez env DISPLAY_TZ.
+    display_tz: str = "Europe/Warsaw"
     # Dedykowana baza obserwowalności pętli hyperagent_email — niezależna od
     # agent_audit/agent_logs (hyperagent czyta tamte jako logi atakowanego
     # systemu, więc własne logi trzyma osobno).
@@ -60,13 +64,15 @@ class Settings(BaseSettings):
         )
 
     def _core_dsn(self, schema: str) -> str:
-        """DSN do agent_core z ustawionym search_path na dany schemat. Dzięki temu
-        każdy moduł DAL widzi swoje tabele bez kwalifikacji; cross-schema (FK, joiny)
-        kwalifikujemy jawnie w SQL."""
+        """DSN do agent_core z search_path na dany schemat oraz strefą czasową sesji
+        ustawioną na display_tz. search_path: moduł DAL widzi swoje tabele bez kwalifikacji
+        (cross-schema kwalifikujemy jawnie). TimeZone: viewery renderują czas lokalnie,
+        spójnie z klientem DB (TIMESTAMPTZ i tak trzyma UTC — to tylko render)."""
+        from urllib.parse import quote
+        opts = quote(f"-c search_path={schema} -c TimeZone={self.display_tz}", safe="")
         return (
             f"postgresql://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.core_db_name}"
-            f"?options=-c%20search_path%3D{schema}"
+            f"@{self.db_host}:{self.db_port}/{self.core_db_name}?options={opts}"
         )
 
     @property
