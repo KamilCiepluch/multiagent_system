@@ -2,7 +2,8 @@
 Seed katalogu technik ataku do bazy (agent_audit.attack_techniques).
 
 Idempotentny — upsert po unikalnej nazwie, więc można odpalać wielokrotnie po
-aktualizacji `catalog.py`. Wymaga zaaplikowanej migracji add_attack_strategies.sql.
+aktualizacji `catalog.py`. Wymaga bazy agent_core ze schematem `knowledge`
+(database/schema_core.sql) — katalog to reference data, nie idzie przez docker init.
 
 Uruchomienie:
     python -m attack_core.knowledge.seed
