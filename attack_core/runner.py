@@ -131,6 +131,11 @@ class AttackRunner:
 
         if self._audit_ok:
             try:
+                # Run w `logs` MUSI powstać przed wpisem w `audit` — FK
+                # audit.attack_invocations.run_id → logs.runs(run_id). run_logger
+                # uzupełni potem tryb/szczegóły (create_run jest idempotentne).
+                from database import logs_db
+                logs_db.create_run(run_id, task, None)
                 n = audit_db.next_invocation_n(attack_id)
                 invocation_id = audit_db.start_invocation(attack_id, n, run_id, task)
                 print(f"[AttackRunner] Invocation #{n} start (id={invocation_id})")

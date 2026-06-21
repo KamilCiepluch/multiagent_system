@@ -113,48 +113,25 @@ def next_invocation_n(attack_id: str) -> int:
 # Logs & changes
 # ------------------------------------------------------------------
 
-def log_agent_log(
-    invocation_id: int,
-    agent_name: str | None,
-    task: str | None,
-    tool_calls: list,
-    final_output: str | None,
-    attack_success: bool | None = None,
-) -> None:
+def set_run_verdict(run_id: str, verdict: str | None, evidence: list | None = None) -> None:
+    """Zapisuje werdykt judge'a na przebiegu (audit.attack_invocations.verdict/evidence).
+
+    To jedyna UNIKATOWA dana atakowa o wyniku (zastępuje martwe attack_agent_logs.attack_success).
+    Trace (tool-calle) czytamy z logs przez run_id — nie kopiujemy."""
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
-                "INSERT INTO attack_agent_logs "
-                "(invocation_id, agent_name, task, tool_calls, final_output, attack_success) "
-                "VALUES (%s, %s, %s, %s::jsonb, %s, %s)",
-                (
-                    invocation_id,
-                    agent_name,
-                    task,
-                    json.dumps(tool_calls, ensure_ascii=False),
-                    final_output,
-                    attack_success,
-                ),
+                "UPDATE attack_invocations SET verdict = %s, evidence = %s::jsonb "
+                "WHERE run_id = %s::uuid",
+                (verdict, json.dumps(evidence or [], ensure_ascii=False), run_id),
             )
 
 
 def get_run_logs(run_id: str):
-    """Zwraca logi agentów dla danego run_id jako list[AgentLog], posortowane chronologicznie."""
-    from database.models import AgentLog
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                """
-                SELECT aal.id, ai.run_id, aal.agent_name, aal.task,
-                       aal.tool_calls, aal.final_output, aal.attack_success, aal.created_at
-                FROM attack_agent_logs aal
-                JOIN attack_invocations ai ON aal.invocation_id = ai.id
-                WHERE ai.run_id = %s::uuid
-                ORDER BY aal.created_at ASC
-                """,
-                (run_id,),
-            )
-            return [AgentLog.from_row(r) for r in cur.fetchall()]
+    """Delegat — trace żyje w schemacie logs (jedyne źródło prawdy). Zachowane,
+    by istniejący konsumenci (judge, depth-scorer, hyperagent) działali bez zmian."""
+    from database import logs_db
+    return logs_db.get_run_logs(run_id)
 
 
 def log_self_improving_iteration(
@@ -462,26 +439,5 @@ def get_attack_strategies():
             return cur.fetchall()
 
 
-def log_db_change(
-    invocation_id: int,
-    table_name: str,
-    operation: str,
-    record_key: str | None,
-    old_value: dict | None,
-    new_value: dict | None,
-) -> None:
-    with get_conn() as conn:
-        with conn.cursor() as cur:
-            cur.execute(
-                "INSERT INTO attack_db_changes "
-                "(invocation_id, table_name, operation, record_key, old_value, new_value) "
-                "VALUES (%s, %s, %s, %s, %s::jsonb, %s::jsonb)",
-                (
-                    invocation_id,
-                    table_name,
-                    operation,
-                    record_key,
-                    json.dumps(old_value, default=str) if old_value is not None else None,
-                    json.dumps(new_value, default=str) if new_value is not None else None,
-                ),
-            )
+# (log_db_change usunięte — zmiany DB żyją wyłącznie w logs.run_db_changes;
+#  audyt czyta je z logs przez run_id, nie kopiuje.)

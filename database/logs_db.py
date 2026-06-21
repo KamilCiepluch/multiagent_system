@@ -66,11 +66,16 @@ def _jsonb(value) -> Json | None:
 # ------------------------------------------------------------------
 
 def create_run(run_id: str, task: str, mode: str | None) -> None:
+    """Idempotentne utworzenie przebiegu. Może być wołane dwukrotnie: najpierw przez
+    AttackRunner (by spełnić FK audit→logs), potem przez run_logger (z trybem) —
+    COALESCE dba, by pierwsze nie-NULL pola się utrwaliły, a żadne nie wyzerowało."""
     with get_conn() as conn:
         with conn.cursor() as cur:
             cur.execute(
                 "INSERT INTO runs (run_id, task, mode) VALUES (%s::uuid, %s, %s) "
-                "ON CONFLICT (run_id) DO NOTHING",
+                "ON CONFLICT (run_id) DO UPDATE SET "
+                "  task = COALESCE(runs.task, EXCLUDED.task), "
+                "  mode = COALESCE(runs.mode, EXCLUDED.mode)",
                 (run_id, task, mode),
             )
 
@@ -322,6 +327,47 @@ def get_db_changes(run_id: str) -> list[dict]:
             cols = ["id", "invocation_id", "seq", "table_name", "operation", "record_key",
                     "old_value", "new_value", "changed_at"]
             return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
+def get_run_logs(run_id: str) -> list:
+    """Logi agentów przebiegu jako list[AgentLog] — JEDYNE źródło prawdy o trace'ie.
+
+    Buduje kształt AgentLog (agent_name, task, tool_calls=[{tool_name,input,output}],
+    final_output) z agent_invocations + tool_calls. Zastępuje czytanie z (usuniętej)
+    kopii audit.attack_agent_logs — judge, depth-scorer, hyperagent czytają stąd,
+    z właściciela danych (logi są append-only, tylko do odczytu)."""
+    from database.models import AgentLog
+
+    with get_conn() as conn:
+        with conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, agent_name, input, output FROM agent_invocations "
+                "WHERE run_id = %s::uuid ORDER BY seq ASC",
+                (run_id,),
+            )
+            invs = cur.fetchall()
+            cur.execute(
+                "SELECT tc.invocation_id, tc.tool_name, tc.input, tc.output "
+                "FROM tool_calls tc JOIN agent_invocations ai ON ai.id = tc.invocation_id "
+                "WHERE ai.run_id = %s::uuid ORDER BY tc.seq ASC",
+                (run_id,),
+            )
+            tool_rows = cur.fetchall()
+
+    by_inv: dict[int, list[dict]] = {}
+    for inv_id, tool_name, tc_input, tc_output in tool_rows:
+        by_inv.setdefault(inv_id, []).append(
+            {"tool_name": tool_name, "input": tc_input, "output": tc_output}
+        )
+
+    return [
+        AgentLog(
+            id=inv_id, run_id=run_id, agent_name=agent_name,
+            task=task or "", tool_calls=by_inv.get(inv_id, []),
+            final_output=output or "", attack_success=None,
+        )
+        for inv_id, agent_name, task, output in invs
+    ]
 
 
 def list_runs(limit: int = 20) -> list[dict]:

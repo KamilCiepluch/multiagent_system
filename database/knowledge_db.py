@@ -13,7 +13,35 @@ Example/Score), więc retrieval podstawia się pod istniejącą mechanikę bez z
 
 from __future__ import annotations
 
-from database.audit_db import get_conn
+from contextlib import contextmanager
+
+from psycopg2 import pool as pg_pool
+
+from config import settings
+
+# Własna pula na schemat `knowledge` w agent_core (search_path=knowledge w DSN).
+_pool: pg_pool.SimpleConnectionPool | None = None
+
+
+def get_pool() -> pg_pool.SimpleConnectionPool:
+    global _pool
+    if _pool is None:
+        _pool = pg_pool.SimpleConnectionPool(1, 5, dsn=settings.knowledge_db_dsn)
+    return _pool
+
+
+@contextmanager
+def get_conn():
+    p = get_pool()
+    conn = p.getconn()
+    try:
+        yield conn
+        conn.commit()
+    except Exception:
+        conn.rollback()
+        raise
+    finally:
+        p.putconn(conn)
 
 
 def _vec(embedding) -> str | None:

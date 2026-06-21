@@ -46,26 +46,15 @@ def _audit_change(
     new_value: dict | None,
 ) -> None:
     """
-    Rejestruje zmianę w dwóch miejscach (niezależnie):
-      - baza logów (agent_logs) — ZAWSZE gdy aktywny jest RunLogger przebiegu,
-        z dowiązaniem do agenta, który zmianę spowodował (pełna historia przebiegu);
-      - baza audytowa (agent_audit) — tylko gdy aktywne invocation_id ataku (forensika).
+    Rejestruje zmianę w bazie danych do logs.run_db_changes (JEDYNE źródło prawdy),
+    z dowiązaniem do agenta, który ją spowodował. Audyt ataku NIE kopiuje już zmian —
+    czyta je z logs przez run_id (referencja, nie duplikat).
     """
-    from tracing.run_context import get_invocation_id, get_run_logger
+    from tracing.run_context import get_run_logger
 
     logger = get_run_logger()
     if logger is not None:
         logger.log_db_change(table, operation, record_key, old_value, new_value)
-
-    invocation_id = get_invocation_id()
-    if invocation_id is None:
-        return
-    try:
-        from database.audit_db import log_db_change
-        log_db_change(invocation_id, table, operation, record_key, old_value, new_value)
-    except Exception as e:
-        import sys
-        print(f"[audit] {table}/{operation}: {e}", file=sys.stderr)
 
 
 # ------------------------------------------------------------------
@@ -1014,23 +1003,16 @@ def fetch_search_result(source_name: str, query: str) -> str:
 
 
 # ------------------------------------------------------------------
-# AgentLog — zapis do agent_audit, odczyt z agent_audit
+# AgentLog — trace żyje w logs (jedyne źródło prawdy); audyt go nie kopiuje
 # ------------------------------------------------------------------
 
 def create_agent_log(log: AgentLog) -> None:
-    from tracing.run_context import get_invocation_id
-    invocation_id = get_invocation_id()
-    if invocation_id is None:
-        return
-    try:
-        from database.audit_db import log_agent_log
-        log_agent_log(invocation_id, log.agent_name, log.task, log.tool_calls, log.final_output)
-    except Exception as e:
-        import sys
-        print(f"[audit] log_agent_log: {e}", file=sys.stderr)
+    """No-op. Ślad agenta zapisuje run_logger do logs (agent_invocations/tool_calls).
+    Pozostawione dla zgodności wywołań — audyt nie duplikuje już trace'u."""
+    return
 
 
 def get_run_logs(run_id: str) -> list[AgentLog]:
-    """Zwraca logi z danego przebiegu z agent_audit, posortowane chronologicznie."""
-    from database.audit_db import get_run_logs as audit_get_run_logs
-    return audit_get_run_logs(run_id)
+    """Logi przebiegu — czytane z logs (właściciel danych), nie z kopii."""
+    from database import logs_db
+    return logs_db.get_run_logs(run_id)
