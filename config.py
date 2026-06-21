@@ -42,8 +42,11 @@ class Settings(BaseSettings):
     db_name: str = "agent_benchmark"
     db_user: str = "postgres"
     db_password: str = "postgres"
-    audit_db_name: str = "agent_audit"
-    logs_db_name: str = "agent_logs"
+    # Skonsolidowana baza: jeden silnik, trzy schematy (logs / audit / knowledge).
+    # logs+audit+knowledge żyją w agent_core; adresowane przez search_path per moduł.
+    core_db_name: str = "agent_core"
+    audit_db_name: str = "agent_core"  # = core (zachowane: hyperagent/sandbox czyta tę nazwę)
+    logs_db_name: str = "agent_core"   # = core
     # Dedykowana baza obserwowalności pętli hyperagent_email — niezależna od
     # agent_audit/agent_logs (hyperagent czyta tamte jako logi atakowanego
     # systemu, więc własne logi trzyma osobno).
@@ -56,19 +59,27 @@ class Settings(BaseSettings):
             f"@{self.db_host}:{self.db_port}/{self.db_name}"
         )
 
-    @property
-    def audit_db_dsn(self) -> str:
+    def _core_dsn(self, schema: str) -> str:
+        """DSN do agent_core z ustawionym search_path na dany schemat. Dzięki temu
+        każdy moduł DAL widzi swoje tabele bez kwalifikacji; cross-schema (FK, joiny)
+        kwalifikujemy jawnie w SQL."""
         return (
             f"postgresql://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.audit_db_name}"
+            f"@{self.db_host}:{self.db_port}/{self.core_db_name}"
+            f"?options=-c%20search_path%3D{schema}"
         )
 
     @property
+    def audit_db_dsn(self) -> str:
+        return self._core_dsn("audit")
+
+    @property
     def logs_db_dsn(self) -> str:
-        return (
-            f"postgresql://{self.db_user}:{self.db_password}"
-            f"@{self.db_host}:{self.db_port}/{self.logs_db_name}"
-        )
+        return self._core_dsn("logs")
+
+    @property
+    def knowledge_db_dsn(self) -> str:
+        return self._core_dsn("knowledge")
 
     @property
     def hyperagent_logs_dsn(self) -> str:
