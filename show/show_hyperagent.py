@@ -176,15 +176,19 @@ def _load_history(conn, session_id: str) -> list[dict]:
 
 
 def _load_run_logs(conn, run_id: str) -> list[dict]:
+    # Trace czytamy z logs (jedyne źródło prawdy); werdykt jest per-run w audit, nie per-agent.
     rows = _q(
         conn,
         """
-        SELECT aal.agent_name, aal.task, aal.tool_calls,
-               aal.final_output, aal.attack_success, aal.created_at
-        FROM attack_agent_logs aal
-        JOIN attack_invocations ai ON aal.invocation_id = ai.id
-        WHERE ai.run_id = %s::uuid
-        ORDER BY aal.created_at
+        SELECT li.agent_name, li.input,
+               COALESCE((SELECT jsonb_agg(jsonb_build_object(
+                          'tool_name', tc.tool_name, 'input', tc.input, 'output', tc.output)
+                          ORDER BY tc.seq)
+                        FROM logs.tool_calls tc WHERE tc.invocation_id = li.id), '[]'::jsonb),
+               li.output, NULL::boolean, li.started_at
+        FROM logs.agent_invocations li
+        WHERE li.run_id = %s::uuid
+        ORDER BY li.seq
         """,
         run_id,
     )

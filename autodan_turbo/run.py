@@ -74,6 +74,15 @@ def _on_attempt(attempt: Attempt) -> None:
     if attempt.gt_evidence:
         print(f"  dowód GT: {attempt.gt_evidence}")
 
+    # Utrwal werdykt judge'a na przebiegu (audit.attack_invocations) — dana unikatowa
+    # o wyniku; trace pozostaje w logs. Nie może wywrócić pętli.
+    if attempt.run_id:
+        try:
+            from database import audit_db
+            audit_db.set_run_verdict(attempt.run_id, attempt.gt_outcome, attempt.gt_evidence)
+        except Exception as e:
+            print(f"  [audit] set_run_verdict: {e}")
+
 
 def build_framework(settings: AutoDanSettings, surface_context: str = "") -> dict:
     return {

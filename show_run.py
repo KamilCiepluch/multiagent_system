@@ -27,10 +27,10 @@ def list_runs(limit: int = 20) -> None:
                     ai.task,
                     ai.started_at,
                     ai.finished_at,
-                    COUNT(aal.id) AS log_count
+                    COUNT(li.id) AS log_count
                 FROM attack_invocations ai
                 JOIN attack_runs ar ON ai.attack_id = ar.id
-                LEFT JOIN attack_agent_logs aal ON aal.invocation_id = ai.id
+                LEFT JOIN logs.agent_invocations li ON li.run_id = ai.run_id
                 GROUP BY ai.run_id, ar.name, ar.attack_type, ai.task, ai.started_at, ai.finished_at
                 ORDER BY ai.started_at DESC
                 LIMIT %s
