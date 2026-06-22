@@ -1,0 +1,10 @@
+# Zależności warstwy recon (vuln_recon/) — OPCJONALNE, instaluj tylko gdy używasz skanu
+# podatności Garakiem. Trzymane osobno od requirements.txt, bo garak jest ciężki (ciągnie
+# m.in. transformers/datasets) i nie jest potrzebny do działania samego systemu agentowego.
+#
+# Instalacja:  pip install -r requirements-recon.txt
+#
+# UWAGA: garak podbija numpy>=2 i transformers>=5. W współdzielonym środowisku może to
+# zerwać piny innych narzędzi (vllm, sentence-transformers) — rozważ osobny venv dla recon,
+# jeśli te narzędzia są potrzebne równolegle.
+garak>=0.15

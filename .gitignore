@@ -10,6 +10,9 @@ __pycache__/
 # Artefakty przebiegów AutoDAN-Turbo (biblioteka strategii + logi JSON)
 autodan_turbo/logs/
 
+# Raporty/hitlogi/HTML z skanów Garak (vuln_recon) — surowe artefakty, nie do repo
+vuln_recon/logs/
+
 # Klon oryginalnego AutoDAN-Turbo (cudze repo, tylko do testów referencyjnych)
 external/
 
