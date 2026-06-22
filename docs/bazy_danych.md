@@ -16,7 +16,12 @@ System używa **trzech fizycznych baz** (jeden silnik Postgres + pgvector):
 logs       → runs, agent_invocations, tool_calls, reasoning_steps, loaded_skills, run_db_changes
 audit      → attack_runs, attack_invocations (+verdict/evidence), self_improving_iterations, hyperagent_*
 knowledge  → attack_techniques, attack_attempts, attack_strategies
+recon      → scans, findings, hits   (benchmark podatności atakowanego modelu — Garak)
 ```
+
+Schemat `recon` (DAL: `database/recon_db.py`, projekt: `docs/garak_recon_design.md`) trzyma
+wyniki skanów red-team (Garak) atakowanego modelu: które rodziny jailbreaków na niego działają.
+Niezależny od reguły append-only (ta dotyczy wyłącznie `logs`).
 
 Jedna baza ze schematami (zamiast wielu baz) daje **prawdziwe klucze obce cross-schema**
 i joiny w jednym połączeniu, bez duplikowania danych:

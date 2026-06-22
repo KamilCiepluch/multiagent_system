@@ -88,6 +88,11 @@ class Settings(BaseSettings):
         return self._core_dsn("knowledge")
 
     @property
+    def recon_db_dsn(self) -> str:
+        """Schemat `recon` w agent_core — benchmark podatności atakowanego modelu (Garak)."""
+        return self._core_dsn("recon")
+
+    @property
     def hyperagent_logs_dsn(self) -> str:
         return (
             f"postgresql://{self.db_user}:{self.db_password}"

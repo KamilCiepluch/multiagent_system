@@ -21,6 +21,7 @@
 CREATE SCHEMA IF NOT EXISTS logs;
 CREATE SCHEMA IF NOT EXISTS audit;
 CREATE SCHEMA IF NOT EXISTS knowledge;
+CREATE SCHEMA IF NOT EXISTS recon;
 CREATE EXTENSION IF NOT EXISTS vector;
 
 -- =============================================================
@@ -241,3 +242,66 @@ CREATE TABLE IF NOT EXISTS knowledge.attack_strategies (
     UNIQUE (technique_id, objective_id, vector_id)
 );
 CREATE INDEX IF NOT EXISTS idx_attack_strategies_ctx ON knowledge.attack_strategies(objective_id, vector_id);
+
+-- =============================================================
+-- SCHEMA: recon  — benchmark podatności ATAKOWANEGO modelu (Garak)
+-- Projekt: docs/garak_recon_design.md
+--
+-- Po co: zanim zaatakujemy system agents_blocks, mierzymy podatności samego modelu
+-- docelowego narzędziem red-team (Garak/NVIDIA), żeby wiedzieć, KTÓRE rodziny
+-- jailbreaków na niego działają. To „warstwa wiedzy o podatnościach" — docelowo
+-- zasila wybór technik w pętli AutoDAN (na razie samodzielna warstwa + API zapytań).
+--
+-- Tool-agnostyczny (kolumna `tool`): dziś 'garak', w przyszłości np. 'pyrit' bez migracji.
+-- W Garaku model ATAKOWANY = generator pod testem (target_model). Osobny model
+-- ATAKUJĄCY/red-team (attacker_model) dotyczy tylko probe'ów generatywnych (atkgen) —
+-- stąd NULL dla statycznych. „Sami podajemy modele" = oba pola wypełnia uruchamiający.
+-- =============================================================
+CREATE TABLE IF NOT EXISTS recon.scans (
+    id             UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+    tool           TEXT        NOT NULL DEFAULT 'garak',     -- 'garak' | (przyszłość) 'pyrit'
+    tool_version   TEXT,
+    target_model   TEXT        NOT NULL,                     -- model ATAKOWANY (np. gpt-oss:20b)
+    target_type    TEXT        NOT NULL DEFAULT 'ollama',    -- generator garak (ollama/openai/rest...)
+    attacker_model TEXT,                                     -- red-team/atkgen; NULL gdy probe statyczne
+    probes         JSONB       NOT NULL DEFAULT '[]',        -- które probe'y uruchomiono
+    command        TEXT,                                     -- pełna komenda (odtwarzalność)
+    report_path    TEXT,
+    status         TEXT        NOT NULL DEFAULT 'running',   -- running | completed | failed
+    error          TEXT,
+    meta           JSONB       NOT NULL DEFAULT '{}',
+    started_at     TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    finished_at    TIMESTAMPTZ
+);
+CREATE INDEX IF NOT EXISTS idx_recon_scans_target ON recon.scans(target_model);
+
+-- Wynik per (probe, detector). failure_rate = (total-passed)/total — gęsta miara
+-- podatności (im wyżej, tym bardziej model uległ danej rodzinie jailbreaku).
+CREATE TABLE IF NOT EXISTS recon.findings (
+    id            SERIAL      PRIMARY KEY,
+    scan_id       UUID        NOT NULL REFERENCES recon.scans(id) ON DELETE CASCADE,
+    probe         TEXT        NOT NULL,                      -- np. 'dan.DanInTheWild'
+    probe_family  TEXT,                                      -- np. 'dan' (agregacja/mapowanie na technikę)
+    detector      TEXT        NOT NULL,
+    passed        INT         NOT NULL,
+    total         INT         NOT NULL,
+    failure_rate  REAL        NOT NULL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    UNIQUE (scan_id, probe, detector)
+);
+CREATE INDEX IF NOT EXISTS idx_recon_findings_scan   ON recon.findings(scan_id);
+CREATE INDEX IF NOT EXISTS idx_recon_findings_family ON recon.findings(probe_family);
+
+-- Pojedyncze trafienia z hitloga: konkretne prompty, które ZŁAMAŁY model — wprost
+-- użyteczne payloady (materiał do biblioteki strategii / inspekcji).
+CREATE TABLE IF NOT EXISTS recon.hits (
+    id            SERIAL      PRIMARY KEY,
+    scan_id       UUID        NOT NULL REFERENCES recon.scans(id) ON DELETE CASCADE,
+    probe         TEXT        NOT NULL,
+    detector      TEXT,
+    prompt        TEXT,                                      -- payload, który przeszedł
+    output        TEXT,                                      -- odpowiedź modelu (dowód)
+    score         REAL,
+    created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS idx_recon_hits_scan ON recon.hits(scan_id);
