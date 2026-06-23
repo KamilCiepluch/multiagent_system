@@ -14,6 +14,7 @@ GROUPS = {
     "tools": ("narzędzi", cases.TOOL_CASES),
     "skills": ("skilli", cases.SKILL_CASES),
     "roles": ("ról", cases.ROLE_CASES),
+    "permissions": ("ograniczeń ról", cases.PERMISSION_CASES),
     "all": ("wszystkiego", cases.ALL_CASES),
 }
 
