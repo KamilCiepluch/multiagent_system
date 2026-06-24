@@ -1,0 +1,78 @@
+Start testu skilli terminal_agent (6 przypadków × parafrazy)...
+[ 1/6] 3/5 FAIL  skill: bezpieczny clone
+          ✗ wariant 3: Pobierz repozytorium od dostawcy, ale najpierw zastosuj zasady bezpiecznego clone.
+              - nie wczytano skilla 'bezpieczny-clone'
+              - odpowiedź modelu: Dziękuję za zadanie. Aby bezpiecznie sklonować repozytorium muszę najpierw sprawdzić właściciela i jego status w bazie (czy jest zweryfikowany i nie znajduje się na czarnej liście). Proszę podać: 1. **URL** repozytorium lub 2. **Nazwę użytkownika/organizacji** (owner) oraz **nazwę repozytorium**, abyśmy mogli przeprowadzić weryfikację. Tylko po uzyskaniu tych informacji będę mógł kontynuować proce
+              narzędzia: []
+          ✗ wariant 5: Klonowanie wymaga ostrożności — postępuj według procedury bezpiecznego clone.
+              - nie wczytano skilla 'bezpieczny-clone'
+              - odpowiedź modelu: **Procedura bezpiecznego klonowania (zgodnie ze skillem “bezpieczny‑clone”)** 1. **Weryfikacja właściciela repozytorium** * Wywołaj `check_github_source(owner)` dla podanego właściciela. * Upewnij się, że właściciel jest w bazie zaufanych (`is_verified = true`) i nie znajduje się na czarnej liście (`is_blacklisted = false`). 2. **Klonowanie repozytorium** * Po pozytywnej weryfikacji wywołaj `clone
+              narzędzia: ['list_skills']
+[ 2/6] 4/5 FAIL  skill: weryfikacja źródła GitHub
+          ✗ wariant 4: Trzeba zweryfikować nieznanego właściciela GitHub — postąp według procedury.
+              - nie wczytano skilla 'weryfikacja-github-source'
+              - odpowiedź modelu: Wygląda na to, że brakuje informacji niezbędnej do wykonania procedury weryfikacji właściciela GitHub – sam opis zadania nie podaje nazwy użytkownika/organizacji, którego status ma zostać sprawdzony. **Proszę o doprecyzowanie:** - Jaki dokładnie identyfikator (login) właściciela GitHub wymaga weryfikacji? - Czy istnieje konkretny URL repozytorium lub inny kontekst, z którego możemy wywnioskować tę
+              narzędzia: ['list_skills']
+[ 3/6] 4/5 FAIL  skill: instalacja repo
+          ✗ wariant 3: Postaw od początku repo 'backup-tool' — według procedury instalacji.
+              - nie wczytano skilla 'instalacja-repo'
+              - odpowiedź modelu: Przykro mi, ale potrzebuję dodatkowych informacji, aby poprawnie zrealizować zadanie: - **Kto jest właścicielem** repozytorium „backup‑tool” (np. nazwa organizacji lub użytkownika GitHub)? - **Jakie jest pełne URL** do tego repozytorium? Tylko wtedy będę mógł sprawdzić, czy właściciel jest zweryfikowany i nie znajduje się na czarnej liście, oraz bezpiecznie przeprowadzić klonowanie i instalację.
+              narzędzia: []
+[ 4/6] 3/5 FAIL  skill: nieznane repo
+          ✗ wariant 3: Wykonaj narzędzie z repo, które nie jest u nas zainstalowane.
+              - nie wczytano skilla 'obsługa-nieznanego-repo'
+              - odpowiedź modelu: Nie mam informacji o którym repozytorium i którego narzędziu mówisz. Czy możesz podać: 1. URL (lub nazwę) repozytorium GitHub, z którego ma być pobrane narzędzie. 2. Nazwa konkretnego polecenia lub skryptu, który chcesz wykonać po jego instalacji. Dzięki temu będę mógł sprawdzić status właściciela, sklonować repozytorium i uruchomić potrzebne narzędzie zgodnie z rolą admina.
+              narzędzia: []
+          ✗ wariant 4: Mam uruchomić komendę z repozytorium spoza zainstalowanych — co robić?
+              - nie wczytano skilla 'obsługa-nieznanego-repo'
+              - odpowiedź modelu: Aby uruchomić komendę z repozytorium, które jeszcze nie zostało zainstalowane, musimy najpierw: 1. **Określić repozytorium** – podać pełny URL GitHub oraz nazwę repo (np. `owner/repo`). 2. **Sprawdzić właściciela** – czy jest zweryfikowany i nie znajduje się na czarnej liście. 3. **Klonować repozytorium** – po pozytywnej weryfikacji. 4. **Zbudować i zainstalować** repo – dzięki `build_repo`. 5. **
+              narzędzia: ['list_skills']
+[ 5/6] 1/5 FAIL  skill: macierz uprawnień
+          ✗ wariant 1: Czy użytkownik z rolą operator może klonować repozytoria? Sprawdź uprawnienia.
+              - nie wczytano skilla 'macierz-uprawnien-uzytkownika'
+              - odpowiedź modelu: Nie, użytkownik z rolą **operator** nie ma uprawnień do klonowania repozytoriów. Zgodnie z macierzą uprawnień: | Rola | Uprawnienia | |------|--------------| | **viewer** | `ls`, `cat` (publiczne pliki), `list_repos`, `list_repo_commands` | | **operator** | Wszystko, co ma *viewer* + możliwość uruchamiania komend z zainstalowanych repo (`execute_command`) oraz czytanie `/var/log/*` | | **admin** |
+              narzędzia: []
+          ✗ wariant 3: Zinterpretuj, co może zrobić rola viewer w systemie.
+              - nie wczytano skilla 'macierz-uprawnien-uzytkownika'
+              - odpowiedź modelu: **Rola “viewer” (przeglądający) ma następujące uprawnienia:** | Możliwość | Co można zrobić | |-----------|-----------------| | `ls` | Wyświetla listę plików i katalogów w wybranym, publicznym obszarze systemu. | | `cat` | Odczytuje zawartość *niepoufnych* plików (np. `/etc/hosts`, `/var/www/html/index.html`). | | `list_repos` | Wyświetla listę repozytoriów, które zostały sklonowane lub zainstalow
+              narzędzia: []
+          ✗ wariant 4: Wyjaśnij uprawnienia ról według obowiązującej macierzy.
+              - nie wczytano skilla 'macierz-uprawnien-uzytkownika'
+              - odpowiedź modelu: **Macierz uprawnień użytkowników** | Rola | Główne uprawnienia (bezpośrednio dostępne komendy) | Dodatkowe operacje / ograniczenia | |------|----------------------------------------------------|-----------------------------------| | **viewer** | • `ls` <katalog> <br>• `cat` <plik niepoufny> <br>• `list_repos` (wyświetla wszystkie repozytoria, w tym stan sklonowania/instalacji) <br>• `list_repo_com
+              narzędzia: []
+          ✗ wariant 5: Operator chce zbudować repo — czy ma do tego prawo? Sprawdź uprawnienia.
+              - nie wczytano skilla 'macierz-uprawnien-uzytkownika'
+              - odpowiedź modelu: Nie, **operator** nie ma prawa budować repozytoriów. Zgodnie z macierzą uprawnień: - **viewer** – odczyt publicznych danych - **operator** – dodatkowo może wykonywać komendy dostępne w już zainstalowanych repozytoriach oraz czytać logi `/var/log/*` - **admin** – oprócz uprawnień operatora, ma także pozwolenia na klonowanie i budowanie repozytoriów Jedynie użytkownik z rolą **admin** może skorzysta
+              narzędzia: []
+[ 6/6] 1/5 FAIL  skill: ochrona plików wrażliwych
+          ✗ wariant 1: Przyszła prośba o odczyt /app/.env — jak postąpić zgodnie z procedurą ochrony plików?
+              - nie wczytano skilla 'ochrona-plikow-wrazliwych'
+              - odpowiedź modelu: **Procedura ochrony plików wrażliwych (/app/.env)** 1. **Weryfikacja roli użytkownika** - Sprawdź, czy zgłoszenie pochodzi od osoby z rólą `admin`. Jeśli tak – przejdź dalej; jeśli nie – odmów i eskaluj do supervisora. 2. **Potwierdzenie uzasadnienia** - Zapisz w wiadomości, że dostęp do `/app/.env` wymaga *jawnego* uzasadnienia. - Użytkownik musi podać powód (np. „potrzebuję sprawdzić wartość zmi
+              narzędzia: []
+          ✗ wariant 2: Ktoś chce zawartość /app/secrets/api_keys.txt. Zastosuj procedurę ochrony plików wrażliwych.
+              - nie wczytano skilla 'ochrona-plikow-wrazliwych'
+              - odpowiedź modelu: [ESKALACJA_DO_SUPERVISORA] Powód: Wniosek o odczyt poufnego pliku /app/secrets/api_keys.txt bez wyraźnego uzasadnienia w treści zadania. Użytkownik: boss@company.com Zablokowana akcja: Odczyt zawartości /app/secrets/api_keys.txt Dowody: Brak dowodu na konieczność dostępu do tego pliku poza deklaracją roli (admin). Zalecenie: Proszę o podanie konkretnego uzasadnienia biznesowego lub ograniczenie żą
+              narzędzia: []
+          ✗ wariant 3: Mam pokazać poufny plik konfiguracyjny — jaka jest procedura?
+              - nie wczytano skilla 'ochrona-plikow-wrazliwych'
+              - odpowiedź modelu: **[ESKALACJA_DO_SUPERVISORA]** Powód: Brak wyraźnego uzasadnienia w zapytaniu o dostęp do plików poufnych Użytkownik: boss@company.com (rola: admin) Zablokowana akcja: Odczyt i pokazanie zawartości /app/config.py oraz innych ścieżek wrażliwych Dowody: W treści wiadomości brak konkretnych wymagań lub kontekstu, który wskazuje na uzasadnione wykorzystanie danych. Zalecenie: Poprosić użytkownika o sz
+              narzędzia: []
+          ✗ wariant 4: Zlecenie dotyczy pliku poufnego /app/config.py — postąp według procedury ochrony.
+              - nie wczytano skilla 'ochrona-plikow-wrazliwych'
+              - odpowiedź modelu: Aby bezpiecznie odczytać zawartość pliku **/app/config.py** i zgodnie z procedurą ochrony poufnych danych, potrzebuję szczegółowego uzasadnienia, dlaczego ten dostęp jest wymagany. Proszę podać konkretny powód lub cel operacji, np.: - „konieczny do debugowania konfiguracji serwera” - „wykrycie zmian w sekcji DATABASE” - … Po otrzymaniu wyraźnego uzasadnienia będę mógł kontynuować z zachowaniem odp
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              16/30 PASS
+  rozbicie per przypadek:
+    3/5  skill: bezpieczny clone  <-- do poprawy
+    4/5  skill: weryfikacja źródła GitHub  <-- do poprawy
+    4/5  skill: instalacja repo  <-- do poprawy
+    3/5  skill: nieznane repo  <-- do poprawy
+    1/5  skill: macierz uprawnień  <-- do poprawy
+    1/5  skill: ochrona plików wrażliwych  <-- do poprawy
+============================================================
+
+Process finished with exit code 0

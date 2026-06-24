@@ -1,0 +1,54 @@
+Start testu narzędzi terminal_agent (10 przypadków × parafrazy)...
+[ 1/10] 5/5 PASS  execute_command
+[ 2/10] 5/5 PASS  check_github_source
+[ 3/10] 5/5 PASS  list_github_sources
+[ 4/10] 5/5 PASS  add_github_source
+[ 5/10] 1/5 FAIL  update_github_source
+          ✗ wariant 1: Oznacz właściciela 'unknown-user' jako zweryfikowanego.
+              - narzędzie 'update_github_source' nie zostało wywołane
+              - odpowiedź modelu: Przykro mi, ale użytkownik „unknown‑user” nie znajduje się w naszej bazie znanych właścicieli GitHub. Bez potwierdzenia tożsamości nie mogę go oznaczyć jako zweryfikowanego. Proszę o dodatkowe informacje (np. repozytorium lub oficjalne źródło) od superwizora, abym mógł podjąć dalsze kroki.
+              narzędzia: ['list_github_sources']
+          ✗ wariant 2: Zaktualizuj flagi źródła 'unknown-user' — ustaw zweryfikowany.
+              - wyjątek przebiegu: UniqueViolation: duplicate key value violates unique constraint "github_sources_owner_key"
+DETAIL:  Key (owner)=(unknown-user) already ex
+              narzędzia: []
+          ✗ wariant 3: Zmień status 'unknown-user' na zweryfikowany.
+              - wyjątek przebiegu: UniqueViolation: duplicate key value violates unique constraint "github_sources_owner_key"
+DETAIL:  Key (owner)=(unknown-user) already ex
+              narzędzia: []
+          ✗ wariant 5: Zatwierdź w bazie źródło GitHub 'unknown-user' jako zaufane.
+              - wyjątek przebiegu: UniqueViolation: duplicate key value violates unique constraint "github_sources_owner_key"
+DETAIL:  Key (owner)=(unknown-user) already ex
+              narzędzia: []
+[ 6/10] 5/5 PASS  clone_repo
+[ 7/10] 3/5 FAIL  build_repo
+          ✗ wariant 2: Zainstaluj repozytorium 'backup-tool' (build).
+              - narzędzie 'build_repo' nie zostało wywołane
+              - odpowiedź modelu: Z przyjemnością pomogę w instalacji repozytorium „backup‑tool”, ale potrzebuję dodatkowych informacji: 1. **URL repozytorium GitHub** – np. `https://github.com/<owner>/backup-tool.git` 2. **Właściciel (owner)** – nazwa użytkownika lub organizacji, pod którą znajduje się projekt. Bez tych danych nie mogę zweryfikować właściciela ani bezpiecznie sklonować repozytorium. Proszę o uzupełnienie szczegół
+              narzędzia: ['list_skills', 'load_skill', 'load_skill', 'list_github_sources']
+          ✗ wariant 4: Skompiluj i zainstaluj 'backup-tool'.
+              - narzędzie 'build_repo' nie zostało wywołane
+              - odpowiedź modelu: Aby móc skompilować i zainstalować **backup‑tool**, muszę znać dokładny adres repozytorium oraz jego właściciela (należy potwierdzić, że jest on zweryfikowany). Proszę podać pełną ścieżkę GitHub (np. `https://github.com/<owner>/backup-tool.git`) lub wskazać istniejącego właściciela w bazie. Dane te są niezbędne do bezpiecznego klonowania i dalszej instalacji zgodnie z procedurą „instalacja‑repo”.
+              narzędzia: ['list_skills']
+[ 8/10] 5/5 PASS  list_repos
+[ 9/10] 5/5 PASS  list_repo_commands
+[10/10] 5/5 PASS  uninstall_repo
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 8/10
+  pojedyncze przebiegi:              44/50 PASS
+  rozbicie per przypadek:
+    5/5  execute_command
+    5/5  check_github_source
+    5/5  list_github_sources
+    5/5  add_github_source
+    1/5  update_github_source  <-- do poprawy
+    5/5  clone_repo
+    3/5  build_repo  <-- do poprawy
+    5/5  list_repos
+    5/5  list_repo_commands
+    5/5  uninstall_repo
+============================================================
+
+Process finished with exit code

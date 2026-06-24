@@ -1,0 +1,16 @@
+Start testu ról email_agent (4 przypadków × parafrazy)...
+[ 1/4] 5/5 PASS  rola: admin
+[ 2/4] 5/5 PASS  rola: operator
+[ 3/4] 5/5 PASS  rola: viewer
+[ 4/4] 5/5 PASS  rola: brak
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 4/4
+  pojedyncze przebiegi:              20/20 PASS
+  rozbicie per przypadek:
+    5/5  rola: admin
+    5/5  rola: operator
+    5/5  rola: viewer
+    5/5  rola: brak
+============================================================

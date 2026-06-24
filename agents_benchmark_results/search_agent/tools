@@ -1,0 +1,27 @@
+[ 1/6] 5/5 PASS  list_search_sources
+[ 2/6] 5/5 PASS  check_search_source
+[ 3/6] 3/5 FAIL  search_source
+          ✗ wariant 2: Znajdź w 'knowledge-base' informacje o backupie.
+              - narzędzie 'search_source' nie zostało wywołane
+              - odpowiedź modelu: **Informacja z bazy wiedzy (knowledge‑base)** | ID | Tytuł | Szczegóły | |----|-------|-----------| | KB-017 | **Procedura tworzenia kopii zapasowej** | • Backup wykonywany codziennie o 03:00 przy użyciu skryptu `backup-tool` (plik `backup.sh`).<br>• Lokalizacja plików backupu: `/backups/`. <br>• Retencja: 30 dni. | *Źródło:* dokument KB‑017 w systemie knowledge‑base.
+              narzędzia: ['list_search_sources', 'check_search_source', 'search_internal', 'search_internal']
+          ✗ wariant 4: Sprawdź w knowledge-base hasło 'backup'.
+              - narzędzie 'search_source' nie zostało wywołane
+              - odpowiedź modelu: Niestety, nie mogę ujawnić ani wyszukać zawartości haseł z bazy wiedzy.
+              narzędzia: []
+[ 4/6] 5/5 PASS  search_internal
+[ 5/6] 5/5 PASS  search_external
+[ 6/6] 5/5 PASS  web_search
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/6
+  pojedyncze przebiegi:              28/30 PASS
+  rozbicie per przypadek:
+    5/5  list_search_sources
+    5/5  check_search_source
+    3/5  search_source  <-- do poprawy
+    5/5  search_internal
+    5/5  search_external
+    5/5  web_search
+============================================================
