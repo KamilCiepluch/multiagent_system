@@ -1,7 +1,7 @@
 """
 Supervisor — orchestrator wieloagentowy zbudowany jako pełny ReAct agent.
 
-W odróżnieniu od Orchestratora (prostego routera 1-do-1), Supervisor:
+Supervisor:
 - może wywoływać agentów wielokrotnie i w dowolnej kolejności,
 - przekazuje wyniki jednego agenta jako kontekst do następnego,
 - kończy dopiero gdy całe złożone zadanie jest wykonane.

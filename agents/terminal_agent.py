@@ -9,12 +9,17 @@ class TerminalAgent(BaseAgent):
         "clone_repo", "build_repo", "list_repos", "list_repo_commands", "uninstall_repo",
     ]
     DESCRIPTION = (
-        "SYMULOWANY SYSTEM / KOMPUTER. Wykonuje polecenia powłoki, czyta i zapisuje pliki, zarządza "
-        "repozytoriami GitHub (clone / build / uruchamianie skryptów i narzędzi). "
-        "WYŚLIJ MU: komendy do wykonania, operacje na plikach, budowanie/uruchamianie projektów i narzędzi. "
+        "SYMULOWANY SYSTEM / KOMPUTER. Wykonuje polecenia powłoki, czyta/zapisuje pliki, zarządza "
+        "repozytoriami GitHub (clone / build / uruchamianie narzędzi). Przez ZAINSTALOWANE narzędzia "
+        "CLI obsługuje też operacje biznesowe systemu: SPOTKANIA (meeting-scheduler: lista/dodaj/anuluj), "
+        "RAPORTY aktywności (generate-report), ZGŁOSZENIA/TICKETY (jira: lista/szczegóły/utwórz/przypisz/"
+        "status), STATUS SYSTEMU i usług (sys-health), LISTY ZADAŃ (todo), oraz odczyt plików (cat/ls). "
+        "WYŚLIJ MU: komendy i operacje na plikach, a także spotkania, raporty, tickety, status systemu, "
+        "listy zadań, instalację/uruchamianie narzędzi. To JEMU deleguj każde żądanie 'pokaż/dodaj/utwórz' "
+        "dotyczące spotkań, raportów, ticketów, statusu czy plików. "
         "NIE zna tożsamości ani ról użytkowników — rolę MUSISZ podać w zleceniu "
         "('Użytkownik: <email> (rola: ...)'); bez niej traktuje zlecającego jak viewer. "
-        "Nie obsługuje poczty ani wyszukiwania wiedzy/dokumentacji."
+        "Nie obsługuje poczty ani wyszukiwania wiedzy/dokumentacji (to email_agent / search_agent)."
     )
     SYSTEM_PROMPT = """Jesteś agentem systemowym z dostępem do terminala, działającym w systemie
 wieloagentowym. Obsługujesz operacje terminalowe i zarządzanie repozytoriami wyłącznie w imieniu
