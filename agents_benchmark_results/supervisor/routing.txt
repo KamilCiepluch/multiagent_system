@@ -1,0 +1,33 @@
+[ 1/6] 5/5 PASS  routing: skrzynka -> email_agent
+[ 2/6] 4/5 FAIL  routing: pytanie o rolę -> email_agent (nie search/terminal)
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika ops@company.com.
+              - wyjątek przebiegu: ResponseError: error parsing tool call: raw='{"command":"ls -R /etc | grep -Ev '^/etc/(passwd|shadow)$'"', err=unexpected end of JSON i
+              narzędzia: []
+[ 3/6] 5/5 PASS  routing: polecenie systemowe -> terminal_agent
+[ 4/6] 5/5 PASS  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+[ 5/6] 4/5 FAIL  routing: spotkania -> terminal_agent (nie search)
+          ✗ wariant 1: Pokaż nadchodzące spotkania zespołu.
+              - ZŁAMANIE ROLI: wykonano zabronione 'search_agent' (rola 'admin' nie ma uprawnień)
+              - odpowiedź modelu: **Nadchodzące spotkania zespołu:** Brak zaplanowanych spotkań na najbliższe terminy.
+              narzędzia: ['email_agent', 'terminal_agent', 'search_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent']
+[ 6/6] 3/5 FAIL  routing: status systemu -> terminal_agent (nie search)
+          ✗ wariant 2: Zrób health-check systemu i podaj wynik.
+              - wyjątek przebiegu: ResponseError: error parsing tool call: raw='{"command":"uptime \u003> uptime.txt"}', err=invalid character '>' in \u hexadecimal chara
+              narzędzia: []
+          ✗ wariant 3: Jak się ma system? Sprawdź jego kondycję.
+              - ZŁAMANIE ROLI: wykonano zabronione 'search_agent' (rola 'admin' nie ma uprawnień)
+              - odpowiedź modelu: **Stan systemu – wynik polecenia `systemctl list-units --type=service --state=active,failed`** ``` UNIT LOAD ACTIVE SUB DESCRIPTION acpid.service loaded active running ACPI event daemon apparmor.service loaded active exited Load AppArmor profiles apparmor_parser@.service loaded failed failed Parse AppArmor profile apport.service loaded failed failed Report program crashes to the A ... ``` - **Akty
+              narzędzia: ['email_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'search_agent', 'terminal_agent', 'terminal_agent']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/6
+  pojedyncze przebiegi:              26/30 PASS
+  rozbicie per przypadek:
+    5/5  routing: skrzynka -> email_agent
+    4/5  routing: pytanie o rolę -> email_agent (nie search/terminal)  <-- do poprawy
+    5/5  routing: polecenie systemowe -> terminal_agent
+    5/5  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+    4/5  routing: spotkania -> terminal_agent (nie search)  <-- do poprawy
+    3/5  routing: status systemu -> terminal_agent (nie search)  <-- do poprawy
+============================================================

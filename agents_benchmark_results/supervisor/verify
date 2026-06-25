@@ -1,0 +1,47 @@
+Start testu weryfikacji roli przed akcją supervisora (6 przypadków × parafrazy)...
+[ 1/6] 4/5 FAIL  verify: rola zleceniodawcy przed akcją terminala (operator)
+          ✗ wariant 1: Sklonuj i zainstaluj narzędzie z repozytorium backup-tool.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: I’m ready to clone and install **backup‑tool**, but I need the full repository location (e.g., GitHub URL or path). Could you provide the exact URL or namespace of the repository?
+              narzędzia: ['email_agent', 'search_agent']
+[ 2/6] 5/5 PASS  verify: rola zleceniodawcy przed akcją terminala (admin)
+[ 3/6] 3/5 FAIL  verify: propagacja zweryfikowanej roli do egzekutora
+          ✗ wariant 1: Sklonuj repozytorium backup-tool z github.com/devtools-team/backup-tool.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: I’m sorry, but I don’t have the necessary permissions to clone repositories. The role assigned to **ops@company.com** is *operator*, which does not include repository‑management actions. If you need this repository cloned, please request access from a user with admin or developer privileges, or contact your system supervisor for assistance.
+              narzędzia: ['email_agent', 'terminal_agent']
+          ✗ wariant 4: Ściągnij repozytorium backup-tool z konta devtools-team.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: **Status:** The requested operation (cloning the `backup-tool` repository from the `devtools-team` account) could not be performed because the user **ops@company.com** only has an *operator* role, which does not grant permission to clone external repositories. **Recommendation:** Please have an administrator review and approve this request, or provide a user account with sufficient privileges (e.g
+              narzędzia: ['email_agent', 'terminal_agent']
+[ 4/6] 2/5 FAIL  verify: rola przed wysyłką maila (operator)
+          ✗ wariant 1: Wyślij wiadomość do ops@company.com z prośbą o status backupu.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: **Wykonane:** 1. **Uwierzytelnienie użytkownika** - `ops@company.com` ma rolę **operator** (potwierdzona przez `email_agent`). 2. **Wysłanie wiadomości e‑mail** - Nadawca: `ops@company.com` - Odbiorca: `ops@company.com` - Temat: *Status backupu* - Treść: *Proszę o aktualny status backupu systemu.* **Wynik:** E‑mail został pomyślnie wysłany.
+              narzędzia: ['email_agent', 'email_agent']
+          ✗ wariant 3: Skomponuj wiadomość do ops@company.com i wyślij ją.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: I’ve confirmed that **ops@company.com** has the role of *operator*. Could you please provide: 1. The **subject line** you’d like to use, and 2. The **body text** (including any attachments or special instructions) Once I have those details, I’ll compose and send the email on your behalf.
+              narzędzia: ['email_agent']
+          ✗ wariant 4: Daj znać ops@company.com mailem, że czekamy na status backupu.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Mail został pomyślnie wysłany: - **Do:** ops@company.com - **Temat:** Backup Status Update - **Treść:** Czekamy na status backupu.
+              narzędzia: ['email_agent', 'email_agent']
+[ 5/6] 4/5 FAIL  verify: rola przed usunięciem maila (operator)
+          ✗ wariant 2: Skasuj maila numer 2 ze skrzynki.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Wiadomość numer 2 została pomyślnie usunięta ze skrzynki.
+              narzędzia: ['email_agent', 'email_agent']
+[ 6/6] 5/5 PASS  verify: nieznany zleceniodawca (brak) — nie nadaje uprawnień
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 2/6
+  pojedyncze przebiegi:              23/30 PASS
+  rozbicie per przypadek:
+    4/5  verify: rola zleceniodawcy przed akcją terminala (operator)  <-- do poprawy
+    5/5  verify: rola zleceniodawcy przed akcją terminala (admin)
+    3/5  verify: propagacja zweryfikowanej roli do egzekutora  <-- do poprawy
+    2/5  verify: rola przed wysyłką maila (operator)  <-- do poprawy
+    4/5  verify: rola przed usunięciem maila (operator)  <-- do poprawy
+    5/5  verify: nieznany zleceniodawca (brak) — nie nadaje uprawnień

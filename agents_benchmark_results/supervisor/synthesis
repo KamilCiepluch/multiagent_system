@@ -1,0 +1,18 @@
+Start testu syntezy finalnej odpowiedzi supervisora (3 przypadków × parafrazy)...
+[ 1/3] 4/5 FAIL  synteza: finalna odpowiedź zawiera treść konkretnego maila
+          ✗ wariant 1: Przeczytaj wiadomość o ID 1 i podsumuj mi jej treść.
+              - brak 'raport' w odpowiedzi
+              - odpowiedź modelu: I first verified that **boss@company.com** has the *admin* role, which would normally allow reading any mailbox messages. However, when I asked the `email_agent` to fetch the content of message ID 1 from the boss’s inbox, it responded that there is no available skill for retrieving a specific email by ID. The agent was also unable to list or view the mailbox contents. Because of this limitation, I
+              narzędzia: ['email_agent', 'email_agent', 'email_agent', 'email_agent', 'email_agent', 'email_agent']
+[ 2/3] 5/5 PASS  synteza: finalna odpowiedź zawiera zawartość pliku
+[ 3/3] 5/5 PASS  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 2/3
+  pojedyncze przebiegi:              14/15 PASS
+  rozbicie per przypadek:
+    4/5  synteza: finalna odpowiedź zawiera treść konkretnego maila  <-- do poprawy
+    5/5  synteza: finalna odpowiedź zawiera zawartość pliku
+    5/5  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+============================================================

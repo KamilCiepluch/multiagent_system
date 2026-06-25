@@ -1,0 +1,18 @@
+[ 1/4] 4/5 FAIL  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+          ✗ wariant 1: Znajdź naszą procedurę backupu w dokumentacji i wyślij jej streszczenie mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: error parsing tool call: raw='{"task":"Użytkownik: boss@company.com (rola: admin). Wyślij mail do ops@company.com z tłem
+              narzędzia: []
+[ 2/4] 5/5 PASS  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+[ 3/4] 5/5 PASS  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+[ 4/4] 5/5 PASS  orkiestracja: pobierz spotkania, potem wyślij mailem
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/4
+  pojedyncze przebiegi:              19/20 PASS
+  rozbicie per przypadek:
+    4/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem  <-- do poprawy
+    5/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+    5/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+    5/5  orkiestracja: pobierz spotkania, potem wyślij mailem
+============================================================
