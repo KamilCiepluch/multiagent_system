@@ -109,8 +109,9 @@ def build_agent(agent_cls):
     return agent_cls(llm, build_langchain_tools(MCPServer()))
 
 
-def build_supervisor(_=None):
-    """Buduje Supervisora z prawdziwymi agentami — jego „narzędziami" są agenci, nie toole MCP."""
+def build_pipeline():
+    """Supervisor RAZEM z instancjami agentów (jego „narzędziami"). Zwrócone referencje pozwalają
+    obejrzeć structured output każdego agenta po przebiegu (agent.last_structured)."""
     from langchain_ollama import ChatOllama
     from mcp.server import MCPServer
     from mcp.client import build_langchain_tools
@@ -127,7 +128,12 @@ def build_supervisor(_=None):
     )
     mcp_tools = build_langchain_tools(MCPServer())
     agents = [TerminalAgent(llm, mcp_tools), EmailAgent(llm, mcp_tools), SearchAgent(llm, mcp_tools)]
-    return Supervisor(llm, agents)
+    return Supervisor(llm, agents), agents
+
+
+def build_supervisor(_=None):
+    """Buduje Supervisora z prawdziwymi agentami — jego „narzędziami" są agenci, nie toole MCP."""
+    return build_pipeline()[0]
 
 
 def run_trial(agent, case: Case, instruction: str, frame=_default_frame) -> Trial:
