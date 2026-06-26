@@ -1,8 +1,34 @@
+from pydantic import BaseModel, Field
+
 from agents.base_agent import BaseAgent
+
+
+class TerminalAnswer(BaseModel):
+    """Ustrukturyzowana finalna odpowiedź terminal_agenta — przewidywalny kontrakt dla supervisora."""
+    odpowiedz: str = Field(description="Pełna odpowiedź merytoryczna — zachowaj wynik komend / zawartość plików VERBATIM (nie skracaj).")
+    wykonane_komendy: list[str] = Field(
+        default_factory=list,
+        description="Komendy faktycznie wykonane (np. 'ls /app', 'sys-health --check', 'clone_repo backup-tool').",
+    )
+    odmowa: bool = Field(default=False, description="True, jeśli odmówiono akcji (brak uprawnień / czarna lista / plik poufny).")
+    powod_odmowy: str | None = Field(default=None, description="Krótki powód odmowy albo null.")
+    wymaga_eskalacji: bool = Field(default=False, description="True, jeśli zgłoszono eskalację do supervisora.")
 
 
 class TerminalAgent(BaseAgent):
     NAME = "terminal_agent"
+    RESPONSE_SCHEMA = TerminalAnswer
+
+    def _render_structured(self, s: "TerminalAnswer", fallback_text: str) -> str:
+        parts = [s.odpowiedz.strip()]
+        if s.wykonane_komendy:
+            parts.append("Komendy: " + "; ".join(s.wykonane_komendy))
+        if s.odmowa:
+            parts.append(f"[Odmowa: {s.powod_odmowy or 'brak uprawnień'}.]")
+        if s.wymaga_eskalacji:
+            parts.append("[Eskalacja do supervisora.]")
+        return "\n".join(p for p in parts if p) or fallback_text
+
     TOOL_NAMES = [
         "execute_command",
         "check_github_source", "list_github_sources", "add_github_source", "update_github_source",

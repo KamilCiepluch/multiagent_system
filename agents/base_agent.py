@@ -126,6 +126,9 @@ class BaseAgent:
     DESCRIPTION = "Ogólny agent pomocniczy."
     SYSTEM_PROMPT = "Jesteś pomocnym asystentem."
     TOOL_NAMES: list[str] = []  # nadpisz w podklasie — nazwy narzędzi MCP dla tego agenta
+    # Opcjonalny schemat Pydantic do ustrukturyzowanej FINALNEJ odpowiedzi (None = wyłączone).
+    # Domyślnie None → zachowanie agentów bez tej funkcji jest niezmienione.
+    RESPONSE_SCHEMA: type | None = None
 
     def __init__(self, llm, all_mcp_tools: dict):
         """
@@ -134,14 +137,57 @@ class BaseAgent:
                         agent sam filtruje przez TOOL_NAMES
         """
         self.llm = llm
+        # Ostatni obiekt RESPONSE_SCHEMA wyprodukowany przez _structure_final_answer
+        # (do inspekcji/debugowania — run() i tak zwraca string dla supervisora).
+        self.last_structured = None
         skill_tools = self._build_skill_tools()
         mcp_tools = [all_mcp_tools[n] for n in self.TOOL_NAMES if n in all_mcp_tools]
         self.tools = mcp_tools + skill_tools
+        # Middleware opcjonalne (np. SkillGate) — domyślnie brak, więc create_agent dostaje
+        # dokładnie te same argumenty co dotąd dla agentów, które tego nie nadpisują.
+        kwargs: dict = {}
+        middleware = self._build_middleware()
+        if middleware:
+            kwargs["middleware"] = middleware
         self._agent = create_agent(
             llm,
             self.tools,
             system_prompt=self.SYSTEM_PROMPT,
+            **kwargs,
         )
+
+    def _build_middleware(self) -> list:
+        """Lista middleware dla create_agent. Domyślnie pusta — nadpisz w podklasie."""
+        return []
+
+    def _structure_final_answer(self, text: str) -> str:
+        """Wymusza ustrukturyzowaną finalną odpowiedź wg RESPONSE_SCHEMA.
+
+        Robi to przez natywny json_schema Ollamy (with_structured_output), a NIE przez
+        response_format/ToolStrategy w create_agent — ChatOllama nie deklaruje profilu
+        structured-output, a droga przez syntetyczny tool-call jest u nas krucha
+        (te same błędy parsowania JSON, które wywalały przebiegi). Fail-open: gdy coś
+        pójdzie nie tak, zwracamy oryginalny tekst.
+        """
+        if not self.RESPONSE_SCHEMA or not text.strip():
+            return text
+        try:
+            structured = self.llm.with_structured_output(
+                self.RESPONSE_SCHEMA, method="json_schema"
+            ).invoke(
+                "Przekształć poniższą finalną odpowiedź agenta w wymagany format (structured output). "
+                "Zachowaj WSZYSTKIE konkretne dane oryginału — liczby, nazwy, ID, cytaty, treści maili, "
+                "wyniki komend, ustaloną rolę — przepisz je do właściwych pól; niczego nie skracaj ani nie wymyślaj.\n\n"
+                f"ODPOWIEDŹ:\n{text}"
+            )
+            self.last_structured = structured  # do inspekcji po run()
+            return self._render_structured(structured, text)
+        except Exception:
+            return text
+
+    def _render_structured(self, structured, fallback_text: str) -> str:
+        """Zamienia obiekt RESPONSE_SCHEMA na czytelny tekst. Nadpisz w podklasie."""
+        return fallback_text
 
     def _build_skill_tools(self) -> list:
         agent_name = self.NAME
@@ -197,6 +243,9 @@ class BaseAgent:
             final_output = messages[-1].content if messages else "[brak odpowiedzi agenta]"
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE
+            elif self.RESPONSE_SCHEMA:
+                # Ustrukturyzowana finalna odpowiedź (tylko dla agentów z RESPONSE_SCHEMA).
+                final_output = self._structure_final_answer(str(final_output))
 
             if logger is not None:
                 logger.finish_agent(inv_id, final_output)

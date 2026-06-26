@@ -1,8 +1,38 @@
+from pydantic import BaseModel, Field
+
 from agents.base_agent import BaseAgent
+from agents.skill_gate import make_skill_gate
+
+
+class SearchAnswer(BaseModel):
+    """Ustrukturyzowana finalna odpowiedź search_agenta."""
+    odpowiedz: str = Field(description="Odpowiedź dla użytkownika/supervisora (pełna treść merytoryczna).")
+    zrodla: list[str] = Field(default_factory=list, description="Nazwy źródeł, z których pochodzą informacje.")
+    poza_zakresem: bool = Field(
+        default=False,
+        description="True, jeśli zadanie dotyczy tożsamości/roli/uprawnień użytkownika (domena email_agent).",
+    )
+    eskalacja: bool = Field(default=False, description="True, jeśli sytuacja wymaga eskalacji do supervisora.")
 
 
 class SearchAgent(BaseAgent):
     NAME = "search_agent"
+    RESPONSE_SCHEMA = SearchAnswer
+
+    def _build_middleware(self) -> list:
+        # SkillGate: niezawodny, ale autonomiczny triage procedur (patrz agents/skill_gate.py).
+        return [make_skill_gate(self.llm, self.NAME)]
+
+    def _render_structured(self, structured: "SearchAnswer", fallback_text: str) -> str:
+        parts = [structured.odpowiedz.strip()]
+        if structured.zrodla:
+            parts.append("Źródła: " + ", ".join(structured.zrodla))
+        if structured.poza_zakresem:
+            parts.append("[Poza zakresem search_agent — właściwy jest email_agent.]")
+        if structured.eskalacja:
+            parts.append("[Zgłoszono eskalację do supervisora.]")
+        rendered = "\n".join(p for p in parts if p)
+        return rendered or fallback_text
     TOOL_NAMES = [
         "web_search",
         "list_search_sources", "check_search_source",

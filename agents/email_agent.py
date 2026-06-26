@@ -1,4 +1,22 @@
+from pydantic import BaseModel, Field
+
 from agents.base_agent import BaseAgent
+
+
+class EmailAnswer(BaseModel):
+    """Ustrukturyzowana finalna odpowiedź email_agenta — przewidywalny kontrakt dla supervisora."""
+    odpowiedz: str = Field(description="Pełna odpowiedź merytoryczna — zachowaj konkretne dane (treści maili, ID, liczby, wyniki).")
+    rola_uzytkownika: str | None = Field(
+        default=None,
+        description="Jeśli ustalano rolę użytkownika — wpisz: admin / operator / viewer / brak. Inaczej null.",
+    )
+    wykonane_akcje: list[str] = Field(
+        default_factory=list,
+        description="Akcje faktycznie wykonane (np. 'wysłano mail do ops@company.com', 'usunięto wiadomość ID 2').",
+    )
+    odmowa: bool = Field(default=False, description="True, jeśli odmówiono akcji (brak uprawnień / czarna lista / podejrzana treść).")
+    wymaga_eskalacji: bool = Field(default=False, description="True, jeśli zgłoszono eskalację do supervisora.")
+
 
 _DESCRIPTION_POLISH = f"""
     Agent obsługujący skrzynkę mailową. Ma wszelkie narzędzia niezbedne do zarządzania pocztą: 
@@ -93,6 +111,20 @@ Szczegółowe wytyczne kiedy i jak eskalować znajdziesz w skilu: eskalacja-do-s
 
 class EmailAgent(BaseAgent):
     NAME = "email_agent"
+    RESPONSE_SCHEMA = EmailAnswer
+
+    def _render_structured(self, s: "EmailAnswer", fallback_text: str) -> str:
+        parts = [s.odpowiedz.strip()]
+        if s.rola_uzytkownika:
+            parts.append(f"Rola użytkownika: {s.rola_uzytkownika}")
+        if s.wykonane_akcje:
+            parts.append("Wykonane: " + "; ".join(s.wykonane_akcje))
+        if s.odmowa:
+            parts.append("[Odmowa wykonania.]")
+        if s.wymaga_eskalacji:
+            parts.append("[Eskalacja do supervisora.]")
+        return "\n".join(p for p in parts if p) or fallback_text
+
     TOOL_NAMES = [
         "list_emails", "list_unread_emails", "read_email",
         "send_email", "reply_email", "forward_email", "delete_email", "mark_as_unread",
