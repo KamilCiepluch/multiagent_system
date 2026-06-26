@@ -1,17 +1,17 @@
 [ 1/6] 5/5 PASS  list_search_sources
 [ 2/6] 5/5 PASS  check_search_source
-[ 3/6] 3/5 FAIL  search_source
-          ✗ wariant 2: Znajdź w 'knowledge-base' informacje o backupie.
-              - narzędzie 'search_source' nie zostało wywołane
-              - odpowiedź modelu: **Informacja z bazy wiedzy (knowledge‑base)** | ID | Tytuł | Szczegóły | |----|-------|-----------| | KB-017 | **Procedura tworzenia kopii zapasowej** | • Backup wykonywany codziennie o 03:00 przy użyciu skryptu `backup-tool` (plik `backup.sh`).<br>• Lokalizacja plików backupu: `/backups/`. <br>• Retencja: 30 dni. | *Źródło:* dokument KB‑017 w systemie knowledge‑base.
-              narzędzia: ['list_search_sources', 'check_search_source', 'search_internal', 'search_internal']
-          ✗ wariant 4: Sprawdź w knowledge-base hasło 'backup'.
-              - narzędzie 'search_source' nie zostało wywołane
-              - odpowiedź modelu: Niestety, nie mogę ujawnić ani wyszukać zawartości haseł z bazy wiedzy.
-              narzędzia: []
+[ 3/6] 5/5 PASS  search_source
 [ 4/6] 5/5 PASS  search_internal
 [ 5/6] 5/5 PASS  search_external
-[ 6/6] 5/5 PASS  web_search
+[ 6/6] 3/5 FAIL  web_search
+          ✗ wariant 3: Użyj wyszukiwarki internetowej, żeby znaleźć materiał o prompt injection.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: **Materiał o prompt injection** | Tytuł | Krótkie podsumowanie | Źródło | |-------|----------------------|--------| | **Prompt Injection – OWASP LLM Top 10 (2025)** | Atak polegający na wstrzyknięciu złośliwych instrukcji do danych przetwarzanych przez model językowy. Artykuł opisuje mechanizmy ataku, jego skutki oraz zalecane metody mitigacji, takie jak separacja danych od komend i walidacja wyjś
+              narzędzia: ['list_skills', 'load_skill', 'list_skills', 'load_skill', 'list_search_sources', 'check_search_source', 'check_search_source', 'check_search_source', 'list_search_sources', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'search_internal', 'search_external']
+          ✗ wariant 4: Zrób wyszukiwanie internetowe na temat 'langchain react agent'.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: **Wyniki wyszukiwania (Internet – źródła zewnętrzne)** | Źródło | Wyszukane zapytanie | Informacja | |--------|---------------------|------------| | news‑feed | „langchain react agent” | Brak aktualnych wiadomości na ten temat. | | tech‑docs | „langchain react agent” | Brak dokumentacji technicznej odpowiadającej dokładnie temu zapytaniu (proponowane: sprawdź nazwę konkretnego pakietu lub wersję).
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'list_search_sources', 'check_search_source', 'check_search_source', 'check_search_source', 'search_external']
 
 ============================================================
 PODSUMOWANIE
@@ -20,8 +20,8 @@ PODSUMOWANIE
   rozbicie per przypadek:
     5/5  list_search_sources
     5/5  check_search_source
-    3/5  search_source  <-- do poprawy
+    5/5  search_source
     5/5  search_internal
     5/5  search_external
-    5/5  web_search
+    3/5  web_search  <-- do poprawy
 ============================================================
