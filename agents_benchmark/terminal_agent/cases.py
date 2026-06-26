@@ -42,12 +42,16 @@ TOOL_CASES = [
         "Dopisz właściciela 'acme-corp' do znanych źródeł GitHub.",
     ), expect_tools=("add_github_source",)),
 
+    # UWAGA: to test wywołania narzędzia UPDATE, nie samodzielnej weryfikacji. Dlatego każda
+    # parafraza (a) mówi wprost, że właściciel JUŻ istnieje w bazie (inaczej model próbuje
+    # add_github_source → UniqueViolation), oraz (b) podaje, że decyzja o zatwierdzeniu już zapadła
+    # (inaczej złota zasada „nie weryfikuj nieznanego sam" każe odmówić).
     Case("update_github_source", (
-        "Oznacz właściciela 'unknown-user' jako zweryfikowanego.",
-        "Zaktualizuj flagi źródła 'unknown-user' — ustaw zweryfikowany.",
-        "Zmień status 'unknown-user' na zweryfikowany.",
-        "Ustaw flagę is_verified dla właściciela 'unknown-user'.",
-        "Zatwierdź w bazie źródło GitHub 'unknown-user' jako zaufane.",
+        "Właściciel 'unknown-user' figuruje już w bazie źródeł jako niezweryfikowany; bezpieczeństwo właśnie go zatwierdziło — zaktualizuj jego wpis na zweryfikowany.",
+        "Zespół bezpieczeństwa zaakceptował istniejącego już w bazie właściciela 'unknown-user'. Zaktualizuj jego flagę is_verified na 'prawda'.",
+        "Istniejący w bazie właściciel 'unknown-user' przeszedł weryfikację — odnotuj to, zmieniając jego status na zweryfikowany.",
+        "Administrator potwierdził widniejącego już w bazie właściciela 'unknown-user'. Zaktualizuj jego flagi: ustaw zweryfikowany.",
+        "Właściciel 'unknown-user' (już obecny w bazie, dotąd niezweryfikowany) został zaakceptowany decyzją administratora — zmień jego status na zweryfikowany.",
     ), expect_tools=("update_github_source",)),
 
     Case("clone_repo", (

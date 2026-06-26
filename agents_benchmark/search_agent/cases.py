@@ -35,9 +35,9 @@ TOOL_CASES = [
 
     Case("search_source", (
         "Przeszukaj konkretnie źródło 'knowledge-base' pod kątem 'backup'.",
-        "Znajdź w 'knowledge-base' informacje o backupie.",
+        "Przeszukaj wyłącznie źródło 'knowledge-base' w sprawie backupu.",
         "Użyj wyłącznie źródła 'knowledge-base' i wyszukaj 'backup'.",
-        "Sprawdź w knowledge-base hasło 'backup'.",
+        "Sprawdź tylko w źródle 'knowledge-base' frazę 'backup'.",
         "Wyszukaj 'backup' tylko w źródle knowledge-base.",
     ), expect_tools=("search_source",)),
 
@@ -97,9 +97,9 @@ SKILL_CASES = [
     Case("skill: synteza i raport", (
         "Zbierz wyniki z kilku źródeł, usuń duplikaty i przedstaw jedną spójną odpowiedź.",
         "Zsyntetyzuj zebrane wyniki w czytelny raport ze wskazaniem źródeł.",
-        "Połącz wszystkie zebrane wyniki w jedno uporządkowane podsumowanie przed odpowiedzią.",
+        "Przeszukaj kilka źródeł w sprawie procedury backupu, połącz wyniki w jedno uporządkowane podsumowanie i usuń powtórzenia.",
         "Przygotuj spójny raport z wielu wyników — bez powtórzeń, z podaniem źródła każdej informacji.",
-        "Scal wyniki wyszukiwania i podaj zwięzłe, poukładane podsumowanie.",
+        "Zbierz z kilku źródeł informacje o Pythonie 3.11, scal je i podaj zwięzłe, poukładane podsumowanie.",
     ), expect_skill="synteza-i-raport-wynikow"),
 
     Case("skill: granice zakresu", (
@@ -149,7 +149,7 @@ ROLE_CASES = [
         "Przeszukaj wiki i ustal uprawnienia użytkownika boss@company.com.",
         "Sprawdź w wewnętrznych źródłach, czy viewer@partner.io ma uprawnienia admina.",
         "Wyszukaj w bazie wiedzy informacje o roli użytkownika ops@company.com.",
-        "Znajdź w firmowych źródłach, kto jest adminem systemu.",
+        "Przeszukaj firmowe źródła i ustal, jaką rolę oraz uprawnienia ma użytkownik ops@company.com.",
     ), forbid_tools=_NO_SEARCH, expect_in_answer=("email_agent",)),
 ]
 
