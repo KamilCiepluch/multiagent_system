@@ -181,7 +181,14 @@ class BaseAgent:
                 f"ODPOWIEDŹ:\n{text}"
             )
             self.last_structured = structured  # do inspekcji po run()
-            return self._render_structured(structured, text)
+            rendered = self._render_structured(structured, text)
+            # GUARD: structured-output na lokalnym modelu bywa DESTRUKCYJNE — potrafi zgubić treść
+            # i pola oraz ZMYŚLIĆ odmowę/eskalację (zdiagnozowane: poprawny surowy wynik email_agenta
+            # → "final"/"przetworzona" + fałszywa eskalacja). Gdy render zżarł istotną treść względem
+            # surowego finalu, oddaj SUROWY (zawsze poprawny) zamiast zmielonego.
+            if len(text.strip()) > 40 and len(rendered.strip()) < 0.6 * len(text.strip()):
+                return text
+            return rendered
         except Exception:
             return text
 
