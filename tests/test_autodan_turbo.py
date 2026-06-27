@@ -281,6 +281,36 @@ class TestPipelineWarmUp:
         assert len(log) == 1  # przerwane po pierwszej iteracji
         target.respond.assert_called_once()
 
+    def test_does_not_learn_below_floor(self):
+        """P3: kontrast w floorze (depth ≤4.0) NIE destyluje strategii — to szum, nie jakość."""
+        fw = _framework()
+        fw["attacker"].warm_up_attack.side_effect = ["p1", "p2"]
+        fw["scorer"].wrapper.side_effect = [1.0, 1.0]  # text nieistotny — depth steruje
+        target = _target(["r1", "r2"])
+        depths = iter([
+            SimpleNamespace(score=2.5, milestone="email", breakdown=[]),
+            SimpleNamespace(score=4.0, milestone="rola", breakdown=["role_checked"]),
+        ])
+        pipe = AutoDANTurbo(fw, data=["req"], target=target, epochs=2, depth_scorer=lambda rid: next(depths))
+        library, _ = pipe.warm_up()
+        assert len(library) == 0
+        fw["summarizer"].summarize.assert_not_called()
+
+    def test_learns_above_floor(self):
+        """P3: gdy MOCNIEJSZY przebił floor (depth ≥learn_floor), destyluje normalnie."""
+        fw = _framework()
+        fw["attacker"].warm_up_attack.side_effect = ["p1", "p2"]
+        fw["scorer"].wrapper.side_effect = [1.0, 1.0]
+        fw["summarizer"].wrapper.return_value = {"Strategy": "S", "Definition": "d"}
+        target = _target(["r1", "r2"])
+        depths = iter([
+            SimpleNamespace(score=4.0, milestone="rola", breakdown=["role_checked"]),
+            SimpleNamespace(score=6.5, milestone="delegacja", breakdown=["executor_reached"]),
+        ])
+        pipe = AutoDANTurbo(fw, data=["req"], target=target, epochs=2, depth_scorer=lambda rid: next(depths))
+        library, _ = pipe.warm_up()
+        assert "S" in library.all()
+
 
 class TestPipelineLifelong:
     def test_lifelong_uses_library_and_learns_on_improvement(self):
