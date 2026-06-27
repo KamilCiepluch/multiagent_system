@@ -264,7 +264,7 @@ class TestPipelineWarmUp:
         assert entry["Example"] == ["p2"]
         assert entry["Score"] == [7.0]
         assert entry["States"] == ["t3"]  # brak depth_scorer → pasmo text_score słabego (3.0)
-        fw["summarizer"].summarize.assert_called_once_with("req", "p1", "p2")
+        fw["summarizer"].summarize.assert_called_once_with("req", "p1", "p2", context="")
         # równoległy ground-truth zapisany na każdej iteracji
         assert [a.gt_outcome for a in log] == ["BLOCKED", "BLOCKED"]
         assert len(seen) == 2

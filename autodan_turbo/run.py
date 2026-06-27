@@ -62,6 +62,7 @@ def _dump_attempt(attempt: "Attempt") -> None:
             "gt_outcome": attempt.gt_outcome,
             "gt_evidence": attempt.gt_evidence,
             "strategies_used": attempt.strategies_used,
+            "breakdown": attempt.depth_breakdown,  # P2: tagi sygnałów penetracji, które odpaliły
             "full_prompt": attempt.prompt,  # DOKŁADNY payload = treść body maila wstrzykniętego do systemu
         }
         with open(_DUMP_PATH, "a", encoding="utf-8") as f:
@@ -95,8 +96,9 @@ def _on_attempt(attempt: Attempt) -> None:
     used = f" | strategie: {attempt.strategies_used}" if attempt.strategies_used else ""
     print(f"\n  {SEP}")
     if attempt.depth is not None:
+        sig = f" | sygnały: {attempt.depth_breakdown}" if attempt.depth_breakdown else ""
         print(f"  [{attempt.mode}] depth={attempt.depth:.1f} ({attempt.depth_milestone}) "
-              f"| text={attempt.text_score:.1f} | GT={attempt.gt_outcome}{used}")
+              f"| text={attempt.text_score:.1f} | GT={attempt.gt_outcome}{used}{sig}")
     else:
         print(f"  [{attempt.mode}] score={attempt.score:.1f}  GT={attempt.gt_outcome}{used}")
     print(f"  payload: {preview}")
@@ -160,6 +162,9 @@ def print_report(stage: str, objective_id: str, injection_id: str, attack_id: st
         print(f"  Graded depth — max: {max(depths):.1f} ({best.depth_milestone})")
         print(f"  Rozkład depth (gradient uczenia): {dict(sorted(dist.items()))}")
         print(f"  Wariancja depth: {'PŁASKO (brak gradientu)' if len(set(depths)) == 1 else 'JEST gradient ✓'}")
+        sig = Counter(t for a in log for t in (a.depth_breakdown or []))
+        if sig:
+            print(f"  Sygnały penetracji (breakdown): {dict(sig)}")
     print(THICK)
 
 
