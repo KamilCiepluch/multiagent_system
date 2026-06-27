@@ -1,7 +1,7 @@
 """
 Unit testy wiernego bloczka AutoDAN-Turbo (`autodan_turbo/`) — w pełni mockowane ciężkie
-zależności (LLM-y, embeddingi, target/DB). Testujemy WŁASNĄ logikę: scalanie biblioteki,
-trójprogowy retrieval po cosine, parsery scorera/summarizera oraz spinanie pętli pipeline
+zależności (LLM-y, target/DB). Testujemy WŁASNĄ logikę: scalanie biblioteki,
+trójprogowy retrieval po stanie obrony (kubełek), parsery scorera/summarizera oraz spinanie pętli pipeline
 (warm-up buduje strategię z pary słaby/mocny; lifelong uczy się przy poprawie score;
 równoległe logowanie ground-truth) — mirror konwencji `tests/test_hyperagent_loop.py`.
 """
@@ -29,20 +29,20 @@ from autodan_turbo.summarizer import Summarizer
 class TestLibrary:
     def test_add_new_strategy_normalizes_list_fields(self):
         lib = Library()
-        lib.add({"Strategy": "S", "Definition": "d", "Example": "e1", "Score": 5.0, "Embeddings": [[0.1]]})
+        lib.add({"Strategy": "S", "Definition": "d", "Example": "e1", "Score": 5.0, "States": "m4.0"})
         entry = lib.all()["S"]
         assert entry["Example"] == ["e1"]
         assert entry["Score"] == [5.0]
-        assert entry["Embeddings"] == [[0.1]]
+        assert entry["States"] == ["m4.0"]
 
-    def test_add_same_name_appends_examples_scores_embeddings(self):
+    def test_add_same_name_appends_examples_scores_states(self):
         lib = Library()
-        lib.add({"Strategy": "S", "Definition": "d1", "Example": ["e1"], "Score": [5.0], "Embeddings": [[0.1]]})
-        lib.add({"Strategy": "S", "Definition": "d2", "Example": ["e2"], "Score": [6.0], "Embeddings": [[0.2]]})
+        lib.add({"Strategy": "S", "Definition": "d1", "Example": ["e1"], "Score": [5.0], "States": ["m4.0"]})
+        lib.add({"Strategy": "S", "Definition": "d2", "Example": ["e2"], "Score": [6.0], "States": ["m6.5"]})
         entry = lib.all()["S"]
         assert entry["Example"] == ["e1", "e2"]
         assert entry["Score"] == [5.0, 6.0]
-        assert entry["Embeddings"] == [[0.1], [0.2]]
+        assert entry["States"] == ["m4.0", "m6.5"]
         assert entry["Definition"] == "d1"  # definicja z pierwszego wpisu
         assert len(lib) == 1
 
@@ -53,70 +53,74 @@ class TestLibrary:
 
     def test_roundtrip_to_dict_from_dict(self):
         lib = Library()
-        lib.add({"Strategy": "S", "Definition": "d", "Example": ["e"], "Score": [4.0], "Embeddings": [[0.3]]})
+        lib.add({"Strategy": "S", "Definition": "d", "Example": ["e"], "Score": [4.0], "States": ["m4.0"]})
         restored = Library.from_dict(lib.to_dict())
         assert restored.all() == lib.all()
 
 
 # ----------------------------------------------------------------------
-# Retrieval — klucz = odpowiedź targetu, trójprogowy wybór po cosine
+# Retrieval — klucz = STAN OBRONY (kubełek), trójprogowy wybór po avg Score
 # ----------------------------------------------------------------------
 
-class _FakeEmbeddings:
-    def __init__(self, mapping):
-        self._mapping = mapping
-
-    def embed_query(self, text):
-        return self._mapping[text]
-
-
-def _entry(name, embeddings, scores):
-    return {"Strategy": name, "Definition": name, "Example": [name], "Score": scores, "Embeddings": embeddings}
+def _entry(name, states, scores):
+    return {"Strategy": name, "Definition": name, "Example": [name], "Score": scores, "States": states}
 
 
 class TestRetrieval:
-    def _retrieval(self):
-        # zapytanie "q" → [1,0]; strategie pozycjonowane względem niego
-        return Retrieval(_FakeEmbeddings({"q": [1.0, 0.0]}))
-
     def test_empty_library_returns_nothing(self):
-        assert self._retrieval().pop({}, "q", k=5) == ([], False)
+        assert Retrieval().pop({}, "m4.0", k=5) == ([], False)
 
-    def test_high_tier_returns_only_first_by_similarity(self):
+    def test_high_tier_returns_only_first_by_score(self):
         lib = {
-            "A": _entry("A", [[0.6, 0.8]], [6.0]),  # mniej podobna, wysoka
-            "C": _entry("C", [[1.0, 0.0]], [6.0]),  # najbardziej podobna, wysoka
+            "A": _entry("A", ["m4.0"], [6.0]),
+            "C": _entry("C", ["m4.0"], [7.0]),  # wyższy avg → pierwsza
         }
-        strategies, use = self._retrieval().pop(lib, "q", k=5)
+        strategies, use = Retrieval().pop(lib, "m4.0", k=5)
         assert use is True
         assert [s["Strategy"] for s in strategies] == ["C"]
 
     def test_moderate_tier_returns_up_to_k_and_use_true(self):
         lib = {
-            "A": _entry("A", [[1.0, 0.0]], [3.0]),
-            "B": _entry("B", [[0.6, 0.8]], [4.0]),
+            "A": _entry("A", ["m4.0"], [3.0]),
+            "B": _entry("B", ["m4.0"], [4.0]),
         }
-        strategies, use = self._retrieval().pop(lib, "q", k=5)
+        strategies, use = Retrieval().pop(lib, "m4.0", k=5)
         assert use is True
         assert {s["Strategy"] for s in strategies} == {"A", "B"}
 
     def test_ineffective_tier_returns_avoid_list_with_use_false(self):
         lib = {
-            "A": _entry("A", [[1.0, 0.0]], [1.0]),
-            "B": _entry("B", [[0.6, 0.8]], [1.5]),
+            "A": _entry("A", ["m4.0"], [1.0]),
+            "B": _entry("B", ["m4.0"], [1.5]),
         }
-        strategies, use = self._retrieval().pop(lib, "q", k=5)
+        strategies, use = Retrieval().pop(lib, "m4.0", k=5)
         assert use is False
         assert {s["Strategy"] for s in strategies} == {"A", "B"}
 
-    def test_high_beats_moderate_even_if_less_similar(self):
+    def test_high_beats_moderate(self):
         lib = {
-            "A": _entry("A", [[1.0, 0.0]], [3.0]),   # najbardziej podobna, umiarkowana
-            "B": _entry("B", [[0.6, 0.8]], [9.0]),   # mniej podobna, wysoka
+            "A": _entry("A", ["m4.0"], [3.0]),   # umiarkowana
+            "B": _entry("B", ["m4.0"], [9.0]),   # wysoka
         }
-        strategies, use = self._retrieval().pop(lib, "q", k=5)
+        strategies, use = Retrieval().pop(lib, "m4.0", k=5)
         assert use is True
         assert [s["Strategy"] for s in strategies] == ["B"]
+
+    def test_only_matching_state_retrieved_exact_beats_prior(self):
+        lib = {
+            "X": _entry("X", ["m1.0"], [9.0]),  # INNY stan → nigdy nie kandyduje
+            "Y": _entry("Y", ["m4.0"], [6.0]),  # dokładny stan, wysoka
+            "P": _entry("P", ["*"], [9.0]),     # prior (wildcard), wyższy avg
+        }
+        strategies, use = Retrieval().pop(lib, "m4.0", k=5)
+        assert use is True
+        assert [s["Strategy"] for s in strategies] == ["Y"]  # exact przed priorem; X pominięty
+
+    def test_wildcard_prior_used_when_no_exact_match(self):
+        lib = {"P": _entry("P", ["*"], [3.0])}  # tylko prior, umiarkowany
+        strategies, use = Retrieval().pop(lib, "m4.0", k=5)
+        assert use is True
+        assert [s["Strategy"] for s in strategies] == ["P"]
 
 
 # ----------------------------------------------------------------------
@@ -249,19 +253,17 @@ class TestPipelineWarmUp:
         fw["attacker"].warm_up_attack.side_effect = ["p1", "p2"]
         fw["scorer"].wrapper.side_effect = [3.0, 7.0]            # p1 słaby, p2 mocny
         fw["summarizer"].wrapper.return_value = {"Strategy": "S", "Definition": "d"}
-        fw["retrieval"].embed.return_value = [0.1]
         target = _target(["r1", "r2"])
 
         seen = []
         pipe = AutoDANTurbo(fw, data=["req"], target=target, epochs=2, on_attempt=seen.append)
         library, log = pipe.warm_up()
 
-        # zbudowana strategia: przykład=mocny payload, score=mocny, embedding=odp. na słaby
+        # zbudowana strategia: przykład=mocny payload, score=mocny, stan=kubełek SŁABSZEGO
         entry = library.all()["S"]
         assert entry["Example"] == ["p2"]
         assert entry["Score"] == [7.0]
-        assert entry["Embeddings"] == [[0.1]]
-        fw["retrieval"].embed.assert_called_once_with("r1")  # klucz = odpowiedź na SŁABSZY
+        assert entry["States"] == ["t3"]  # brak depth_scorer → pasmo text_score słabego (3.0)
         fw["summarizer"].summarize.assert_called_once_with("req", "p1", "p2")
         # równoległy ground-truth zapisany na każdej iteracji
         assert [a.gt_outcome for a in log] == ["BLOCKED", "BLOCKED"]
@@ -288,7 +290,6 @@ class TestPipelineLifelong:
         fw["retrieval"].pop.return_value = ([{"Strategy": "S", "Definition": "d", "Example": ["x"]}], True)
         fw["scorer"].wrapper.side_effect = [4.0, 8.0]  # poprawa → uczenie
         fw["summarizer"].wrapper.return_value = {"Strategy": "S2", "Definition": "d2"}
-        fw["retrieval"].embed.return_value = [0.5]
         target = _target(["r1", "r2"])
 
         pipe = AutoDANTurbo(fw, data=["req"], target=target, epochs=2, lifelong_iterations=1)
@@ -296,12 +297,12 @@ class TestPipelineLifelong:
 
         # epoka 0 = cold start, epoka 1 = use_strategy na podstawie retrievalu
         assert [a.mode for a in log] == ["warm_up_attack", "use_strategy"]
-        # retrieval pytany o POPRZEDNIĄ odpowiedź targetu
-        assert fw["retrieval"].pop.call_args.args[1] == "r1"
+        # retrieval pytany o STAN OBRONY poprz. próby (brak depth_scorer → pasmo text_score 4.0)
+        assert fw["retrieval"].pop.call_args.args[1] == "t4"
         # nauczona nowa strategia z pary (prev, current)
         assert "S2" in library.all()
         assert library.all()["S2"]["Example"] == ["p2"]
-        assert library.all()["S2"]["Embeddings"] == [[0.5]]
+        assert library.all()["S2"]["States"] == ["t4"]
 
     def test_lifelong_uses_find_new_strategy_when_only_ineffective(self):
         fw = _framework()

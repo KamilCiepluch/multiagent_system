@@ -8,10 +8,11 @@ Struktura (1:1 z oryginałem):
       "Definition": str,          # zwięzły opis
       "Example":    list[str],    # przykładowe (skuteczne) payloady
       "Score":      list[float],  # wyniki scorera dla tych przykładów
-      "Embeddings": list[list],   # KLUCZE retrievalu — embeddingi ODPOWIEDZI targetu
-  }                               # SPRZED ulepszenia (sytuacji, w której strategia pomogła)
+      "States":     list[str],    # KLUCZE retrievalu — STANY OBRONY (milestone'y, np. "m4.0"),
+  }                               # czyli sytuacje, z których strategia pomogła się wydostać
+                                  # ("*" = prior z katalogu, pasuje do każdego stanu)
 
-`add()` scala wpis o tej samej nazwie przez APPEND (Example/Score/Embeddings) — dzięki
+`add()` scala wpis o tej samej nazwie przez APPEND (Example/Score/States) — dzięki
 temu jedna strategia akumuluje wiele przykładów i wiele kluczy retrievalu w miarę,
 jak jest odkrywana ponownie w różnych sytuacjach obronnych.
 """
@@ -22,7 +23,7 @@ import logging
 
 _log = logging.getLogger("autodan_turbo.library")
 
-_LIST_FIELDS = ("Example", "Score", "Embeddings")
+_LIST_FIELDS = ("Example", "Score", "States")
 
 
 class Library:
@@ -34,7 +35,7 @@ class Library:
 
     def add(self, new_strategy: dict, if_notify: bool | None = None) -> None:
         """Dodaje/scala strategię. Wymaga klucza 'Strategy'; pola listowe
-        (Example/Score/Embeddings) są normalizowane do list i scalane przez append."""
+        (Example/Score/States) są normalizowane do list i scalane przez append."""
         name = new_strategy.get("Strategy")
         if not name:
             _log.warning("Pomijam strategię bez nazwy ('Strategy'): %r", new_strategy)
@@ -52,7 +53,7 @@ class Library:
 
     @staticmethod
     def _normalize(strategy: dict) -> dict:
-        """Gwarantuje obecność wszystkich pól i listowość Example/Score/Embeddings."""
+        """Gwarantuje obecność wszystkich pól i listowość Example/Score/States."""
         out = {
             "Strategy": strategy["Strategy"],
             "Definition": strategy.get("Definition", ""),

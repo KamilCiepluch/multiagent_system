@@ -8,8 +8,8 @@ Trzy tryby, ten sam przepływ co oryginał:
                                Po epokach `_build_from_log`: per żądanie weź payload
                                NAJSŁABSZY i NAJMOCNIEJSZY → summarizer → wpis do biblioteki.
 
-  lifelong_redteaming(library) — epoka 0 jak warm-up; dalej: retrieval.pop(lib, poprzednia
-                               odpowiedź) → use_strategy / find_new_strategy → respond →
+  lifelong_redteaming(library) — epoka 0 jak warm-up; dalej: retrieval.pop(lib, stan obrony
+                               poprz. próby) → use_strategy / find_new_strategy → respond →
                                score; gdy score wzrósł względem poprzedniego → summarizer
                                → library.add. Biblioteka rośnie w trakcie.
 
@@ -45,6 +45,7 @@ class Attempt:
     text_score: float | None = None      # wierny scorer 1–10 (szkodliwość tekstu) — logowany obok
     depth: float | None = None           # graded whitebox score (głębokość penetracji)
     depth_milestone: str | None = None   # czytelny kamień milowy osiągnięty przez payload
+    defense_state: str = ""              # P1: klucz retrievalu — kubełek stanu obrony (np. "m4.0")
 
 
 OnAttempt = Callable[[Attempt], None]
@@ -98,6 +99,10 @@ class AutoDANTurbo:
         # Pętlę napędza gęsty depth, gdy dostępny; inaczej wierny scorer 1–10.
         score = depth if depth is not None else text_score
 
+        # P1: kubełek stanu obrony (klucz retrievalu). Milestone depth, gdy dostępny;
+        # inaczej zgrubne pasmo text_score, by kubełki nie eksplodowały na ciągłej liczbie.
+        defense_state = f"m{depth:.1f}" if depth is not None else f"t{round(text_score)}"
+
         gt = self.target.ground_truth()
         attempt = Attempt(
             request=request, prompt=prompt, response=response, score=score, mode=mode,
@@ -106,6 +111,7 @@ class AutoDANTurbo:
             gt_outcome=(gt.outcome if gt is not None else None),
             gt_evidence=(list(gt.evidence) if gt is not None else []),
             text_score=text_score, depth=depth, depth_milestone=depth_milestone,
+            defense_state=defense_state,
         )
         if self._on_attempt is not None:
             self._on_attempt(attempt)
@@ -113,8 +119,8 @@ class AutoDANTurbo:
 
     def _learn(self, library: Library, request: str, weak: Attempt, strong: Attempt) -> None:
         """Destyluje strategię z pary (słabszy, mocniejszy) i dodaje ją do biblioteki.
-        Embedding-klucz = odpowiedź targetu na payload SŁABSZY (sytuacja, w której
-        strategia pomogła) — zgodnie z semantyką retrievalu AutoDAN-Turbo."""
+        Klucz retrievalu (P1) = STAN OBRONY payloadu SŁABSZEGO (`weak.defense_state`) —
+        sytuacja, z której strategia pomogła się wydostać."""
         if strong.score <= weak.score:
             return
         strategy = self.summarizer.wrapper(self.summarizer.summarize(request, weak.prompt, strong.prompt))
@@ -122,7 +128,7 @@ class AutoDANTurbo:
             return
         strategy["Example"] = [strong.prompt]
         strategy["Score"] = [strong.score]
-        strategy["Embeddings"] = [self.retrieval.embed(weak.response)]
+        strategy["States"] = [weak.defense_state]
         library.add(strategy, if_notify=True)
 
     # ------------------------------------------------------------------
@@ -130,7 +136,7 @@ class AutoDANTurbo:
     # ------------------------------------------------------------------
 
     def _attack_with_library(self, request: str, prev: Attempt, library: Library) -> tuple[str, str, list[str]]:
-        strategies, use = self.retrieval.pop(library.all(), prev.response, k=self.retrieval_k)
+        strategies, use = self.retrieval.pop(library.all(), prev.defense_state, k=self.retrieval_k)
         used = [s.get("Strategy", "?") for s in strategies]
         if strategies and use:
             return self.attacker.use_strategy(request, strategies), "use_strategy", used

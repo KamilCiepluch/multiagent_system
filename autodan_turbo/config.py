@@ -10,7 +10,6 @@ Zmienne środowiskowe (prefiks AUTODAN_, też z .env):
   AUTODAN_SCORER_MODEL        model scorera     (domyślnie = ollama_model)
   AUTODAN_SUMMARIZER_MODEL    model summarizera (domyślnie = ollama_model)
   AUTODAN_BASE_URL            base_url Ollamy   (domyślnie = ollama_base_url)
-  AUTODAN_EMBED_MODEL         model embeddingów (domyślnie nomic-embed-text, 768d)
   AUTODAN_ATTACKER_TEMPERATURE   (domyślnie 1.0 — jak oryginał, kreatywne payloady)
   AUTODAN_SCORER_TEMPERATURE     (domyślnie 0.0 — deterministyczna ocena)
   AUTODAN_SUMMARIZER_TEMPERATURE (domyślnie 0.5)
@@ -47,7 +46,6 @@ class AutoDanSettings(BaseSettings):
     scorer_model: str = _root.ollama_model
     summarizer_model: str = _root.ollama_model
     base_url: str = _root.ollama_base_url
-    embed_model: str = "nomic-embed-text"
 
     attacker_temperature: float = 1.0
     scorer_temperature: float = 0.0
@@ -74,11 +72,3 @@ def build_chat(model: str, temperature: float, settings: AutoDanSettings | None 
     if settings.keep_alive is not None:
         kwargs["keep_alive"] = settings.keep_alive
     return ChatOllama(**kwargs)
-
-
-def build_embeddings(settings: AutoDanSettings | None = None):
-    """Lokalne embeddingi (OllamaEmbeddings) do retrievalu po odpowiedzi targetu."""
-    settings = settings or AutoDanSettings()
-    from langchain_ollama import OllamaEmbeddings
-
-    return OllamaEmbeddings(model=settings.embed_model, base_url=settings.base_url)

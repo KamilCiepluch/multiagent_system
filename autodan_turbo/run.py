@@ -30,7 +30,7 @@ from attack_core.runner import AttackRunner
 from graph.workflow import build_supervisor_workflow
 
 from autodan_turbo.attacker import Attacker
-from autodan_turbo.config import AutoDanSettings, build_chat, build_embeddings
+from autodan_turbo.config import AutoDanSettings, build_chat
 from autodan_turbo.library import Library
 from autodan_turbo.logio import library_filename, load_json, save_json
 from autodan_turbo.pipeline import Attempt, AutoDANTurbo
@@ -123,7 +123,7 @@ def build_framework(settings: AutoDanSettings, surface_context: str = "") -> dic
         ),
         "scorer": Scorer(build_chat(settings.scorer_model, settings.scorer_temperature, settings)),
         "summarizer": Summarizer(build_chat(settings.summarizer_model, settings.summarizer_temperature, settings)),
-        "retrieval": Retrieval(build_embeddings(settings)),
+        "retrieval": Retrieval(),
     }
 
 
@@ -163,10 +163,10 @@ def print_report(stage: str, objective_id: str, injection_id: str, attack_id: st
     print(THICK)
 
 
-def seed_library_from_catalog(library: Library, settings: AutoDanSettings) -> Library:
+def seed_library_from_catalog(library: Library) -> Library:
     """Dolewa do biblioteki techniki z katalogu wiedzy (attack_techniques) jako PRIOR.
 
-    Każda technika dostaje embedding (description+example) jako klucz retrievalu oraz
+    Każda technika dostaje stan `*` (wildcard — pasuje do każdego stanu obrony) oraz
     umiarkowany prior Score, by retrieval podawał ją do attacker.use_strategy. To znosi
     cold-start: pętla ma czego retrievować od pierwszej iteracji, zamiast strzelać na ślepo."""
     from database.knowledge_db import TechniqueRepository
@@ -175,16 +175,14 @@ def seed_library_from_catalog(library: Library, settings: AutoDanSettings) -> Li
     if not techniques:
         print("  UWAGA: katalog technik PUSTY — najpierw: python -m attack_core.knowledge.seed")
         return library
-    embedder = build_embeddings(settings)
     SEED_PRIOR = 2.0  # pasmo „umiarkowane" retrievalu (≥2 i <5) → trafia do use_strategy
     for t in techniques:
-        text = f"{t['description']} {t.get('example') or ''}".strip()
         library.add({
             "Strategy": t["name"],
             "Definition": t["description"],
             "Example": [t.get("example") or ""],
             "Score": [SEED_PRIOR],
-            "Embeddings": [embedder.embed_query(text)],
+            "States": ["*"],
         })
     print(f"  Zasilono bibliotekę {len(techniques)} technikami z katalogu (prior={SEED_PRIOR}).")
     return library
@@ -289,7 +287,7 @@ def main() -> None:
     print(THICK)
     print(f"  AutoDAN-Turbo / {args.stage}  |  cel={objective.id}  wektor={injection_point.id}")
     print(f"  attacker={settings.attacker_model} scorer={settings.scorer_model} "
-          f"summarizer={settings.summarizer_model} embed={settings.embed_model}")
+          f"summarizer={settings.summarizer_model}")
     print(THICK)
 
     log: list[Attempt] = []
@@ -302,14 +300,14 @@ def main() -> None:
         elif args.stage == "lifelong":
             library = Library.from_dict(load_json(lib_name))
             if args.seed:
-                seed_library_from_catalog(library, settings)
+                seed_library_from_catalog(library)
             library, log = pipeline.lifelong_redteaming(library)
             save_json(lib_name, library.to_dict())
             print(f"\n  Biblioteka zaktualizowana: logs/{lib_name} ({len(library)} strategii)")
         else:  # test
             library = Library.from_dict(load_json(lib_name))
             if args.seed:
-                seed_library_from_catalog(library, settings)
+                seed_library_from_catalog(library)
             if len(library) == 0:
                 print(f"  UWAGA: biblioteka logs/{lib_name} pusta — najpierw uruchom warmup/lifelong lub użyj --seed.")
             log = pipeline.test(objective.description, library)

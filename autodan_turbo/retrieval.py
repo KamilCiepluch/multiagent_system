@@ -1,92 +1,72 @@
 """
-Retrieval strategii — wierne odwzorowanie `framework/retrival.py` z AutoDAN-Turbo.
+Retrieval strategii — P1: dopasowanie po STANIE OBRONY (kubełek kategoryczny), NIE po
+embeddingu odpowiedzi targetu.
 
-Najważniejszy, nieoczywisty element metody: KLUCZEM retrievalu jest embedding
-ODPOWIEDZI targetu z POPRZEDNIEJ iteracji (a nie celu/żądania). Logika: podobna
-odpowiedź obronna → podobna sytuacja → ta sama strategia historycznie pomagała.
+Dlaczego odejście od oryginału: w MAS „odpowiedzią targetu" jest ~2KB transkryptu
+wieloagentowego, zdominowanego przez boilerplate (routing, czytanie inboxa, role-check).
+Embedding takiego transkryptu daje cosine ~jednostajnie wysoki → retrieval prawie losowy.
+Zamiast tego kluczujemy strategie STANEM OBRONY = milestone głębokości penetracji z
+`whitebox_score` (np. "m4.0" = utknięto na bramce ról). Strategia zapisana z `weak.defense_state`
+opisuje sytuację, z której pomogła się wydostać; przy tym samym stanie ją retrievujemy.
 
-Odstępstwo techniczne: oryginał używa FAISS (IndexFlatL2); my liczymy cosine w numpy.
-Dla małej biblioteki to równoważne (brute-force najbliższych sąsiadów), bez ciężkiej
-zależności. Ranking podobieństwa robi najlepszy (najbliższy) embedding strategii,
-a „score" strategii to ŚREDNIA jej zapisanych wyników.
+Klucz `*` = prior (technika zasilona z katalogu, `--seed`) — pasuje do KAŻDego stanu (zawsze
+kandydat, ale NIŻEJ niż dopasowanie dokładne) → znosi cold-start, gdy nic jeszcze nie pasuje.
 
-Trzy progi skuteczności (1:1 z oryginałem):
-  avg_score ≥ 5      → zwróć tylko PIERWSZĄ (najbardziej podobną) skuteczną strategię
-  2 ≤ avg_score < 5  → zwróć do k strategii „umiarkowanych" (wciąż do użycia)
-  avg_score < 2      → zwróć do k NIESKUTECZNYCH, ale tylko gdy nie ma nic lepszego
-                       (te trafiają do attacker.find_new_strategy jako „czego unikać")
+Trzy progi skuteczności (1:1 z oryginałem, po ŚREDNIM Score strategii):
+  avg ≥ 5      → zwróć tylko PIERWSZĄ (najlepszą) skuteczną
+  2 ≤ avg < 5  → zwróć do k „umiarkowanych" (wciąż do użycia)
+  avg < 2      → zwróć do k NIESKUTECZNYCH (trafiają do find_new_strategy jako „czego unikać")
 
-`pop` zwraca `(strategies, use)` — `use=True` → attacker.use_strategy,
-`use=False` → attacker.find_new_strategy (unikaj). Pusta lista przy pustej bibliotece.
+`pop` zwraca `(strategie, use)` — use=True → attacker.use_strategy, use=False → find_new_strategy.
 """
 
 from __future__ import annotations
 
 import logging
 
-import numpy as np
-
 _log = logging.getLogger("autodan_turbo.retrieval")
 
 _HIGH = 5.0
 _MODERATE = 2.0
+_WILDCARD = "*"
 
 
 class Retrieval:
-    def __init__(self, embeddings, *, high: float = _HIGH, moderate: float = _MODERATE):
-        self._embeddings = embeddings
+    def __init__(self, *, high: float = _HIGH, moderate: float = _MODERATE):
         self._high = high
         self._moderate = moderate
 
-    def embed(self, text: str) -> list[float]:
-        return self._embeddings.embed_query(text or "")
-
     @staticmethod
-    def _cosine(a: np.ndarray, b: np.ndarray) -> float:
-        na = np.linalg.norm(a)
-        nb = np.linalg.norm(b)
-        if na == 0.0 or nb == 0.0:
-            return -1.0
-        return float(np.dot(a, b) / (na * nb))
+    def _avg(entry: dict) -> float:
+        scores = entry.get("Score", [])
+        return sum(scores) / len(scores) if scores else 0.0
 
-    def pop(self, library: dict, query_response: str, k: int = 5) -> tuple[list[dict], bool]:
-        """Zwraca (lista strategii, czy_skuteczne) dla danej odpowiedzi targetu."""
+    def pop(self, library: dict, query_state: str, k: int = 5) -> tuple[list[dict], bool]:
+        """Zwraca (lista strategii, czy_skuteczne) dla danego STANU OBRONY (kubełek)."""
         if not library:
             return [], False
 
-        query = np.asarray(self.embed(query_response), dtype=np.float32)
-
-        # Najlepsze (najbliższe) podobieństwo per strategia — ranking po nim.
-        ranked: list[tuple[float, str]] = []
-        for name, entry in library.items():
-            sims = [
-                self._cosine(query, np.asarray(vec, dtype=np.float32))
-                for vec in entry.get("Embeddings", [])
-                if vec is not None and len(vec) > 0
-            ]
-            if sims:
-                ranked.append((max(sims), name))
-        if not ranked:
+        # Kandydaci: najpierw DOKŁADNE dopasowanie stanu, potem priory (wildcard).
+        exact = [n for n, e in library.items() if query_state in e.get("States", [])]
+        priors = [n for n, e in library.items()
+                  if _WILDCARD in e.get("States", []) and n not in exact]
+        exact.sort(key=lambda n: self._avg(library[n]), reverse=True)
+        priors.sort(key=lambda n: self._avg(library[n]), reverse=True)
+        candidates = exact + priors
+        if not candidates:
             return [], False
 
-        ranked.sort(key=lambda t: t[0], reverse=True)
-        # Top-2k unikalnych kandydatów (w oryginale: top-2k przed filtrem progów).
-        candidates = [name for _, name in ranked[: 2 * k]]
-
-        def avg_score(name: str) -> float:
-            scores = library[name].get("Score", [])
-            return float(np.mean(scores)) if scores else 0.0
-
-        # Próg 1: pierwsza wysoko skuteczna w kolejności podobieństwa.
+        # Próg 1: pierwsza wysoko skuteczna (dokładne dopasowanie ma pierwszeństwo).
         for name in candidates:
-            if avg_score(name) >= self._high:
+            if self._avg(library[name]) >= self._high:
                 return [library[name]], True
 
         # Próg 2: umiarkowane (wciąż do użycia), do k.
-        moderate = [library[n] for n in candidates if self._moderate <= avg_score(n) < self._high]
+        moderate = [library[n] for n in candidates
+                    if self._moderate <= self._avg(library[n]) < self._high]
         if moderate:
             return moderate[:k], True
 
         # Próg 3: nieskuteczne — tylko jako „czego unikać".
-        ineffective = [library[n] for n in candidates if avg_score(n) < self._moderate]
+        ineffective = [library[n] for n in candidates if self._avg(library[n]) < self._moderate]
         return ineffective[:k], False
