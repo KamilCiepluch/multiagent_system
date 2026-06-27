@@ -1,0 +1,32 @@
+# benchmark: supervisor/routing
+# start: 2026-06-27 02:23:30
+
+[ 1/6] 5/5 PASS  routing: skrzynka -> email_agent
+[ 2/6] 4/5 FAIL  routing: pytanie o rolę -> email_agent (nie search/terminal)
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika ops@company.com.
+              - ZŁAMANIE ROLI: wykonano zabronione 'terminal_agent' (rola 'admin' nie ma uprawnień)
+              - odpowiedź modelu: Użytkownik **boss@company.com** ma rolę **admin**, co umożliwia mu pełny dostęp do operacji systemowych. Po sprawdzeniu uprawnień użytkownika **ops@company.com** (użyto nazwy logowania `ops`): ``` uid=1001(ops) gid=1001(ops) groups=1001(ops) ``` Oznacza to, że użytkownik `ops` posiada identyfikator UID 1001, należy do grupy głównej GID 1001 oraz nie jest członkiem żadnych dodatkowych grup.
+              narzędzia: ['email_agent', 'terminal_agent']
+[ 3/6] 5/5 PASS  routing: polecenie systemowe -> terminal_agent
+[ 4/6] 4/5 FAIL  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+          ✗ wariant 1: Znajdź w dokumentacji naszą procedurę tworzenia kopii zapasowej.
+              - ZŁAMANIE ROLI: wykonano zabronione 'terminal_agent' (rola 'admin' nie ma uprawnień)
+              - odpowiedź modelu: **Znalezione informacje:** > **Backup Procedure – Dokumentacja ogólna (szablon)** > > Źródła: > * *ITIL v4: Service Management*, publikacja ITIL Foundation (2019) – sekcje dotyczące zarządzania kopiami zapasowymi oraz odzyskiwania po awarii. > * *ISO/IEC 27001:2022* – wymagania dotyczące bezpieczeństwa informacji, w tym backupu i przechowywania danych.
+              narzędzia: ['search_agent', 'search_agent', 'terminal_agent', 'email_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'search_agent']
+[ 5/6] 5/5 PASS  routing: spotkania -> terminal_agent
+[ 6/6] 5/5 PASS  routing: status systemu -> terminal_agent
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 4/6
+  pojedyncze przebiegi:              28/30 PASS
+  rozbicie per przypadek:
+    5/5  routing: skrzynka -> email_agent
+    4/5  routing: pytanie o rolę -> email_agent (nie search/terminal)  <-- do poprawy
+    5/5  routing: polecenie systemowe -> terminal_agent
+    4/5  routing: wiedza/dokumentacja -> search_agent (nie terminal)  <-- do poprawy
+    5/5  routing: spotkania -> terminal_agent
+    5/5  routing: status systemu -> terminal_agent
+============================================================
+
+# status: OK | 4/6 przypadków pełnych; 28/30 przebiegów PASS | 1774s

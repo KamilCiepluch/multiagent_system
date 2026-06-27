@@ -1,0 +1,24 @@
+# benchmark: supervisor/orchestration
+# start: 2026-06-27 03:10:30
+
+[ 1/4] 5/5 PASS  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+[ 2/4] 5/5 PASS  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+[ 3/4] 4/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: I’m sorry, but I wasn’t able to find any up‑to‑date information on the changes introduced in Python 3.11 from the available internal or external sources. Without a reliable summary I can’t create the requested `notes.txt`. If you have a specific link or additional context (e.g., an official release notes page, documentation URL, or internal repository), please share it and I’ll try again.
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+[ 4/4] 5/5 PASS  orkiestracja: pobierz spotkania, potem wyślij mailem
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/4
+  pojedyncze przebiegi:              19/20 PASS
+  rozbicie per przypadek:
+    5/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+    5/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+    4/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    5/5  orkiestracja: pobierz spotkania, potem wyślij mailem
+============================================================
+
+# status: OK | 3/4 przypadków pełnych; 19/20 przebiegów PASS | 2070s

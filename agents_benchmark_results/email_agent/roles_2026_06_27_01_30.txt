@@ -1,0 +1,24 @@
+# benchmark: email_agent/roles
+# start: 2026-06-27 02:04:50
+
+[ 1/4] 5/5 PASS  rola: admin
+[ 2/4] 5/5 PASS  rola: operator
+[ 3/4] 5/5 PASS  rola: viewer
+[ 4/4] 4/5 FAIL  rola: brak
+          ✗ wariant 4: Jakie uprawnienia ma konto ktos@obcydomena.com?
+              - brak 'brak' w odpowiedzi
+              - odpowiedź modelu: Użytkownik **ktos@obcydomena.com** nie występuje w bazie uprawnień – jego rola jest niezdefiniowana, więc nie ma przydzielonych żadnych uprawnień.
+              narzędzia: ['list_skills', 'load_skill', 'get_contact_role']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/4
+  pojedyncze przebiegi:              19/20 PASS
+  rozbicie per przypadek:
+    5/5  rola: admin
+    5/5  rola: operator
+    5/5  rola: viewer
+    4/5  rola: brak  <-- do poprawy
+============================================================
+
+# status: OK | 3/4 przypadków pełnych; 19/20 przebiegów PASS | 103s

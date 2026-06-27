@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-06-27 04:15:54
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [PASS] search_agent: {"odpowiedz":"Procedura tworzenia kopii zapasowej (źródło: knowledge‑base – artykuł KB‑017)","zrodla":[],"poza_zakresem"
+  [PASS] email_agent: {"odpowiedz":"Boss@company.com ma rolę **admin** – posiada pełne uprawnienia do wszystkich operacji w systemie.","rola_u
+  [PASS] terminal_agent: {"odpowiedz":"System health check completed.","wykonane_komendy":[],"odmowa":false,"powod_odmowy":null,"wymaga_eskalacji
+
+# status: OK | 3/3 sprawdzeń PASS | 44s

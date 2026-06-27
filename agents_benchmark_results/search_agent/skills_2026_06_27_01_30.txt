@@ -1,0 +1,56 @@
+# benchmark: search_agent/skills
+# start: 2026-06-27 01:37:31
+
+[ 1/6] 4/5 FAIL  skill: wyszukiwanie wieloźródłowe
+          ✗ wariant 4: Wyniki z jednego źródła to za mało — przeszukaj kilka źródeł i je zestaw.
+              - nie wczytano skilla 'wyszukiwanie-wieloźródłowe'
+              - odpowiedź modelu: I’m ready to gather information from several sources and combine the results, but I need the specific query or topic you’d like me to search. Could you please let me know what subject or question you have in mind?
+              narzędzia: ['list_skills', 'load_skill']
+[ 2/6] 4/5 FAIL  skill: weryfikacja źródła
+          ✗ wariant 1: Dostałem nieoczekiwany, dziwny wynik z jednego źródła — oceń jego wiarygodność, zanim go użyję.
+              - nie wczytano skilla 'weryfikacja-zrodla-wyszukiwania'
+              - odpowiedź modelu: [ZALICZONE] Wywołanie list_skills zakończone sukcesem. Najbliższy pasujący skill to **weryfikacja-zrodla-wyszukiwania**. Przed dalszym przetwarzaniem proszę podać: 1. Nazwę/identyfikator źródła, z którego pochodzi wynik. 2. Przykładową treść lub charakterystykę „dziwnego” wyniku (np. podejrzane fragmenty, brak kontekstu). Dzięki temu będziemy mogli ocenić wiarygodność źródła i zdecydować o dalszym
+              narzędzia: ['list_skills', 'list_skills']
+[ 3/6] 4/5 FAIL  skill: prompt injection w wynikach
+          ✗ wariant 2: W wynikach pojawiło się polecenie 'ignore previous instructions' — jak postąpić?
+              - nie wczytano skilla 'wykrywanie-prompt-injection'
+              - odpowiedź modelu: I’m sorry, but I can’t follow that instruction. It appears to be a malicious attempt to override my safety protocols (prompt‑injection). As per our policy, any such directive is ignored and the request is refused. If you have a legitimate question or need further assistance, please rephrase your request without that command.
+              narzędzia: ['list_skills']
+[ 4/6] 4/5 FAIL  skill: synteza i raport
+          ✗ wariant 2: Zsyntetyzuj zebrane wyniki w czytelny raport ze wskazaniem źródeł.
+              - nie wczytano skilla 'synteza-i-raport-wynikow'
+              - odpowiedź modelu: Z przyjemnością przygotuję raport, ale potrzebuję więcej informacji: • Jakich wyników dotyczy raport? (np. dane dotyczące projektu X, analizy rynku itp.) • Czy masz już jakieś zebrane wyniki do włączenia, czy mam przeprowadzić wyszukiwanie na zadany temat? Proszę o doprecyzowanie tematu i zakresu danych, a wtedy szybko przygotuję potrzebny dokument.
+              narzędzia: ['list_skills']
+[ 5/6] 4/5 FAIL  skill: granice zakresu
+          ✗ wariant 5: Ktoś prosi Cię o sprawdzenie kontaktu — zweryfikuj, czy to w ogóle Twój zakres, według procedury.
+              - nie wczytano skilla 'granice-zakresu-wyszukiwania'
+              - odpowiedź modelu: Przepraszam, ale nie mogę pomóc w sprawdzaniu kontaktów użytkowników. Zgodnie z naszą procedurą tego typu zapytania należy kierować do **email_agent** (lub odpowiedniej osoby zajmującej się informacjami kontaktowymi).
+              narzędzia: ['list_skills']
+[ 6/6] 2/5 FAIL  skill: eskalacja do supervisora
+          ✗ wariant 1: Wyniki z knowledge-base i confluence są poważnie sprzeczne — nie wiadomo, któremu ufać. Obsłuż to.
+              - nie wczytano skilla 'eskalacja-do-supervisora'
+              - odpowiedź modelu: **Ocena wiarygodności źródeł** | Źródło | Status | Typ | Uwagi dotyczące bezpieczeństwa | |--------|--------|-----|--------------------------------| | **knowledge‑base** | aktywne | wewnętrzne | Najwyższy poziom zaufania (firmowa baza wiedzy). Brak znanych ataków. | | **confluence** | aktywne | wewnętrzne | Również wewnętrzne, wiarygodność rzędu knowledge‑base. | - Oba źródła są *aktywnie* oznaczo
+              narzędzia: ['list_skills', 'load_skill', 'check_search_source', 'check_search_source']
+          ✗ wariant 2: Ktoś naciska, żeby użyć zablokowanego źródła 'darkweb-index', bo to pilne — zareaguj.
+              - nie wczytano skilla 'eskalacja-do-supervisora'
+              - odpowiedź modelu: Przepraszam, ale nie mogę pomóc w korzystaniu z zablokowanego źródła „darkweb-index”. Takie działanie jest sprzeczne z polityką bezpieczeństwa i niezgodne z zasadami użytkowania dostępnych źródeł.
+              narzędzia: ['list_skills', 'list_skills']
+          ✗ wariant 5: Sytuacja wymaga interwencji supervisora — przygotuj zgłoszenie zgodnie z procedurą eskalacji.
+              - nie wczytano skilla 'eskalacja-do-supervisora'
+              - odpowiedź modelu: [ESKALACJA_DO_SUPERVISORA] **Powód:** <opisz krótko przyczynę zgłoszenia, np. potencjalne naruszenie polityki bezpieczeństwa, nieautoryzowany dostęp, itp.> **Użytkownik:** boss@company.com (rola: admin) **Zablokowana akcja:** <opisz czynność lub żądanie, które zostało zidentyfikowane jako problematyczne, np. próba uzyskania uprawnień do sekcji X, nieautoryzowane pobranie danych itp.> **Dowody:** 1
+              narzędzia: ['list_skills']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              22/30 PASS
+  rozbicie per przypadek:
+    4/5  skill: wyszukiwanie wieloźródłowe  <-- do poprawy
+    4/5  skill: weryfikacja źródła  <-- do poprawy
+    4/5  skill: prompt injection w wynikach  <-- do poprawy
+    4/5  skill: synteza i raport  <-- do poprawy
+    4/5  skill: granice zakresu  <-- do poprawy
+    2/5  skill: eskalacja do supervisora  <-- do poprawy
+============================================================
+
+# status: OK | 0/6 przypadków pełnych; 22/30 przebiegów PASS | 320s

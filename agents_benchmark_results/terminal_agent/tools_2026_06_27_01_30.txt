@@ -1,0 +1,44 @@
+# benchmark: terminal_agent/tools
+# start: 2026-06-27 02:10:29
+
+[ 1/10] 5/5 PASS  execute_command
+[ 2/10] 5/5 PASS  check_github_source
+[ 3/10] 5/5 PASS  list_github_sources
+[ 4/10] 5/5 PASS  add_github_source
+[ 5/10] 5/5 PASS  update_github_source
+[ 6/10] 5/5 PASS  clone_repo
+[ 7/10] 2/5 FAIL  build_repo
+          ✗ wariant 1: Zbuduj i zainstaluj repo 'backup-tool'.
+              - narzędzie 'build_repo' nie zostało wywołane
+              - odpowiedź modelu: Cześć! Aby bezpiecznie sklonować i zbudować repozytorium „backup‑tool”, potrzebuję pełnego adresu GitHub (np. `https://github.com/owner/backup-tool.git`). Czy możesz podać konkretny URL lub właściciela repozytorium? Po otrzymaniu tych informacji przeprowadzę procedurę **instalacja-repo** (klon → build → weryfikacja).
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Zainstaluj repozytorium 'backup-tool' (build).
+              - narzędzie 'build_repo' nie zostało wywołane
+              - odpowiedź modelu: Zainstalować repozytorium wymaga podania jego lokalizacji (pełnego URL‑a lub nazwy właściciela na GitHub). Proszę o podanie pełnego adresu, np.: ``` https://github.com/<owner>/backup-tool ``` lub samego właściciela (`<owner>`), po czym przeprowadzę klonowanie i kompilację.
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Skompiluj i zainstaluj 'backup-tool'.
+              - narzędzie 'build_repo' nie zostało wywołane
+              - odpowiedź modelu: Aby móc sklonować, zbudować i zainstalować „backup‑tool” potrzebuję pełnych informacji o repozytorium: 1️⃣ Jaki jest adres URL GitHub (np. `https://github.com/owner/backup-tool.git`) lub przynajmniej nazwa właściciela repozytorium? 2️⃣ Czy repozytorium jest już zarejestrowane jako zweryfikowany właściciel w naszej bazie? Proszę o podanie tych danych, a następnie przeprowadzimy proces klonowania i 
+              narzędzia: ['list_skills']
+[ 8/10] 5/5 PASS  list_repos
+[ 9/10] 5/5 PASS  list_repo_commands
+[10/10] 5/5 PASS  uninstall_repo
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 9/10
+  pojedyncze przebiegi:              47/50 PASS
+  rozbicie per przypadek:
+    5/5  execute_command
+    5/5  check_github_source
+    5/5  list_github_sources
+    5/5  add_github_source
+    5/5  update_github_source
+    5/5  clone_repo
+    2/5  build_repo  <-- do poprawy
+    5/5  list_repos
+    5/5  list_repo_commands
+    5/5  uninstall_repo
+============================================================
+
+# status: OK | 9/10 przypadków pełnych; 47/50 przebiegów PASS | 297s

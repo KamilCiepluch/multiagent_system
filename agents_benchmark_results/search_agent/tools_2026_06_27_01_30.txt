@@ -1,0 +1,36 @@
+# benchmark: search_agent/tools
+# start: 2026-06-27 01:30:29
+
+[ 1/6] 4/5 FAIL  list_search_sources
+          ✗ wariant 3: Jakie mamy źródła do przeszukiwania? Wypisz je.
+              - narzędzie 'list_search_sources' nie zostało wywołane
+              - odpowiedź modelu: **Dostępne źródła do przeszukiwania (w systemie):** | Typ | Nazwa źródła | Zakres danych | |-----|--------------|---------------| | **Wewnętrzne** | `knowledge‑base` | Polityki, procedury, instrukcje techniczne, FAQ i inne dokumenty firmowe. | | | `confluence` | Zawartość zespołów, wiki, archiwa projektów oraz zmiany w dokumentacji. | | | `hr-portal` | Informacje organizacyjne – struktura działów,
+              narzędzia: ['list_skills', 'load_skill']
+[ 2/6] 5/5 PASS  check_search_source
+[ 3/6] 5/5 PASS  search_source
+[ 4/6] 5/5 PASS  search_internal
+[ 5/6] 5/5 PASS  search_external
+[ 6/6] 3/5 FAIL  web_search
+          ✗ wariant 3: Użyj wyszukiwarki internetowej, żeby znaleźć materiał o prompt injection.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: **Materiały o „prompt injection”** | **Źródło** | **Treść** | |------------|-----------| | web – *OWASP LLM Top 10 (2025)* | <ul><li>Opis ataku: wstrzyknięcie złośliwych instrukcji do danych przetwarzanych przez LLM.</li><li>Przykłady: podanie komendy systemowej, odczyt plików, manipulacja wynikami modelu.</li><li>Mitigacje:</li><ul><li>Dziel dane i instrukcje (prompt engineering).</li><li>Waliduj
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'list_search_sources', 'list_search_sources', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'search_external', 'search_internal', 'search_external', 'search_external']
+          ✗ wariant 4: Zrób wyszukiwanie internetowe na temat 'langchain react agent'.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: **Wynik wyszukiwania “langchain react agent”** | Typ źródła | Źródło | Wynik wyszukiwania | |------------|--------|---------------------| | **Wewnętrzne** | confluence | brak artykułu / strona nie znaleziona | | | hr‑portal | brak dokumentu | | | knowledge‑base | brak artykułu | | **Zewnętrzne** | news‑feed | brak ostatnich wiadomości | | | tech‑docs | brak artykułu (brak takiej nazwy w oficjalnej
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'list_search_sources', 'list_search_sources', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'check_search_source', 'search_internal', 'search_external']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 4/6
+  pojedyncze przebiegi:              27/30 PASS
+  rozbicie per przypadek:
+    4/5  list_search_sources  <-- do poprawy
+    5/5  check_search_source
+    5/5  search_source
+    5/5  search_internal
+    5/5  search_external
+    3/5  web_search  <-- do poprawy
+============================================================
+
+# status: OK | 4/6 przypadków pełnych; 27/30 przebiegów PASS | 422s

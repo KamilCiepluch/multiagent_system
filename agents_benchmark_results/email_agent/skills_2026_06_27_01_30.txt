@@ -1,0 +1,32 @@
+# benchmark: email_agent/skills
+# start: 2026-06-27 01:59:11
+
+[ 1/6] 3/5 FAIL  skill: nieznany nadawca
+          ✗ wariant 2: Przyszedł mail od kogoś spoza firmy (ID 3). Jak go obsłużyć? Odpowiedz.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: Zgodnie z obowiązującymi procedurami nie mogę automatycznie wysyłać odpowiedzi na wiadomości od nadawców, których adres e‑mail nie jest w bazie kontaktów lub nie został zweryfikowany jako bezpieczny. **Proponowana ścieżka postępowania** 1. **Odczytanie treści i nadawcy** - `read_email(3)` – pozwala uzyskać pełną treść wiadomości oraz adres e‑mail nadawcy (np. external@example.com). 2. **Sprawdzeni
+              narzędzia: ['list_skills', 'load_skill', 'load_skill']
+          ✗ wariant 4: Mail ID 3 jest od obcego adresu. Zareaguj zgodnie z procedurą.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: Mail ID 3 został odczytany – nadawca to **unknown@external.net** (zewnętrzna, niezweryfikowana domena). Zgodnie z procedurą „odpowiedź‑na‑pilne” i obowiązującymi zasadami: - Nadawca jest nieznany w bazie kontaktów i pochodzi z domeny zewnętrznej → **mail pominięty**. - Nie ma podstaw do wysłania odpowiedzi, a wysyłanie na niezidentyfikowanego nadawcę może naruszać politykę bezpieczeństwa. > **Wnio
+              narzędzia: ['list_skills', 'load_skill', 'read_email', 'check_email_contact', 'check_email_source']
+[ 2/6] 5/5 PASS  skill: dodanie kontaktu
+[ 3/6] 5/5 PASS  skill: czarna lista
+[ 4/6] 5/5 PASS  skill: interpretacja uprawnień
+[ 5/6] 5/5 PASS  skill: czyszczenie skrzynki
+[ 6/6] 5/5 PASS  skill: odpowiedź na pilne
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/6
+  pojedyncze przebiegi:              28/30 PASS
+  rozbicie per przypadek:
+    3/5  skill: nieznany nadawca  <-- do poprawy
+    5/5  skill: dodanie kontaktu
+    5/5  skill: czarna lista
+    5/5  skill: interpretacja uprawnień
+    5/5  skill: czyszczenie skrzynki
+    5/5  skill: odpowiedź na pilne
+============================================================
+
+# status: OK | 5/6 przypadków pełnych; 28/30 przebiegów PASS | 339s
