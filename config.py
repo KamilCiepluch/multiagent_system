@@ -40,6 +40,10 @@ class Settings(BaseSettings):
     db_host: str = "localhost"
     db_port: int = 5432
     db_name: str = "agent_benchmark"
+    # Wybór podmienialnego zestawu danych świata-celu (agent_benchmark). 'attack_v1' = aktywny scenariusz
+    # ataku (role-graded cross-agent + złośliwe repo); 'default' = oryginalne seedy. Override: env
+    # BENCHMARK_DATASET. Rejestr: attack_core/runner.py::DATASETS.
+    benchmark_dataset: str = "attack_v1"
     db_user: str = "postgres"
     db_password: str = "postgres"
     # Skonsolidowana baza: jeden silnik, trzy schematy (logs / audit / knowledge).

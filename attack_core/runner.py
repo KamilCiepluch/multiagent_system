@@ -27,11 +27,31 @@ from tracing.run_context import set_invocation_id, set_run_id
 # korzeniu — stąd `.parent.parent` (po przeniesieniu z attack_runner.py z korzenia).
 _SEEDS_DIR = Path(__file__).parent.parent / "seeds"
 
-_SEED_FILES = [
-    _SEEDS_DIR / "email_agent.sql",
-    _SEEDS_DIR / "terminal_agent.sql",
-    _SEEDS_DIR / "search_agent.sql",
-]
+# Podmienialne datasety świata-celu (agent_benchmark). Dataset = uporządkowana lista plików SQL
+# (TYLKO ŚWIAT) wykonywanych po TRUNCATE. SKILLE są osobno: jedno źródło prawdy w folderze
+# `agent_skills/<agent>/<nazwa>.md`, ładowane przez `database.skills.load_into` po świecie (wspólne
+# dla wszystkich datasetów — „skille zostaw"). `default` = oryginalne seedy świata; nowy scenariusz
+# = świat w seeds/datasets/<nazwa>/. Wybór datasetu: settings.benchmark_dataset.
+DATASETS: dict[str, list[Path]] = {
+    "default": [
+        _SEEDS_DIR / "email_agent.sql",
+        _SEEDS_DIR / "terminal_agent.sql",
+        _SEEDS_DIR / "search_agent.sql",
+    ],
+    "attack_v1": [
+        _SEEDS_DIR / "datasets" / "attack_v1" / "email.sql",
+        _SEEDS_DIR / "datasets" / "attack_v1" / "terminal.sql",
+        _SEEDS_DIR / "datasets" / "attack_v1" / "search.sql",
+    ],
+}
+
+
+def seed_files_for(dataset: str | None = None) -> list[Path]:
+    """Zwraca uporządkowaną listę plików seed dla datasetu (domyślnie settings.benchmark_dataset)."""
+    name = dataset or settings.benchmark_dataset
+    if name not in DATASETS:
+        raise ValueError(f"Nieznany benchmark dataset '{name}'. Dostępne: {list(DATASETS)}")
+    return DATASETS[name]
 
 
 class AttackRunner:
@@ -61,8 +81,12 @@ class AttackRunner:
     # Reset
     # ------------------------------------------------------------------
 
-    def reset_main_db(self) -> None:
-        """TRUNCATE CASCADE wszystkich tabel + reseed. Restartuje sekwencje ID."""
+    def reset_main_db(self, dataset: str | None = None) -> None:
+        """TRUNCATE CASCADE wszystkich tabel + reseed wybranym datasetem. Restartuje sekwencje ID.
+
+        `dataset` domyślnie z `settings.benchmark_dataset` (env BENCHMARK_DATASET); 'default' =
+        oryginalne, niezmienione seedy. Konsumenci (autodan_turbo/target, payload_attack/loop,
+        primitives) wołają bez argumentu → przejmują dataset z konfiguracji."""
         conn = psycopg2.connect(dsn=settings.db_dsn)
         try:
             with conn.cursor() as cur:
@@ -76,11 +100,16 @@ class AttackRunner:
                     """
                 )
             conn.commit()
-            for seed_file in _SEED_FILES:
+            for seed_file in seed_files_for(dataset):
                 sql = seed_file.read_text(encoding="utf-8")
                 with conn.cursor() as cur:
                     cur.execute(sql)
                 conn.commit()
+            # Skille są wspólne dla wszystkich datasetów — ładowane z folderu agent_skills/
+            # (jedno źródło prawdy), nie z seedów świata.
+            from database import skills
+            skills.load_into(conn)
+            conn.commit()
         finally:
             conn.close()
 

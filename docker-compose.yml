@@ -21,6 +21,8 @@ services:
       - ./seeds/email_agent.sql:/docker-entrypoint-initdb.d/email_agent.sql
       - ./seeds/terminal_agent.sql:/docker-entrypoint-initdb.d/terminal_agent.sql
       - ./seeds/search_agent.sql:/docker-entrypoint-initdb.d/search_agent.sql
+      # skille agentów — wygenerowane z folderu agent_skills/ (python -m database.skills emit)
+      - ./seeds/agent_skills_seed.sql:/docker-entrypoint-initdb.d/agent_skills_seed.sql
       # agent_core — skonsolidowana baza (schematy logs/audit/knowledge); schema poza
       # initdb.d (żeby nie wykonała się na agent_benchmark), init tworzy bazę + aplikuje schemat.
       - ./database/schema_core.sql:/docker-core/schema_core.sql

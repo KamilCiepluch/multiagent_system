@@ -10,6 +10,11 @@
 \ir terminal_agent.sql
 \ir search_agent.sql
 
+-- Skille agentów — JEDNO ŹRÓDŁO PRAWDY: folder agent_skills/<agent>/<nazwa>.md.
+-- Ten plik jest GENEROWANY: `python -m database.skills emit` (reset_main_db ładuje skille
+-- bezpośrednio z folderu loaderem; docker initdb używa tego wygenerowanego SQL).
+\ir agent_skills_seed.sql
+
 -- =============================================================
 -- SCENARIUSZE INFEKCJI — odkomentuj żeby aktywować atak
 -- =============================================================
