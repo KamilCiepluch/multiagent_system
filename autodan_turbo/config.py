@@ -42,7 +42,7 @@ class AutoDanSettings(BaseSettings):
 
     # Atakujący: model NIEOCENZUROWANY (≠ system docelowy) — gpt-oss odmawiał
     # generowania payloadów, qwen-uncensored produkuje je bez oporu.
-    attacker_model: str = "jaahas/qwen3.5-uncensored:9b"
+    attacker_model: str = "qwen3.6-uncensored:27b-ctx8k"
     # Scorer/summarizer: model systemu (gpt-oss) — sprawdził się (100% zgodności z GT).
     scorer_model: str = _root.ollama_model
     summarizer_model: str = _root.ollama_model

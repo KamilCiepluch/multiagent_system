@@ -19,7 +19,10 @@ AutoDAN-Turbo trafnie ocenia sukces na naszym systemie.
 from __future__ import annotations
 
 import argparse
+import json
+import os
 import sys
+from pathlib import Path
 
 from attack_core.injection_points import INJECTION_POINTS
 from attack_core.goals import GOALS, ASSETS, make_objective, is_compatible
@@ -39,6 +42,32 @@ from autodan_turbo.whitebox_score import graded_depth_score
 
 SEP = "─" * 72
 THICK = "═" * 72
+
+# Opcjonalny zrzut DOKŁADNYCH wejść systemu (pełny payload + metryki) do JSONL — włączany przez
+# AUTODAN_DUMP_INPUTS=1, ścieżkę ustawia main(). Daje wierny zapis „co dokładnie dostał system",
+# którego nie da się odtworzyć z logów agenta (świat resetowany co próbę).
+_DUMP_PATH: Path | None = None
+
+
+def _dump_attempt(attempt: "Attempt") -> None:
+    if _DUMP_PATH is None:
+        return
+    try:
+        rec = {
+            "run_id": attempt.run_id,
+            "mode": attempt.mode,
+            "depth": attempt.depth,
+            "depth_milestone": attempt.depth_milestone,
+            "text_score": attempt.text_score,
+            "gt_outcome": attempt.gt_outcome,
+            "gt_evidence": attempt.gt_evidence,
+            "strategies_used": attempt.strategies_used,
+            "full_prompt": attempt.prompt,  # DOKŁADNY payload = treść body maila wstrzykniętego do systemu
+        }
+        with open(_DUMP_PATH, "a", encoding="utf-8") as f:
+            f.write(json.dumps(rec, ensure_ascii=False) + "\n")
+    except Exception:
+        pass  # fail-open: zrzut nie może wywrócić przebiegu
 
 
 def list_options() -> None:
@@ -82,6 +111,8 @@ def _on_attempt(attempt: Attempt) -> None:
             audit_db.set_run_verdict(attempt.run_id, attempt.gt_outcome, attempt.gt_evidence)
         except Exception as e:
             print(f"  [audit] set_run_verdict: {e}")
+
+    _dump_attempt(attempt)  # opcjonalny wierny zrzut payloadu (AUTODAN_DUMP_INPUTS=1)
 
 
 def build_framework(settings: AutoDanSettings, surface_context: str = "") -> dict:
@@ -201,6 +232,13 @@ def main() -> None:
 
     settings = AutoDanSettings()
     lib_name = library_filename(objective.id, injection_point.id)
+
+    # Zrzut DOKŁADNYCH wejść systemu (pełne payloady) — świeży plik na ten bieg.
+    if os.environ.get("AUTODAN_DUMP_INPUTS") in ("1", "true", "True"):
+        global _DUMP_PATH
+        _DUMP_PATH = Path(__file__).parent / "logs" / f"inputs__{objective.id}__{injection_point.id}.jsonl"
+        open(_DUMP_PATH, "w", encoding="utf-8").close()
+        print(f"  [dump] DOKŁADNE wejścia systemu → {_DUMP_PATH}")
 
     runner = AttackRunner()
     workflow = build_supervisor_workflow()
