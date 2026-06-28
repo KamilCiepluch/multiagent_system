@@ -10,6 +10,8 @@ System prompt generowany jest dynamicznie z listy agentów (NAME + DESCRIPTION),
 więc dodanie nowego agenta nie wymaga żadnej zmiany w tym pliku.
 """
 
+import re
+
 from langchain_core.tools import StructuredTool
 from langchain.agents import create_agent
 from pydantic import BaseModel, ConfigDict, Field
@@ -152,6 +154,11 @@ class Supervisor:
 
     NAME = "supervisor"
 
+    # Marker handoffu renderowany przez email_agent: „[DO REALIZACJI → terminal_agent]: <prośba>".
+    _HANDOFF_RE = re.compile(r"\[DO REALIZACJI\s*→\s*(terminal_agent|search_agent)\]\s*:\s*(.+)")
+    # Linia kontekstu użytkownika do propagacji roli: „Użytkownik: <email> (rola: <rola>)".
+    _USERCTX_RE = re.compile(r"(U[zż]ytkownik:\s*.+?\(rola:\s*\w+\))")
+
     def __init__(self, llm, agents: list[BaseAgent]):
         agent_lines = "\n".join(f"- {a.NAME}: {a.DESCRIPTION}" for a in agents)
         system_prompt = SUPERVISOR_PREAMBLE + agent_lines
@@ -159,6 +166,41 @@ class Supervisor:
         agent_tools = [_make_agent_tool(a) for a in agents]
 
         self._agent = create_agent(llm, agent_tools, system_prompt=system_prompt)
+        # Do deterministycznego dopięcia zgubionego 2. hopa (completion-guard).
+        self._agents_by_name = {a.NAME: a for a in agents}
+
+    def _complete_dropped_handoff(self, messages: list, final_output: str) -> str:
+        """Siatka bezpieczeństwa na resztkową wariancję supervisora 20B.
+
+        Gdy email_agent zwrócił „[DO REALIZACJI → <egzekutor>]: <prośba>" (out-of-mail), a supervisor
+        ZATRZYMAŁ się po triażu i nie wywołał tego egzekutora — dopinamy brakujący 2. hop
+        DETERMINISTYCZNIE, propagując kontekst użytkownika (rolę). Bezpieczne dla deny: egzekutor
+        (terminal/search) sam egzekwuje uprawnienia (rola/plik poufny/blacklist), więc wymuszona
+        delegacja na żądaniu nieuprawnionym i tak zostanie odrzucona. Akcje POCZTOWE realizuje
+        sam email_agent (sugerowany_agent=null → brak markera), więc ich tu nie dotykamy. Fail-open."""
+        try:
+            tool_calls = _extract_tool_calls(messages)
+            called = {tc.get("tool_name") for tc in tool_calls}
+            for tc in tool_calls:
+                if tc.get("tool_name") != "email_agent":
+                    continue
+                mh = self._HANDOFF_RE.search(str(tc.get("output", "")))
+                if not mh:
+                    continue
+                executor, request = mh.group(1), mh.group(2).strip()
+                if executor in called:
+                    continue  # supervisor już oddelegował do tego egzekutora
+                agent = self._agents_by_name.get(executor)
+                if agent is None:
+                    continue
+                mu = self._USERCTX_RE.search(str(tc.get("output", "")))
+                user_ctx = f"{mu.group(1)}\n" if mu else ""
+                completion = agent.run(f"{user_ctx}{request}")
+                return (f"{final_output}\n\n[completion-guard: dopięto brakującą delegację → "
+                        f"{executor}]\n{completion}")
+        except Exception:
+            pass  # guard nigdy nie może wywrócić przebiegu
+        return final_output
 
     def run(self, task: str) -> str:
         logger = get_run_logger()
@@ -175,6 +217,10 @@ class Supervisor:
             final_output = messages[-1].content if messages else "[brak odpowiedzi supervisora]"
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE
+            else:
+                # Completion-guard: dopnij 2. hop, jeśli email_agent zgłosił prośbę do egzekutora,
+                # a supervisor zatrzymał się po triażu i go nie wywołał.
+                final_output = self._complete_dropped_handoff(messages, final_output)
 
             if logger is not None:
                 logger.finish_agent(inv_id, final_output)
