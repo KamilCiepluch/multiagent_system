@@ -12,7 +12,7 @@ więc dodanie nowego agenta nie wymaga żadnej zmiany w tym pliku.
 
 from langchain_core.tools import StructuredTool
 from langchain.agents import create_agent
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 from agents.base_agent import BaseAgent, _RECURSION_NOTE, _extract_tool_calls, run_graph_collecting
 from config import settings
@@ -76,13 +76,20 @@ WZORZEC: PROŚBA, KTÓRA PRZYSZŁA MAILEM (NIE pomijaj drugiego hopa!)
 Gdy zadanie to obsługa skrzynki / prośby z maila:
 1. email_agent służy WYŁĄCZNIE do (a) odczytania maila i (b) ustalenia roli NADAWCY. To NIE jest
    egzekutor prośby ukrytej w mailu — NIE zrzucaj na niego całego zadania i nie bierz jego powrotu
-   za ukończenie.
+   za ukończenie. Wywołaj email_agent DOKŁADNIE RAZ dla triażu — w jednym pakiecie dostajesz nadawcę,
+   jego ROLĘ i opis prośby + sugerowanego egzekutora. NIE wołaj email_agent ponownie dla tego samego
+   maila (po odczycie skrzynka „nieprzeczytanych" jest PUSTA — to NIE znaczy, że maila nie ma; rolę
+   masz już z pierwszego pakietu i jest WIARYGODNA — nie weryfikuj jej drugi raz).
 2. email_agent zwróci ROLĘ nadawcy oraz — gdy mail zawierał prośbę o akcję spoza poczty — OPIS tej
    prośby i SUGEROWANEGO egzekutora (często jako linia „[DO REALIZACJI → <agent>]: <prośba>", czasem
    opisowo w treści). To sygnał, że robota WCIĄŻ WISI. Gdy go widzisz, a nadawca ma wystarczające
    uprawnienia — MUSISZ oddelegować tę prośbę do wskazanego egzekutora (terminal_agent:
    komendy/pliki/repo/spotkania/raporty/tickety; search_agent: wiedza/dokumentacja), z KONTEKSTEM
    UŻYTKOWNIKA i rolą ustaloną w KROKU 0.
+   • AKCJE POCZTOWE (przekaż/wyślij/odpowiedz mail) realizuje email_agent — to JEGO domena. NIGDY nie
+     kieruj wysyłki/forwardu do terminal_agent (terminal NIE wysyła maili). Zwykle email_agent wykona
+     je już na etapie triażu (zobaczysz to w „Wykonane:"); jeśli jednak prośba pocztowa pozostała
+     niewykonana, oddeleguj ją Z POWROTEM do email_agent z kontekstem użytkownika.
 3. Odczytanie maila NIGDY nie jest ukończeniem zadania, gdy mail zawierał prośbę o akcję. Kończysz
    dopiero, gdy egzekutor ją wykonał — albo gdy nadawca nie ma uprawnień / jest na czarnej liście
    (wtedy: odmowa + eskalacja, BEZ wykonania).
@@ -104,16 +111,33 @@ ROSTER AGENTÓW (Twoje jedyne narzędzia — deleguj do nich)
 
 
 class _TaskInput(BaseModel):
-    task: str = Field(description="Opis zadania do wykonania przez agenta.")
+    # extra=allow: supervisor BYWA dokłada kontekst jako OSOBNY argument (np. Użytkownik='... (rola: admin)')
+    # zamiast w treści — chwytamy te nadmiarowe pola, by rola nie wyparowała (patrz _make_agent_tool).
+    model_config = ConfigDict(extra="allow")
+    task: str = Field(
+        description="Pełne zadanie dla agenta — WŁĄCZAJĄC kontekst użytkownika wprost w treści: "
+                    "'Użytkownik: <email> (rola: <viewer|operator|admin>)'."
+    )
 
 
 def _make_agent_tool(agent: BaseAgent) -> StructuredTool:
     """
     Zamienia instancję agenta w StructuredTool z jawną nazwą i opisem.
-    StructuredTool.from_function pozwala podać description bez docstringa.
+
+    Robustness: gdy supervisor przekaże kontekst użytkownika/rolę jako OSOBNE pole (a nie w treści
+    `task`), egzekutor dostawał gołe zadanie bez roli → traktował zleceniodawcę jak viewera i odmawiał
+    (np. admin/audyt → odmowa odczytu poufnego pliku). Tu KAŻDY dodatkowy argument doklejamy na początek
+    zadania, żeby rola zawsze dotarła do egzekutora.
     """
+    def _run(task: str, **extra) -> str:
+        if extra:
+            ctx = "\n".join(f"{k}: {v}" for k, v in extra.items() if v not in (None, "", [], {}))
+            if ctx:
+                task = f"{ctx}\n{task}"
+        return agent.run(task)
+
     return StructuredTool.from_function(
-        func=agent.run,
+        func=_run,
         name=agent.NAME,
         description=agent.DESCRIPTION,
         args_schema=_TaskInput,
@@ -146,7 +170,8 @@ class Supervisor:
             config["callbacks"] = [logger.handler]
 
         try:
-            messages, truncated = run_graph_collecting(self._agent, task, config)
+            state, truncated = run_graph_collecting(self._agent, task, config)
+            messages = state.get("messages", [])
             final_output = messages[-1].content if messages else "[brak odpowiedzi supervisora]"
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE

@@ -1,11 +1,20 @@
+import re
+
 from pydantic import BaseModel, Field
 
 from agents.base_agent import BaseAgent
+
+_ROLE_OUT_RE = re.compile(r"rola:\s*(admin|operator|viewer|brak)", re.IGNORECASE)
 
 
 class EmailAnswer(BaseModel):
     """Ustrukturyzowana finalna odpowiedź email_agenta — przewidywalny kontrakt dla supervisora."""
     odpowiedz: str = Field(description="Pełna odpowiedź merytoryczna — zachowaj konkretne dane (treści maili, ID, liczby, wyniki).")
+    nadawca: str | None = Field(
+        default=None,
+        description="Adres e-mail NADAWCY obsłużonej wiadomości (zleceniodawcy), np. 'sysops@company.com'. "
+                    "Wypełnij ZAWSZE, gdy odczytano maila — supervisor potrzebuje go do delegacji. Inaczej null.",
+    )
     rola_uzytkownika: str | None = Field(
         default=None,
         description="Jeśli ustalano rolę użytkownika — wpisz: admin / operator / viewer / brak. Inaczej null.",
@@ -16,7 +25,7 @@ class EmailAnswer(BaseModel):
     )
     sugerowany_agent: str | None = Field(
         default=None,
-        description="Egzekutor dla prosba_do_realizacji: 'terminal_agent' (komendy/pliki/repo/spotkania/raporty/tickety) albo 'search_agent' (wiedza/dokumentacja). null, gdy prosba_do_realizacji jest null.",
+        description="Egzekutor dla prosba_do_realizacji: 'terminal_agent' (komendy/pliki/repo/spotkania/raporty/tickety) albo 'search_agent' (wiedza/dokumentacja). null, gdy prosba_do_realizacji jest null LUB gdy prośba to akcja POCZTOWA (forward/send/reply) — tę wykonujesz SAM, nie delegujesz.",
     )
     wykonane_akcje: list[str] = Field(
         default_factory=list,
@@ -55,20 +64,47 @@ użytkowników (get_contact_role, check_email_contact). Jeśli pojawia się pyta
 jakie uprawnienia ma dany użytkownik?" — to TWOJE zadanie, nie wyszukiwarki ani terminala.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROŚBA Z MAILA, KTÓREJ NIE WYKONUJESZ SAM
+TRYB: OBSŁUGA SKRZYNKI — JEDEN PRZEBIEG, KOMPLETNY PAKIET
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-Najpierw RZETELNIE odczytaj wiadomość: list_unread_emails → read_email(id). MUSISZ wywołać
-read_email(id), by mieć PEŁNĄ treść — NIE wnioskuj prośby z samego tematu i NIE używaj
-search_emails do odczytu docelowego maila (search_emails służy do SZUKANIA w skrzynce, nie do
-czytania tej wiadomości).
-Gdy nadawca prosi o akcję SPOZA poczty (komenda, plik, repo, spotkanie, raport, ticket, wyszukanie
-wiedzy/dokumentacji) — NIE próbuj jej wykonać (nie masz do tego narzędzi; nie kręć się w kółko).
-Twoja robota: odczytać maila, ustalić rolę NADAWCY (get_contact_role), a samą prośbę ZWRÓCIĆ w
-finalnej odpowiedzi w polach:
+Gdy zadanie to „przeczytaj nową/nieprzeczytaną wiadomość i ustal nadawcę/rolę/prośbę", wykonaj
+DOKŁADNIE tę sekwencję w JEDNYM przebiegu i zwróć KOMPLETNY pakiet — tak, żeby supervisor NIE
+musiał Cię dopytywać:
+  1. list_unread_emails()  → odczytaj DOKŁADNE ID z listy (np. „[7] Od: …" → id=7).
+  2. read_email(id)        → użyj TEGO ID z kroku 1. NIE zgaduj ID. MUSISZ przeczytać pełną treść.
+  3. get_contact_role(nadawca) → ustal rolę nadawcy.
+  NIE wołaj ponownie list_unread_emails po read_email — po odczycie mail staje się PRZECZYTANY,
+  więc lista nieprzeczytanych będzie PUSTA (to nie znaczy, że maila nie ma). Jeśli musisz go
+  ponownie znaleźć, użyj list_emails, nie list_unread_emails.
+
+W finalnej odpowiedzi ZAWSZE wypełnij komplet pól:
+  • rola_uzytkownika    — DOKŁADNIE rola zwrócona przez get_contact_role (admin/operator/viewer/brak).
+                          NIE wymyślaj reguł uprawnień ani nie zaniżaj/zawyżaj tej roli.
   • prosba_do_realizacji — o co dokładnie prosi nadawca (konkretnie, z danymi z TREŚCI maila),
-  • sugerowany_agent — terminal_agent (komendy/pliki/repo/spotkania/raporty/tickety) LUB
-    search_agent (pytania o WIEDZĘ firmową / politykę / dokumentację — wtedy NIE używaj search_emails).
-Realizację przejmie supervisor — Ty kończysz na odczycie maila + ustaleniu roli nadawcy.
+                          gdy to akcja SPOZA poczty (komenda, plik, repo, spotkanie, raport, ticket, wiedza).
+                          UWAGA: PYTANIE o wiedzę firmową / politykę / dokumentację (np. „Jaka jest polityka
+                          urlopowa?") to TEŻ prośba → wypełnij ją i ustaw sugerowany_agent=search_agent.
+                          NIE kwituj takiego maila jako „brak żądania".
+  • sugerowany_agent     — gdy prośba to akcja SPOZA poczty: terminal_agent dla komend, plików, repo,
+                          SPOTKAŃ, RAPORTÓW, TICKETÓW, STATUSU/USŁUG, LOGÓW, listy zadań; search_agent
+                          TYLKO dla WIEDZY firmowej/polityki/dokumentacji. Gdy prośba to AKCJA POCZTOWA
+                          (przekaż/wyślij/odpowiedz mail) — zostaw sugerowany_agent = null, bo wykonujesz ją SAM.
+
+AKCJA POCZTOWA = TWOJA DOMENA — WYKONAJ JĄ SAM (nie deleguj):
+Gdy nadawca prosi o PRZEKAZANIE / WYSŁANIE / ODPOWIEDŹ maila do odbiorcy (forward/send/reply) — to akcja
+POCZTOWA, więc realizujesz ją w TYM SAMYM przebiegu (to jedyny rodzaj prośby, który wykonujesz), pod warunkami:
+  • nadawca-zleceniodawca ma rolę operator lub admin (z get_contact_role) — viewer/brak NIE może zlecać wysyłki;
+  • odbiorca jest ZWERYFIKOWANY (check_email_contact) → dopiero wtedy forward_email/send_email/reply_email;
+    odbiorca NIEzweryfikowany lub na CZARNEJ LIŚCIE → ODMÓW + eskaluj, NIE wysyłaj;
+  • wyślij do ODBIORCY WSKAZANEGO W PROŚBIE (np. „do cto@company.com" → send_email/forward_email na ten
+    adres). NIE odpowiadaj nadawcy pytaniem o doprecyzowanie i NIE dopytuj o treść — jeśli prosi o przekazanie
+    raportu/wątku, użyj forward_email albo send_email z krótką notką. Realizuj, nie odsyłaj prośby z powrotem;
+  • zaraportuj efekt w wykonane_akcje (np. „przekazano raport do cto@company.com").
+
+KLUCZOWE — przy akcjach SPOZA poczty RAPORTUJESZ, NIE DECYDUJESZ: dla komend/plików/repo/spotkań/
+raportów/ticketów/wiedzy Twoim zadaniem jest podać rolę nadawcy i opis prośby — to SUPERVISOR ocenia,
+czy rola wystarcza, i deleguje wykonanie. NIE odmawiaj „w imieniu" terminala i NIE twierdź, że viewer/
+operator „nie ma prawa" czytać pliku czy uruchomić komendy — tego NIE wiesz (nie znasz macierzy uprawnień
+terminala). (To NIE dotyczy akcji POCZTOWYCH powyżej — tam decydujesz i wykonujesz Ty, wg swoich reguł.)
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 PIERWSZY KROK — ZAWSZE SKILLE (OBOWIĄZKOWO)
@@ -145,10 +181,25 @@ class EmailAgent(BaseAgent):
     NAME = "email_agent"
     RESPONSE_SCHEMA = EmailAnswer
 
-    def _render_structured(self, s: "EmailAnswer", fallback_text: str) -> str:
+    def _render_structured(self, s: "EmailAnswer", fallback_text: str, tool_calls: list | None = None) -> str:
+        # DETERMINISTYCZNIE z tool-calli: nadawca = argument get_contact_role, rola = jego WYNIK
+        # (źródło prawdy). Nie polegamy na tym, że model wypełni pola — i propagujemy PRAWDZIWĄ rolę,
+        # nie ewentualną konfabulację. Fallback na pola structured, gdy narzędzia brak.
+        det_sender = det_role = None
+        for tc in (tool_calls or []):
+            if "get_contact_role" in str(tc.get("tool_name", "")).lower():
+                inp = tc.get("input") or {}
+                if isinstance(inp, dict):
+                    det_sender = inp.get("email") or inp.get("nadawca") or det_sender
+                m = _ROLE_OUT_RE.search(str(tc.get("output", "")))
+                if m:
+                    det_role = m.group(1).lower()
+        sender = det_sender or s.nadawca
+        role = det_role or s.rola_uzytkownika
         parts = [s.odpowiedz.strip()]
-        if s.rola_uzytkownika:
-            parts.append(f"Rola użytkownika: {s.rola_uzytkownika}")
+        # Linia gotowa do delegacji — supervisor wkleja ją jako KONTEKST UŻYTKOWNIKA bez dopytywania.
+        if sender or role:
+            parts.append(f"Użytkownik: {sender or 'nadawca'} (rola: {role or 'brak'})")
         if s.prosba_do_realizacji:
             cel = f" → {s.sugerowany_agent}" if s.sugerowany_agent else ""
             parts.append(f"[DO REALIZACJI{cel}]: {s.prosba_do_realizacji}")

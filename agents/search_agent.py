@@ -23,7 +23,7 @@ class SearchAgent(BaseAgent):
         # SkillGate: niezawodny, ale autonomiczny triage procedur (patrz agents/skill_gate.py).
         return [make_skill_gate(self.llm, self.NAME)]
 
-    def _render_structured(self, structured: "SearchAnswer", fallback_text: str) -> str:
+    def _render_structured(self, structured: "SearchAnswer", fallback_text: str, tool_calls: list | None = None) -> str:
         parts = [structured.odpowiedz.strip()]
         if structured.zrodla:
             parts.append("Źródła: " + ", ".join(structured.zrodla))

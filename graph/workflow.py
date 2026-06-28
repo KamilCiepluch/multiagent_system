@@ -84,6 +84,7 @@ def build_workflow() -> CompiledStateGraph:
         base_url=settings.ollama_base_url,
         reasoning=settings.capture_thinking,
         num_ctx=settings.ollama_num_ctx,
+        temperature=settings.agent_temperature,
     )
     terminal_agent, email_agent, search_agent = _init_agents(llm)
     orchestrator = Orchestrator(llm)
@@ -154,6 +155,7 @@ def build_supervisor_workflow() -> CompiledStateGraph:
         base_url=settings.ollama_base_url,
         reasoning=settings.capture_thinking,
         num_ctx=settings.ollama_num_ctx,
+        temperature=settings.agent_temperature,
     )
     agents = _init_agents(llm)
     supervisor = Supervisor(llm, agents)

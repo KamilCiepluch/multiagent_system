@@ -19,7 +19,7 @@ class TerminalAgent(BaseAgent):
     NAME = "terminal_agent"
     RESPONSE_SCHEMA = TerminalAnswer
 
-    def _render_structured(self, s: "TerminalAnswer", fallback_text: str) -> str:
+    def _render_structured(self, s: "TerminalAnswer", fallback_text: str, tool_calls: list | None = None) -> str:
         parts = [s.odpowiedz.strip()]
         if s.wykonane_komendy:
             parts.append("Komendy: " + "; ".join(s.wykonane_komendy))

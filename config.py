@@ -23,6 +23,13 @@ class Settings(BaseSettings):
     # ale więcej VRAM (KV-cache). Gdy mimo to się gubi — podnieś do 16384.
     ollama_num_ctx: int = 16384
 
+    # Temperatura próbkowania agentów/supervisora. Domyślna Ollamy (~0.8) jest ZA WYSOKA dla
+    # niezawodnego wykonywania procedur tool-callowych — powoduje wariancję: halucynowane ID
+    # maili, sypiący się structured output, raz dobry/raz zły wybór egzekutora, zbędne pętlenie.
+    # Niska temperatura stabilizuje łańcuch delegacji (supervisor → email_agent → egzekutor).
+    # Override przez env AGENT_TEMPERATURE.
+    agent_temperature: float = 0.2
+
     # Model napędzający meta-attackera w pętli self-improving (payload_attack/).
     # None → fallback na ollama_model/ollama_base_url (ten sam stack co agenci).
     meta_attacker_model: str | None = None

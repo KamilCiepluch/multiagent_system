@@ -14,6 +14,7 @@ from typing import Annotated
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool as lc_tool, InjectedToolCallId
 from langchain.agents import create_agent
+from langchain.agents.structured_output import StructuredOutputValidationError
 from langgraph.errors import GraphRecursionError
 from langgraph.prebuilt import InjectedState
 
@@ -97,7 +98,7 @@ _RECURSION_NOTE = (
 )
 
 
-def run_graph_collecting(agent, task: str, config: dict) -> tuple[list, bool]:
+def run_graph_collecting(agent, task: str, config: dict) -> tuple[dict, bool]:
     """Uruchamia graf ReAct STRUMIENIOWO, akumulując kolejne snapshoty stanu.
 
     Gdy zostanie przekroczony `recursion_limit` (typowe dla słabszych modeli, które
@@ -106,8 +107,12 @@ def run_graph_collecting(agent, task: str, config: dict) -> tuple[list, bool]:
     tool-callami). Tu zamiast tego zwracamy to, co agent zdążył zrobić, oraz flagę
     `truncated=True`. Dzięki temu udany atak (np. odczyt sekretu) zostaje policzony,
     a nie ginie w wyjątku. Callbacki (RunLogger) działają tak samo przy stream() co
-    przy invoke()."""
-    last_messages: list = []
+    przy invoke().
+
+    Zwraca OSTATNI STAN (dict) — zawiera 'messages' oraz, gdy agent ma `response_format`,
+    'structured_response' (natywny structured output w JEDNYM przebiegu; w stream(values)
+    pojawia się w finalnym stanie)."""
+    last_state: dict = {}
     try:
         for state in agent.stream(
             {"messages": [HumanMessage(content=task)]},
@@ -115,10 +120,20 @@ def run_graph_collecting(agent, task: str, config: dict) -> tuple[list, bool]:
             stream_mode="values",
         ):
             if isinstance(state, dict) and state.get("messages"):
-                last_messages = state["messages"]
-        return last_messages, False
+                last_state = state
+        return last_state, False
     except GraphRecursionError:
-        return last_messages, True
+        return last_state, True
+    except StructuredOutputValidationError as e:
+        # Natywny response_format jest ŚCISŁY: gdy model wyprodukuje structured output niezgodny
+        # ze schematem, rzuca — co bez obsługi wywaliłoby cały przebieg (agent→supervisor→workflow).
+        # NIE crashujemy: dołączamy surową finalną wiadomość modelu (niesie ją wyjątek w ai_message)
+        # jako fallback; supervisor odczyta z niej rolę/prośbę (są w treści, choć JSON się nie sparsował).
+        ai = getattr(e, "ai_message", None)
+        msgs = list(last_state.get("messages") or [])
+        if ai is not None:
+            msgs.append(ai)
+        return ({**last_state, "messages": msgs} if msgs else last_state), False
 
 
 class BaseAgent:
@@ -137,8 +152,8 @@ class BaseAgent:
                         agent sam filtruje przez TOOL_NAMES
         """
         self.llm = llm
-        # Ostatni obiekt RESPONSE_SCHEMA wyprodukowany przez _structure_final_answer
-        # (do inspekcji/debugowania — run() i tak zwraca string dla supervisora).
+        # Ostatni obiekt RESPONSE_SCHEMA z natywnego structured output (state['structured_response'])
+        # — do inspekcji/debugowania; run() i tak zwraca string (render) dla supervisora.
         self.last_structured = None
         skill_tools = self._build_skill_tools()
         mcp_tools = [all_mcp_tools[n] for n in self.TOOL_NAMES if n in all_mcp_tools]
@@ -149,6 +164,11 @@ class BaseAgent:
         middleware = self._build_middleware()
         if middleware:
             kwargs["middleware"] = middleware
+        # Natywny structured output (JEDEN przebieg) zamiast stratnego post-hoc re-formatu LLM.
+        # Agent z RESPONSE_SCHEMA zwraca obiekt w state['structured_response'] — supervisor
+        # dostaje czysty, niezniekształcony pakiet (rola + prośba + egzekutor).
+        if self.RESPONSE_SCHEMA is not None:
+            kwargs["response_format"] = self.RESPONSE_SCHEMA
         self._agent = create_agent(
             llm,
             self.tools,
@@ -160,40 +180,9 @@ class BaseAgent:
         """Lista middleware dla create_agent. Domyślnie pusta — nadpisz w podklasie."""
         return []
 
-    def _structure_final_answer(self, text: str) -> str:
-        """Wymusza ustrukturyzowaną finalną odpowiedź wg RESPONSE_SCHEMA.
-
-        Robi to przez natywny json_schema Ollamy (with_structured_output), a NIE przez
-        response_format/ToolStrategy w create_agent — ChatOllama nie deklaruje profilu
-        structured-output, a droga przez syntetyczny tool-call jest u nas krucha
-        (te same błędy parsowania JSON, które wywalały przebiegi). Fail-open: gdy coś
-        pójdzie nie tak, zwracamy oryginalny tekst.
-        """
-        if not self.RESPONSE_SCHEMA or not text.strip():
-            return text
-        try:
-            structured = self.llm.with_structured_output(
-                self.RESPONSE_SCHEMA, method="json_schema"
-            ).invoke(
-                "Przekształć poniższą finalną odpowiedź agenta w wymagany format (structured output). "
-                "Zachowaj WSZYSTKIE konkretne dane oryginału — liczby, nazwy, ID, cytaty, treści maili, "
-                "wyniki komend, ustaloną rolę — przepisz je do właściwych pól; niczego nie skracaj ani nie wymyślaj.\n\n"
-                f"ODPOWIEDŹ:\n{text}"
-            )
-            self.last_structured = structured  # do inspekcji po run()
-            rendered = self._render_structured(structured, text)
-            # GUARD: structured-output na lokalnym modelu bywa DESTRUKCYJNE — potrafi zgubić treść
-            # i pola oraz ZMYŚLIĆ odmowę/eskalację (zdiagnozowane: poprawny surowy wynik email_agenta
-            # → "final"/"przetworzona" + fałszywa eskalacja). Gdy render zżarł istotną treść względem
-            # surowego finalu, oddaj SUROWY (zawsze poprawny) zamiast zmielonego.
-            if len(text.strip()) > 40 and len(rendered.strip()) < 0.6 * len(text.strip()):
-                return text
-            return rendered
-        except Exception:
-            return text
-
-    def _render_structured(self, structured, fallback_text: str) -> str:
-        """Zamienia obiekt RESPONSE_SCHEMA na czytelny tekst. Nadpisz w podklasie."""
+    def _render_structured(self, structured, fallback_text: str, tool_calls: list | None = None) -> str:
+        """Zamienia obiekt RESPONSE_SCHEMA na czytelny tekst. Nadpisz w podklasie.
+        `tool_calls` (opcjonalnie) pozwala uzupełnić pola deterministycznie z wyników narzędzi."""
         return fallback_text
 
     def _build_skill_tools(self) -> list:
@@ -246,13 +235,21 @@ class BaseAgent:
             config["callbacks"] = [logger.handler]
 
         try:
-            messages, truncated = run_graph_collecting(self._agent, task, config)
+            state, truncated = run_graph_collecting(self._agent, task, config)
+            messages = state.get("messages", [])
+            tool_calls = _extract_tool_calls(messages)
             final_output = messages[-1].content if messages else "[brak odpowiedzi agenta]"
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE
-            elif self.RESPONSE_SCHEMA:
-                # Ustrukturyzowana finalna odpowiedź (tylko dla agentów z RESPONSE_SCHEMA).
-                final_output = self._structure_final_answer(str(final_output))
+            elif self.RESPONSE_SCHEMA is not None:
+                # Natywny structured output (jeden przebieg) — render DETERMINISTYCZNY z obiektu,
+                # bez drugiego wywołania LLM. Gdy modelowi nie udało się wyprodukować obiektu
+                # (rzadkie), zostaw surowy final. Render dostaje też tool_calls — by uzupełnić
+                # pola (np. nadawca/rola) DETERMINISTYCZNIE z wyników narzędzi, nie z konfabulacji modelu.
+                structured = state.get("structured_response")
+                if structured is not None:
+                    self.last_structured = structured
+                    final_output = self._render_structured(structured, str(final_output), tool_calls)
 
             if logger is not None:
                 logger.finish_agent(inv_id, final_output)
@@ -263,7 +260,7 @@ class BaseAgent:
                     run_id=get_run_id(),
                     agent_name=self.NAME,
                     task=task,
-                    tool_calls=_extract_tool_calls(messages),
+                    tool_calls=tool_calls,
                     final_output=final_output,
                 )
             )
