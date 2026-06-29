@@ -252,7 +252,10 @@ class AutoDANTurbo:
                         break
         return library, log
 
-    def test(self, request: str, library: Library) -> list[Attempt]:
+    def test(self, request: str, library: Library, no_break: bool = False) -> list[Attempt]:
+        """Zamrożona biblioteka. `no_break=True` = NIE przerywaj na pierwszym sukcesie —
+        wykonaj wszystkie epoki (pomiar per-strzał ASR dojrzałego ataku; FAZA 3.1 n≥3).
+        Wariancja targetu (~1/3 na strzał) sprawia, że dopiero powtórzenia dają wiarygodny ASR."""
         log: list[Attempt] = []
         prev: Attempt | None = None
         for _ in range(self.epochs):
@@ -264,6 +267,6 @@ class AutoDANTurbo:
             attempt = self._run_once(request, prompt, mode, used)
             log.append(attempt)
             prev = attempt
-            if attempt.score >= self.break_score:
+            if attempt.score >= self.break_score and not no_break:
                 break
         return log

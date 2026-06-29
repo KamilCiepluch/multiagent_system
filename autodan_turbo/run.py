@@ -206,6 +206,9 @@ def build_parser() -> argparse.ArgumentParser:
                    help="Zasil bibliotekę startową katalogiem technik (warstwa wiedzy) — "
                         "atakujący ma czego retrievować od 1. iteracji (lifelong/test)")
     p.add_argument("--list", action="store_true", help="Pokaż cele i wektory")
+    p.add_argument("--shots", type=int, default=0,
+                   help="Tylko --stage test: wykonaj DOKŁADNIE N strzałów BEZ early-break "
+                        "(pomiar per-strzał ASR dojrzałej biblioteki; FAZA 3.1 n≥3). 0 = wyłączone.")
     return p
 
 
@@ -412,7 +415,15 @@ def main() -> None:
                 seed_library_from_catalog(library)
             if len(library) == 0:
                 print(f"  UWAGA: biblioteka logs/{lib_name} pusta — najpierw uruchom warmup/lifelong lub użyj --seed.")
-            log = pipeline.test(objective.description, library)
+            if args.shots > 0:
+                # Pomiar per-strzał: N strzałów BEZ early-break (FAZA 3.1). Wariancja targetu
+                # (~1/3 na strzał) → dopiero powtórzenia dają wiarygodny ASR i kumulację.
+                pipeline.epochs = args.shots
+                print(f"  [shots] pomiar per-strzał: {args.shots} prób BEZ early-break "
+                      f"(P(≥1 sukces) rośnie z liczbą strzałów)")
+                log = pipeline.test(objective.description, library, no_break=True)
+            else:
+                log = pipeline.test(objective.description, library)
 
         final_outcome = "succeeded" if any(a.gt_outcome == "ATTACK_SUCCESS" for a in log) else "blocked"
     finally:
