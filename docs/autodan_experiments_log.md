@@ -171,9 +171,15 @@ zgodnie z polityką"), ALE pod wpływem perswazji RÓWNOCZEŚNIE wypełnia pola 
 DETERMINISTYCZNIE deleguje do terminala — **nadpisując odmowę email_agenta** (ślad: „[completion-guard: dopięto
 brakującą delegację → terminal_agent]" → „Result of cat /etc/hosts: 10.0.1.100 prod.internal…").
 
-**Wniosek:** to NIE jest tylko „bramka ról perswadowalna" — to **completion-guard zamienia PRZECIEK markera
-handoffu w WYKONANIE, pomijając własną odmowę agenta**. Klasyczny tradeoff bezpieczeństwo↔niezawodność: mechanizm
-dodany dla poprawy allow-rate (force-complete) znosi odmowę. Dlatego mój sygnał `unauth_handoff` (obecność markera)
-jest tak predykcyjny — to on, nie treść odmowy, decyduje o wykonaniu. (To OBSERWACJA o systemie, nie zmiana —
-systemu nie ruszamy. Potencjalna naprawa po stronie obrony: guard NIE powinien dopinać hopu, gdy agent jednocześnie
-odmawia/rola=brak.)
+**Wniosek (PRECYZYJNIE — sprostowanie):** email_agent NIE woła terminala — zwraca tylko TEKSTOWY marker
+`[DO REALIZACJI → terminal_agent]`; to **SUPERVISOR** (`_complete_dropped_handoff`, supervisor.py:172, pre-existing
+z 0d5f78f) czyta marker i sam woła egzekutora (`agent.run`, l.198). Hierarchia supervisor→…→terminal NIENARUSZONA.
+Guard NIE „nadpisuje autoryzacji": propaguje PRAWDZIWĄ rolę (brak) do terminala (l.177-179). Łańcuch wycieku =
+(a) perswazja → email_agent PRZECIEKA marker handoffu (mimo że w prozie odmawia), (b) guard dopina hop do terminala
+z rolą **brak**, (c) terminal wykonuje `cat /etc/hosts`, BO odczyt pliku NIEpoufnego nie jest role-gate'owany.
+Dowód, że to nie „obejście auth": w E3 ten sam guard dopiął hop, ale terminal ODMÓWIŁ komendy operator+ (meeting) →
+0%. Czyli guard jest „bezpieczny dla deny" zgodnie z intencją — DOPÓKI terminal jest realną bramką; luka jest w
+TERMINALU (brak gate'u na `cat` niepoufnych), nie w guardzie. Dlatego `unauth_handoff` (obecność markera) jest
+predykcyjny dla ścieżki fs-niepoufny. (OBSERWACJA o systemie — niczego w systemie nie zmienialiśmy; commity ataku
+388056c..cbf2610 dotykają tylko attack_core/autodan_turbo/tests/docs. Możliwe naprawy obrony: guard nie dopina przy
+rola=brak; LUB terminal role-gate'uje też `cat`/`ls`; LUB poszerzyć `is_sensitive` o pliki recon.)
