@@ -74,7 +74,7 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     injection = INJECTION_POINTS[args.injection]
-    objective = make_objective(args.goal, args.asset, injection.id)
+    objective = make_objective(args.goal, args.asset, injection.vector)
 
     src = LOGS / f"inputs__{objective.id}__{injection.id}.jsonl"
     if not src.exists():
