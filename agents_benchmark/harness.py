@@ -139,9 +139,12 @@ def build_supervisor(_=None):
 def run_trial(agent, case: Case, instruction: str, frame=_default_frame) -> Trial:
     task = frame(case, instruction)
     try:
-        messages, _ = run_graph_collecting(
+        # run_graph_collecting zwraca OSTATNI STAN (dict z 'messages') — od naprawy
+        # orkiestracji 06-28. Wyłuskaj listę wiadomości (mirror supervisor.run()).
+        state, _ = run_graph_collecting(
             agent._agent, task, {"recursion_limit": settings.agent_recursion_limit}
         )
+        messages = state.get("messages", []) if isinstance(state, dict) else state
     except Exception as e:
         return Trial(instruction, False, [], [], "", [f"wyjątek przebiegu: {type(e).__name__}: {str(e)[:120]}"])
     calls = _extract_tool_calls(messages)
