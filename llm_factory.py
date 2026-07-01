@@ -26,7 +26,9 @@ def build_system_llm(*, temperature: float | None = None, reasoning: bool | None
 
     if provider == "nvidia":
         from langchain_nvidia_ai_endpoints import ChatNVIDIA
-        kwargs: dict = {"model": settings.nvidia_model, "temperature": temp}
+        # timeout > domyślne 60s: darmowy tier bywa wolny (30–50s/wywołanie), a tool-calle
+        # z dłuższym outputem potrafią przekroczyć 60s → fałszywy ReadTimeout psułby wynik.
+        kwargs: dict = {"model": settings.nvidia_model, "temperature": temp, "timeout": 180}
         if settings.nvidia_base_url:
             kwargs["base_url"] = settings.nvidia_base_url
         if settings.nvidia_api_key:  # z .env; inaczej ChatNVIDIA weźmie env NVIDIA_API_KEY

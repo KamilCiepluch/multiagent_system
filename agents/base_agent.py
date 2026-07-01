@@ -14,7 +14,7 @@ from typing import Annotated
 from langchain_core.messages import HumanMessage
 from langchain_core.tools import tool as lc_tool, InjectedToolCallId
 from langchain.agents import create_agent
-from langchain.agents.structured_output import StructuredOutputValidationError
+from langchain.agents.structured_output import StructuredOutputValidationError, ToolStrategy
 from langgraph.errors import GraphRecursionError
 from langgraph.prebuilt import InjectedState
 
@@ -168,7 +168,14 @@ class BaseAgent:
         # Agent z RESPONSE_SCHEMA zwraca obiekt w state['structured_response'] — supervisor
         # dostaje czysty, niezniekształcony pakiet (rola + prośba + egzekutor).
         if self.RESPONSE_SCHEMA is not None:
-            kwargs["response_format"] = self.RESPONSE_SCHEMA
+            # Natywny structured output (ProviderStrategy) wysyła json_schema ze `strict`,
+            # którego endpoint NVIDIA nie akceptuje ([400] Unsupported parameter 'strict').
+            # Dla providera 'nvidia' używamy ToolStrategy (structured output przez tool-calling,
+            # bez strict). Ollama zostaje na natywnym (niezawodniejszym) — zero zmian zachowania.
+            if (settings.llm_provider or "").lower() == "nvidia":
+                kwargs["response_format"] = ToolStrategy(schema=self.RESPONSE_SCHEMA)
+            else:
+                kwargs["response_format"] = self.RESPONSE_SCHEMA
         self._agent = create_agent(
             llm,
             self.tools,
