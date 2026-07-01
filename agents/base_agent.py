@@ -184,8 +184,12 @@ class BaseAgent:
         )
 
     def _build_middleware(self) -> list:
-        """Lista middleware dla create_agent. Domyślnie pusta — nadpisz w podklasie."""
-        return []
+        """Middleware dla create_agent. DOMYŚLNIE: SkillGate — WYMUSZA `list_skills` (katalog trafia
+        do kontekstu jako rozwiązane wywołanie), a wybór i wczytanie procedury (`load_skill`) zostaje
+        autonomicznym osądem agenta. Gate sam pomija agentów bez procedur (fail-open). Jednolite dla
+        wszystkich agentów; nadpisz w podklasie, by dodać kolejne middleware."""
+        from agents.skill_gate import make_skill_gate
+        return [make_skill_gate(self.NAME)]
 
     def _render_structured(self, structured, fallback_text: str, tool_calls: list | None = None) -> str:
         """Zamienia obiekt RESPONSE_SCHEMA na czytelny tekst. Nadpisz w podklasie.

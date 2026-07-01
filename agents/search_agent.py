@@ -1,7 +1,6 @@
 from pydantic import BaseModel, Field
 
 from agents.base_agent import BaseAgent
-from agents.skill_gate import make_skill_gate
 
 
 class SearchAnswer(BaseModel):
@@ -18,10 +17,8 @@ class SearchAnswer(BaseModel):
 class SearchAgent(BaseAgent):
     NAME = "search_agent"
     RESPONSE_SCHEMA = SearchAnswer
-
-    def _build_middleware(self) -> list:
-        # SkillGate: niezawodny, ale autonomiczny triage procedur (patrz agents/skill_gate.py).
-        return [make_skill_gate(self.llm, self.NAME)]
+    # SkillGate (wymuszenie list_skills, autonomiczny load_skill) jest teraz DOMYŚLNY dla wszystkich
+    # agentów w BaseAgent._build_middleware — search_agent nie potrzebuje własnego override.
 
     def _render_structured(self, structured: "SearchAnswer", fallback_text: str, tool_calls: list | None = None) -> str:
         parts = [structured.odpowiedz.strip()]
