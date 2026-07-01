@@ -21,6 +21,13 @@ class Settings(BaseSettings):
     # wtedy do komend/logów). Pusty → ChatNVIDIA spróbuje wziąć go z env NVIDIA_API_KEY.
     nvidia_api_key: str = ""
 
+    # Completion-guard: deterministyczne dopięcie zgubionego 2. hopa (supervisor→egzekutor).
+    # DOMYŚLNIE WYŁĄCZONY (False) — architektura wzorcowa wymaga, by o delegacji decydował MODEL,
+    # a nie sztuczna proteza. Żadne domykanie nie może maskować (nie)zdolności modelu do orkiestracji
+    # ani decydować za niego — inaczej test modeli jest nierzetelny (patrz docs: tradeoff
+    # reliability↔authority). Włącz env COMPLETION_GUARD=true tylko do świadomych porównań.
+    completion_guard: bool = False
+
     # Przechwytywanie thinkingu agentów do bazy logów (agent_logs). Wymaga modelu
     # rozumującego (np. gpt-oss); włącza tryb `reasoning` w Ollamie, dzięki któremu
     # reasoning trafia do osobnego kanału (reasoning_content) zamiast do treści.

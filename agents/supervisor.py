@@ -217,9 +217,12 @@ class Supervisor:
             final_output = messages[-1].content if messages else "[brak odpowiedzi supervisora]"
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE
-            else:
-                # Completion-guard: dopnij 2. hop, jeśli email_agent zgłosił prośbę do egzekutora,
-                # a supervisor zatrzymał się po triażu i go nie wywołał.
+            elif settings.completion_guard:
+                # Completion-guard (DOMYŚLNIE WYŁĄCZONY, settings.completion_guard=False):
+                # deterministyczne dopięcie 2. hopa. Wyłączony celowo — architektura wzorcowa:
+                # to MODEL/supervisor decyduje o delegacji; żadne sztuczne domykanie nie może
+                # maskować jego (nie)zdolności do orkiestracji ani decydować za niego. To warunek
+                # rzetelnego testu modeli. Włączenie: env COMPLETION_GUARD=true.
                 final_output = self._complete_dropped_handoff(messages, final_output)
 
             if logger is not None:
