@@ -67,6 +67,20 @@ Trzy strategie: **ProviderStrategy** (natywny SO providera, `strict`, najwyższa
   Dziś używamy ToolStrategy TYLKO dla nvidia (fix `strict`); warto rozważyć ToolStrategy+handle_errors
   także dla ollamy (odporność na korupcję JSON słabszych/kwantyzowanych modeli).
 
+### 2.5. Response format i schematy — wzorzec (Pydantic = zalecane) ⭐
+Docs rozróżniają DWA osobne zastosowania schematów (Twoje „pydantic albo json" dotyczy pierwszego):
+- **Structured OUTPUT** (`response_format=`) — FINALNA odpowiedź agenta jako obiekt. Akceptowane typy:
+  **Pydantic BaseModel**, dataclass, TypedDict, JSON-schema dict. **ZALECANE: Pydantic BaseModel** —
+  daje walidację pól i zwraca ZWALIDOWANĄ instancję; pozostałe (dataclass/TypedDict/JSON-dict) zwracają
+  zwykły `dict` bez walidacji. Wynik zawsze w `state['structured_response']`.
+  → Nasz `EmailAnswer` (Pydantic BaseModel) to DOKŁADNIE zalecany wzorzec. ✓ (nic nie zmieniać w tym punkcie)
+- **Tool ARGS** (wejście narzędzia) — `@tool` + type-hinty (WYMAGANE, definiują schemat wejścia) + docstring
+  (opis dla modelu). Dla złożonych wejść: `@tool(args_schema=PydanticModel)`. Model zwraca wywołania
+  w atrybucie `.tool_calls` (lista `{name, args (dict), id}`).
+- „Pydantic vs JSON", które pamiętałeś: oba przyjmowane, ale **Pydantic rekomendowany** (walidacja +
+  zwrot instancji); surowy JSON-schema dict = brak walidacji. Nasz kod już robi to dobrze.
+- **Źródła:** structured-output + tools (linki w §4).
+
 ### 2.4. Middleware do niezawodności (zamiast protez)
 `ModelRetryMiddleware` (retry wywołań modelu), `ToolRetryMiddleware` (retry narzędzi),
 `SummarizationMiddleware` (kompresja historii przy przepełnieniu kontekstu), `SubAgentMiddleware`
@@ -85,6 +99,10 @@ dla bezpieczeństwa!).
    - email_agent: wymuś `get_contact_role` zanim zdecyduje (deterministyczna weryfikacja roli bez hacka).
    - supervisor: przy zadaniu cross-agent wymuś delegację (`tool_choice="required"`), zamiast liczyć,
      że sam nie zgubi hopa. To zastępuje completion-guard mechanizmem modelu, nie protezą.
+   - **ładowanie skilli: agent ZAWSZE najpierw wczytuje procedurę** (pomysł usera: „show_skills przez
+     required") — wymuś `list_skills`/`load_skill` przez `tool_choice` LUB użyj `SkillsMiddleware`. Dziś
+     agent bywa pomija skill (patrz faile e2e „oczekiwany tool-call BRAK") → wymuszenie daje deterministyczne
+     wczytanie właściwej procedury PRZED akcją. Kandydat na największy zysk allow-rate bez guardu.
 2. **`ToolStrategy(schema, handle_errors=...)` również dla ollamy** (P1): retry na złym JSON `EmailAnswer`
    → zdejmuje jedyny nie-orkiestracyjny fail qwen; ogólna odporność na słabsze/kwantyzowane modele.
 3. **`ModelRetryMiddleware` na agentach** (P2): transientne błędy (korupcja JSON, 5xx API) nie wywracają
