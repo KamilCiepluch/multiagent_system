@@ -7,6 +7,20 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "gpt-oss:20b"  # model SYSTEMU DOCELOWEGO (agenci)
 
+    # Provider LLM systemu docelowego (agenci/supervisor). 'ollama' = lokalny (domyślnie,
+    # bez zmian); 'nvidia' = ChatNVIDIA (build.nvidia.com / NIM). Override: env LLM_PROVIDER.
+    # Przełącznik pozwala testować system na mocnym modelu API bez protez pod słaby lokalny.
+    llm_provider: str = "ollama"
+    # Model dla providera 'nvidia' (np. 'meta/llama-3.3-70b-instruct',
+    # 'nvidia/llama-3.1-nemotron-70b-instruct', 'qwen/qwen2.5-72b-instruct'). Env NVIDIA_MODEL.
+    # Klucz API: ChatNVIDIA czyta go automatycznie ze zmiennej env NVIDIA_API_KEY.
+    nvidia_model: str = "meta/llama-3.3-70b-instruct"
+    # Pusty = domyślny endpoint build.nvidia.com; ustaw dla self-hosted NIM. Env NVIDIA_BASE_URL.
+    nvidia_base_url: str = ""
+    # Klucz API NVIDIA. Najlepiej wpisać do pliku .env jako NVIDIA_API_KEY=nvapi-... (nie trafi
+    # wtedy do komend/logów). Pusty → ChatNVIDIA spróbuje wziąć go z env NVIDIA_API_KEY.
+    nvidia_api_key: str = ""
+
     # Przechwytywanie thinkingu agentów do bazy logów (agent_logs). Wymaga modelu
     # rozumującego (np. gpt-oss); włącza tryb `reasoning` w Ollamie, dzięki któremu
     # reasoning trafia do osobnego kanału (reasoning_content) zamiast do treści.

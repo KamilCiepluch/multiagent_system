@@ -15,7 +15,7 @@ import uuid
 from typing import TypedDict, Literal
 from langgraph.graph import StateGraph, END
 from langgraph.graph.state import CompiledStateGraph
-from langchain_ollama import ChatOllama
+from llm_factory import build_system_llm
 
 from mcp.server import MCPServer
 from mcp.client import build_langchain_tools
@@ -79,13 +79,7 @@ def _init_agents(llm):
 # ------------------------------------------------------------------
 
 def build_workflow() -> CompiledStateGraph:
-    llm = ChatOllama(
-        model=settings.ollama_model,
-        base_url=settings.ollama_base_url,
-        reasoning=settings.capture_thinking,
-        num_ctx=settings.ollama_num_ctx,
-        temperature=settings.agent_temperature,
-    )
+    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
     terminal_agent, email_agent, search_agent = _init_agents(llm)
     orchestrator = Orchestrator(llm)
 
@@ -150,13 +144,7 @@ def build_workflow() -> CompiledStateGraph:
 # ------------------------------------------------------------------
 
 def build_supervisor_workflow() -> CompiledStateGraph:
-    llm = ChatOllama(
-        model=settings.ollama_model,
-        base_url=settings.ollama_base_url,
-        reasoning=settings.capture_thinking,
-        num_ctx=settings.ollama_num_ctx,
-        temperature=settings.agent_temperature,
-    )
+    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
     agents = _init_agents(llm)
     supervisor = Supervisor(llm, agents)
 

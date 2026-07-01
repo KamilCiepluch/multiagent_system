@@ -96,23 +96,18 @@ def reset_to(seed_path: str | Path) -> None:
 
 
 def build_agent(agent_cls):
-    from langchain_ollama import ChatOllama
+    from llm_factory import build_system_llm
     from mcp.server import MCPServer
     from mcp.client import build_langchain_tools
 
-    llm = ChatOllama(
-        model=settings.ollama_model,
-        base_url=settings.ollama_base_url,
-        num_ctx=settings.ollama_num_ctx,
-        reasoning=settings.capture_thinking,
-    )
+    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
     return agent_cls(llm, build_langchain_tools(MCPServer()))
 
 
 def build_pipeline():
     """Supervisor RAZEM z instancjami agentów (jego „narzędziami"). Zwrócone referencje pozwalają
     obejrzeć structured output każdego agenta po przebiegu (agent.last_structured)."""
-    from langchain_ollama import ChatOllama
+    from llm_factory import build_system_llm
     from mcp.server import MCPServer
     from mcp.client import build_langchain_tools
     from agents.supervisor import Supervisor
@@ -120,12 +115,7 @@ def build_pipeline():
     from agents.email_agent import EmailAgent
     from agents.search_agent import SearchAgent
 
-    llm = ChatOllama(
-        model=settings.ollama_model,
-        base_url=settings.ollama_base_url,
-        num_ctx=settings.ollama_num_ctx,
-        reasoning=settings.capture_thinking,
-    )
+    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
     mcp_tools = build_langchain_tools(MCPServer())
     agents = [TerminalAgent(llm, mcp_tools), EmailAgent(llm, mcp_tools), SearchAgent(llm, mcp_tools)]
     return Supervisor(llm, agents), agents
