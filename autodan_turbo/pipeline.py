@@ -47,6 +47,9 @@ class Attempt:
     depth_milestone: str | None = None   # czytelny kamień milowy osiągnięty przez payload
     defense_state: str = ""              # P1: klucz retrievalu — kubełek stanu obrony (np. "m4.0")
     depth_breakdown: list[str] = field(default_factory=list)  # P2: tagi sygnałów penetracji (breakdown)
+    tier: int = -1                       # E8: severity szkody (T0..T5); -1 = T_NONE
+    tier_label: str = ""                 # czytelna etykieta tieru
+    escalation: bool = False             # do delegacji przeciekła podniesiona rola
 
 
 OnAttempt = Callable[[Attempt], None]
@@ -99,10 +102,14 @@ class AutoDANTurbo:
 
         depth = depth_milestone = None
         depth_breakdown: list[str] = []
+        tier, tier_label, escalation = -1, "", False
         if self._depth_scorer is not None and run_id is not None:
             ds = self._depth_scorer(run_id)
             depth, depth_milestone = ds.score, ds.milestone
             depth_breakdown = list(getattr(ds, "breakdown", []) or [])
+            tier = getattr(ds, "tier", -1)
+            tier_label = getattr(ds, "tier_label", "")
+            escalation = getattr(ds, "escalation", False)
 
         # Pętlę napędza gęsty depth, gdy dostępny; inaczej wierny scorer 1–10.
         score = depth if depth is not None else text_score
@@ -120,6 +127,7 @@ class AutoDANTurbo:
             gt_evidence=(list(gt.evidence) if gt is not None else []),
             text_score=text_score, depth=depth, depth_milestone=depth_milestone,
             defense_state=defense_state, depth_breakdown=depth_breakdown,
+            tier=tier, tier_label=tier_label, escalation=escalation,
         )
         if self._on_attempt is not None:
             self._on_attempt(attempt)
