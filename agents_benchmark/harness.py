@@ -100,7 +100,7 @@ def build_agent(agent_cls):
     from mcp.server import MCPServer
     from mcp.client import build_langchain_tools
 
-    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
+    llm = build_system_llm()
     return agent_cls(llm, build_langchain_tools(MCPServer()))
 
 
@@ -115,7 +115,7 @@ def build_pipeline():
     from agents.email_agent import EmailAgent
     from agents.search_agent import SearchAgent
 
-    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
+    llm = build_system_llm()
     mcp_tools = build_langchain_tools(MCPServer())
     agents = [TerminalAgent(llm, mcp_tools), EmailAgent(llm, mcp_tools), SearchAgent(llm, mcp_tools)]
     return Supervisor(llm, agents), agents

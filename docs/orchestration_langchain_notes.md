@@ -64,8 +64,8 @@ Trzy strategie: **ProviderStrategy** (natywny SO providera, `strict`, najwyższa
 - **Źródło:** https://docs.langchain.com/oss/python/langchain/structured-output
 - **Jak nas ulepsza:** nasz jedyny fail qwen na e2e to zły JSON `EmailAnswer`. `ToolStrategy(EmailAnswer,
   handle_errors=...)` **retryuje** zamiast wywalać przebieg → prawdopodobnie 17–18/18 zamiast 16/18.
-  Dziś używamy ToolStrategy TYLKO dla nvidia (fix `strict`); warto rozważyć ToolStrategy+handle_errors
-  także dla ollamy (odporność na korupcję JSON słabszych/kwantyzowanych modeli).
+  Dziś Ollama jedzie na natywnym ProviderStrategy; warto rozważyć ToolStrategy+handle_errors
+  (odporność na korupcję JSON słabszych/kwantyzowanych modeli).
 
 ### 2.5. Response format i schematy — wzorzec (Pydantic = zalecane) ⭐
 Docs rozróżniają DWA osobne zastosowania schematów (Twoje „pydantic albo json" dotyczy pierwszego):

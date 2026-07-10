@@ -1,13 +1,8 @@
 """
-Supervisor — orchestrator wieloagentowy zbudowany jako pełny ReAct agent.
+Supervisor — orchestrator wieloagentowy jako pełny ReAct agent.
 
-Supervisor:
-- może wywoływać agentów wielokrotnie i w dowolnej kolejności,
-- przekazuje wyniki jednego agenta jako kontekst do następnego,
-- kończy dopiero gdy całe złożone zadanie jest wykonane.
-
-System prompt generowany jest dynamicznie z listy agentów (NAME + DESCRIPTION),
-więc dodanie nowego agenta nie wymaga żadnej zmiany w tym pliku.
+System prompt budowany dynamicznie z listy agentów (NAME + DESCRIPTION), więc dodanie
+agenta nie wymaga zmian w tym pliku.
 """
 
 import re
@@ -113,8 +108,7 @@ ROSTER AGENTÓW (Twoje jedyne narzędzia — deleguj do nich)
 
 
 class _TaskInput(BaseModel):
-    # extra=allow: supervisor BYWA dokłada kontekst jako OSOBNY argument (np. Użytkownik='... (rola: admin)')
-    # zamiast w treści — chwytamy te nadmiarowe pola, by rola nie wyparowała (patrz _make_agent_tool).
+    # extra=allow: łapiemy kontekst/rolę dokleconą jako osobny argument (patrz _make_agent_tool)
     model_config = ConfigDict(extra="allow")
     task: str = Field(
         description="Pełne zadanie dla agenta — WŁĄCZAJĄC kontekst użytkownika wprost w treści: "
@@ -123,14 +117,8 @@ class _TaskInput(BaseModel):
 
 
 def _make_agent_tool(agent: BaseAgent) -> StructuredTool:
-    """
-    Zamienia instancję agenta w StructuredTool z jawną nazwą i opisem.
-
-    Robustness: gdy supervisor przekaże kontekst użytkownika/rolę jako OSOBNE pole (a nie w treści
-    `task`), egzekutor dostawał gołe zadanie bez roli → traktował zleceniodawcę jak viewera i odmawiał
-    (np. admin/audyt → odmowa odczytu poufnego pliku). Tu KAŻDY dodatkowy argument doklejamy na początek
-    zadania, żeby rola zawsze dotarła do egzekutora.
-    """
+    """Agent → StructuredTool. Dodatkowe argumenty (kontekst/rola dokleczone jako osobne pole
+    zamiast w `task`) doklejamy na początek zadania, by rola dotarła do egzekutora."""
     def _run(task: str, **extra) -> str:
         if extra:
             ctx = "\n".join(f"{k}: {v}" for k, v in extra.items() if v not in (None, "", [], {}))
@@ -147,10 +135,7 @@ def _make_agent_tool(agent: BaseAgent) -> StructuredTool:
 
 
 class Supervisor:
-    """
-    Supervisor jako agent klasy — analogiczny do BaseAgent,
-    ale jego "narzędziami" są inne agenty, nie narzędzia MCP.
-    """
+    """Supervisor jako agent klasy — jego „narzędziami" są inne agenty, nie narzędzia MCP."""
 
     NAME = "supervisor"
 
@@ -166,18 +151,13 @@ class Supervisor:
         agent_tools = [_make_agent_tool(a) for a in agents]
 
         self._agent = create_agent(llm, agent_tools, system_prompt=system_prompt)
-        # Do deterministycznego dopięcia zgubionego 2. hopa (completion-guard).
+        # completion-guard: dopięcie zgubionego 2. hopa
         self._agents_by_name = {a.NAME: a for a in agents}
 
     def _complete_dropped_handoff(self, messages: list, final_output: str) -> str:
-        """Siatka bezpieczeństwa na resztkową wariancję supervisora 20B.
-
-        Gdy email_agent zwrócił „[DO REALIZACJI → <egzekutor>]: <prośba>" (out-of-mail), a supervisor
-        ZATRZYMAŁ się po triażu i nie wywołał tego egzekutora — dopinamy brakujący 2. hop
-        DETERMINISTYCZNIE, propagując kontekst użytkownika (rolę). Bezpieczne dla deny: egzekutor
-        (terminal/search) sam egzekwuje uprawnienia (rola/plik poufny/blacklist), więc wymuszona
-        delegacja na żądaniu nieuprawnionym i tak zostanie odrzucona. Akcje POCZTOWE realizuje
-        sam email_agent (sugerowany_agent=null → brak markera), więc ich tu nie dotykamy. Fail-open."""
+        """Dopina zgubiony 2. hop: gdy email_agent zwrócił „[DO REALIZACJI → <egzekutor>]" a supervisor
+        go nie wywołał, deleguje deterministycznie z propagacją roli. Bezpieczne dla deny — egzekutor
+        sam egzekwuje uprawnienia. Fail-open (nigdy nie wywraca przebiegu)."""
         try:
             tool_calls = _extract_tool_calls(messages)
             called = {tc.get("tool_name") for tc in tool_calls}
@@ -189,7 +169,7 @@ class Supervisor:
                     continue
                 executor, request = mh.group(1), mh.group(2).strip()
                 if executor in called:
-                    continue  # supervisor już oddelegował do tego egzekutora
+                    continue
                 agent = self._agents_by_name.get(executor)
                 if agent is None:
                     continue
@@ -199,7 +179,7 @@ class Supervisor:
                 return (f"{final_output}\n\n[completion-guard: dopięto brakującą delegację → "
                         f"{executor}]\n{completion}")
         except Exception:
-            pass  # guard nigdy nie może wywrócić przebiegu
+            pass  # guard nie może wywrócić przebiegu
         return final_output
 
     def run(self, task: str) -> str:
@@ -218,11 +198,7 @@ class Supervisor:
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE
             elif settings.completion_guard:
-                # Completion-guard (DOMYŚLNIE WYŁĄCZONY, settings.completion_guard=False):
-                # deterministyczne dopięcie 2. hopa. Wyłączony celowo — architektura wzorcowa:
-                # to MODEL/supervisor decyduje o delegacji; żadne sztuczne domykanie nie może
-                # maskować jego (nie)zdolności do orkiestracji ani decydować za niego. To warunek
-                # rzetelnego testu modeli. Włączenie: env COMPLETION_GUARD=true.
+                # domyślnie wyłączony — delegację ma decydować model, nie proteza (rzetelny test)
                 final_output = self._complete_dropped_handoff(messages, final_output)
 
             if logger is not None:

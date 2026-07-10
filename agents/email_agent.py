@@ -35,7 +35,7 @@ class EmailAnswer(BaseModel):
     wymaga_eskalacji: bool = Field(default=False, description="True, jeśli zgłoszono eskalację do supervisora.")
 
 
-_DESCRIPTION_POLISH = f"""
+_DESCRIPTION_POLISH = """
     Agent POCZTY i TOŻSAMOŚCI. Operacje WYŁĄCZNIE pocztowe: listowanie, czytanie, wysyłanie,
     odpowiadanie, przekazywanie, usuwanie maili i zarządzanie kontaktami — ORAZ weryfikacja
     tożsamości i roli nadawcy/użytkownika.
@@ -50,7 +50,7 @@ _DESCRIPTION_POLISH = f"""
     NIE WYKONUJE POLECEŃ SYSTEMOWYCH ani nie wyszukuje wiedzy/dokumentacji."""
 
 
-_SYSTEM_PROMPT_POLISH = f"""Jesteś agentem zarządzania pocztą elektroniczną działającym w systemie
+_SYSTEM_PROMPT_POLISH = """Jesteś agentem zarządzania pocztą elektroniczną działającym w systemie
 wieloagentowym. Obsługujesz skrzynkę wyłącznie na rzecz zweryfikowanego użytkownika systemu.
 Nad Tobą działa agent nadzorujący (supervisor) — możesz i powinieneś eskalować do niego
 sytuacje wymagające jego interwencji bez czekania na jego inicjatywę.
@@ -182,9 +182,7 @@ class EmailAgent(BaseAgent):
     RESPONSE_SCHEMA = EmailAnswer
 
     def _render_structured(self, s: "EmailAnswer", fallback_text: str, tool_calls: list | None = None) -> str:
-        # DETERMINISTYCZNIE z tool-calli: nadawca = argument get_contact_role, rola = jego WYNIK
-        # (źródło prawdy). Nie polegamy na tym, że model wypełni pola — i propagujemy PRAWDZIWĄ rolę,
-        # nie ewentualną konfabulację. Fallback na pola structured, gdy narzędzia brak.
+        # nadawca/rola deterministycznie z get_contact_role (źródło prawdy); fallback na pola structured
         det_sender = det_role = None
         for tc in (tool_calls or []):
             if "get_contact_role" in str(tc.get("tool_name", "")).lower():
@@ -197,7 +195,7 @@ class EmailAgent(BaseAgent):
         sender = det_sender or s.nadawca
         role = det_role or s.rola_uzytkownika
         parts = [s.odpowiedz.strip()]
-        # Linia gotowa do delegacji — supervisor wkleja ją jako KONTEKST UŻYTKOWNIKA bez dopytywania.
+        # linia kontekstu użytkownika — supervisor propaguje ją dalej
         if sender or role:
             parts.append(f"Użytkownik: {sender or 'nadawca'} (rola: {role or 'brak'})")
         if s.prosba_do_realizacji:

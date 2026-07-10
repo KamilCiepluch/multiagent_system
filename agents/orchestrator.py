@@ -1,10 +1,4 @@
-"""
-Orchestrator — decyduje który agent obsłuży zadanie.
-
-Nie jest pełnym agentem ReAct — to prosty router z LLM.
-Używa LLM do analizy zadania i wyboru agenta.
-Nie korzysta z narzędzi MCP — tylko z modelu językowego.
-"""
+"""Orchestrator — prosty router z LLM (bez narzędzi MCP): wybiera agenta dla zadania."""
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
@@ -35,6 +29,5 @@ class Orchestrator:
         decision = response.content.strip().lower().split()[0]
 
         if decision not in VALID_ROUTES:
-            # fallback — jeśli model nie trafił, idzie do search
             return "search"
         return decision

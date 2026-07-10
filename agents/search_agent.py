@@ -17,8 +17,6 @@ class SearchAnswer(BaseModel):
 class SearchAgent(BaseAgent):
     NAME = "search_agent"
     RESPONSE_SCHEMA = SearchAnswer
-    # SkillGate (wymuszenie list_skills, autonomiczny load_skill) jest teraz DOMYŚLNY dla wszystkich
-    # agentów w BaseAgent._build_middleware — search_agent nie potrzebuje własnego override.
 
     def _render_structured(self, structured: "SearchAnswer", fallback_text: str, tool_calls: list | None = None) -> str:
         parts = [structured.odpowiedz.strip()]

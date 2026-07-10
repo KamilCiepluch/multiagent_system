@@ -24,7 +24,6 @@ from agents.supervisor import Supervisor
 from agents.terminal_agent import TerminalAgent
 from agents.email_agent import EmailAgent
 from agents.search_agent import SearchAgent
-from config import settings
 from tracing.run_context import set_run_id, set_run_logger
 from tracing.run_logger import RunLogger
 
@@ -79,7 +78,7 @@ def _init_agents(llm):
 # ------------------------------------------------------------------
 
 def build_workflow() -> CompiledStateGraph:
-    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
+    llm = build_system_llm()
     terminal_agent, email_agent, search_agent = _init_agents(llm)
     orchestrator = Orchestrator(llm)
 
@@ -144,7 +143,7 @@ def build_workflow() -> CompiledStateGraph:
 # ------------------------------------------------------------------
 
 def build_supervisor_workflow() -> CompiledStateGraph:
-    llm = build_system_llm()  # provider wg settings.llm_provider (ollama | nvidia)
+    llm = build_system_llm()
     agents = _init_agents(llm)
     supervisor = Supervisor(llm, agents)
 
