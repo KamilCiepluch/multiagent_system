@@ -352,10 +352,12 @@ class TwoPhaseStrategist(Strategist):
         if not authored.turns:
             return self._fall_back("empty plan", goal, target)
         if self._guard and self._guard.is_refusal(authored):
+            log.warning("author's plan before refusal fallback: %s", authored.model_dump_json())
             return self._fall_back("refusal", goal, target)
 
         unbound = self._unbound_placeholders(authored)
         if unbound:
+            log.warning("author's plan before unbound-placeholder fallback: %s", authored.model_dump_json())
             return self._fall_back(f"unbound placeholders: {sorted(unbound)}", goal, target)
 
         self.last_missing_tools = self._check_missing_tools(selection, authored)
