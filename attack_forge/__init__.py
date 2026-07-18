@@ -1,10 +1,12 @@
 """attack_forge — a tool for composing attack vectors against an agentic system.
 
 Architecture:
-  strategist (attack-aware, LLM)  →  ExecutionPlan (operations IR)  →  executor (deterministic) → AttackVector
+  strategist (attack-aware, LLM)  →  ExecutionPlan (steps recipe + turn templates)  →  executor
+  (deterministic-in-control-flow) → AttackVector(s)
 
-The executor is attack-agnostic: it only expands transform directives and assembles turns.
-All strategy and creativity live in the strategist tier (built in later steps).
+The executor is attack-agnostic: it only runs the plan's `steps` (deterministic transforms and/or
+LLM-backed tools) and fills `{{name}}` placeholders in turns/prefill. All strategy and creativity
+live in the strategist tier.
 
 Deliberately isolated from `agents/` — this is offensive tooling (an authorized whitebox
 benchmark of our OWN system), so it may have a lighter, different implementation.
@@ -12,10 +14,14 @@ benchmark of our OWN system), so it may have a lighter, different implementation
 
 from __future__ import annotations
 
-from .models import TargetProfile, TechniqueSelection, Turn, Composition, Role, ExecutionPlan, AttackVector
+from .models import (
+    TargetProfile, TechniqueSelection, Turn, Step, Composition, Role, ExecutionPlan, AttackVector,
+)
 from .transforms import Transform, TRANSFORMS, apply_transform, transform_names
-from .directives import expand, DirectiveError, UnknownTransform, MalformedDirective
-from .executor import execute
+from .llm_tools import LLMTool, LLM_TOOLS
+from .placeholders import fill, UnknownPlaceholder
+from .tools import call_tool, known_tool_names, UnknownTool, MissingLLM
+from .executor import execute, execute_batch
 from .framings import Framing, FramingLibrary, DEFAULT_LIBRARY
 from .menu import render_menu
 from .strategist import (
@@ -27,10 +33,12 @@ from .strategist import (
 from .target import TargetResponse, deliver
 
 __all__ = [
-    "TargetProfile", "TechniqueSelection", "Turn", "Composition", "Role", "ExecutionPlan", "AttackVector",
+    "TargetProfile", "TechniqueSelection", "Turn", "Step", "Composition", "Role", "ExecutionPlan", "AttackVector",
     "Transform", "TRANSFORMS", "apply_transform", "transform_names",
-    "expand", "DirectiveError", "UnknownTransform", "MalformedDirective",
-    "execute",
+    "LLMTool", "LLM_TOOLS",
+    "fill", "UnknownPlaceholder",
+    "call_tool", "known_tool_names", "UnknownTool", "MissingLLM",
+    "execute", "execute_batch",
     "Framing", "FramingLibrary", "DEFAULT_LIBRARY", "render_menu",
     "Strategist", "Selector", "Author",
     "HeuristicSelector", "HeuristicAuthor", "HeuristicStrategist",

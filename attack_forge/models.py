@@ -43,7 +43,10 @@ class TechniqueSelection(BaseModel):
     framing_ids: list[str] = Field(
         default_factory=list, description="chosen framing ids from the library (may be empty for a bare request)"
     )
-    transform_names: list[str] = Field(default_factory=list, description="chosen transform tool names")
+    tool_names: list[str] = Field(
+        default_factory=list,
+        description="chosen tool names (deterministic transforms and/or LLM-backed tools alike)",
+    )
     composition: Composition
     rationale: str = Field(default="", description="why these choices — no attack text here")
 
@@ -55,16 +58,35 @@ class Turn(BaseModel):
     content: str
 
 
+class Step(BaseModel):
+    """One recipe step: run `tool` on `input`, bind the result to `output`.
+
+    `input` is plaintext the author writes directly — it may embed `{{name}}` referencing an
+    earlier step's `output` (or be a bare literal fragment for the first step in a chain). The
+    author never sees or writes an already-transformed value: the executor is the only thing that
+    ever calls a tool, which is what rules out double-encoding (the author pre-computing a
+    transform itself and pasting the result back in).
+    """
+
+    tool: str = Field(description="registered tool name, from the selection's tool_names")
+    input: str = Field(description="plaintext input; may contain {{name}} placeholders")
+    output: str = Field(description="name this step's result is bound to, referenced via {{name}}")
+
+
 class ExecutionPlan(BaseModel):
-    """Operations IR: an ordered conversation whose turn contents may carry inline transform
-    directives (see `directives.py`). Attack-agnostic — the executor just expands and assembles.
+    """Operations IR: an ordered recipe (`steps`) plus message templates (`turns`) whose content
+    may reference a step's output via `{{name}}` placeholders (see `placeholders.py`).
+    Attack-agnostic — the executor just runs the recipe and fills the templates.
     """
 
     composition: Composition
-    turns: list[Turn] = Field(description="ordered messages; content may contain [[t:...]] directives")
+    steps: list[Step] = Field(
+        default_factory=list, description="ordered tool calls; nothing here is pre-transformed"
+    )
+    turns: list[Turn] = Field(description="ordered messages; content may contain {{name}} placeholders")
     prefill: Optional[str] = Field(
         default=None,
-        description="optional trailing assistant opener the target continues from; may contain directives",
+        description="optional trailing assistant opener the target continues from; may contain {{name}} placeholders",
     )
 
 

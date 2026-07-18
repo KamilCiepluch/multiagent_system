@@ -7,6 +7,7 @@ strategist reads when it plans a vector.
 from __future__ import annotations
 
 from .framings import DEFAULT_LIBRARY, FramingLibrary
+from .llm_tools import render_menu as _render_llm_tools
 from .transforms import render_menu as _render_transforms
 
 _STRUCTURES = (
@@ -20,6 +21,8 @@ _STRUCTURES = (
 def render_menu(library: FramingLibrary = DEFAULT_LIBRARY) -> str:
     return "\n\n".join([
         _STRUCTURES,
-        "TRANSFORMS (apply to a fragment via [[t:name]]...[[/t]], may nest):\n" + _render_transforms(),
+        "TRANSFORMS (deterministic, run as a recipe step on plaintext input):\n" + _render_transforms(),
+        "LLM TOOLS (non-deterministic, run as a recipe step; same steps contract as transforms):\n"
+        + _render_llm_tools(),
         "FRAMINGS (reuse an example or write your own variation in the same spirit):\n" + library.render_menu(),
     ])
