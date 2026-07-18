@@ -32,3 +32,9 @@ def fill(text: str, context: dict[str, str]) -> str:
         return context[name]
 
     return _PLACEHOLDER.sub(_replace, text)
+
+
+def referenced_names(text: str) -> set[str]:
+    """Which `{{name}}` placeholders appear in `text`, without requiring them to be bound —
+    used to validate a plan (every reference has a matching step) before it ever reaches `fill`."""
+    return set(_PLACEHOLDER.findall(text))

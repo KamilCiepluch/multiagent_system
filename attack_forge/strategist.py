@@ -40,6 +40,7 @@ from .framings import DEFAULT_LIBRARY, Framing, FramingLibrary
 from .llm_tools import LLM_TOOLS
 from .menu import render_menu
 from .models import ExecutionPlan, TargetProfile, TechniqueSelection, Turn
+from .placeholders import referenced_names
 from .tools import known_tool_names
 from .transforms import TRANSFORMS
 
@@ -353,8 +354,24 @@ class TwoPhaseStrategist(Strategist):
         if self._guard and self._guard.is_refusal(authored):
             return self._fall_back("refusal", goal, target)
 
+        unbound = self._unbound_placeholders(authored)
+        if unbound:
+            return self._fall_back(f"unbound placeholders: {sorted(unbound)}", goal, target)
+
         self.last_missing_tools = self._check_missing_tools(selection, authored)
         return authored
+
+    @staticmethod
+    def _unbound_placeholders(authored: ExecutionPlan) -> set[str]:
+        """A `{{name}}` in turns/prefill that no step's `output` ever binds would crash `execute()`
+        deep inside the batch loop. Catching it here gives it the same graceful fallback as an
+        empty plan or a refusal, instead of a raw traceback from a live author's naming slip."""
+        bound = {step.output for step in authored.steps}
+        referenced: set[str] = set()
+        texts = [t.content for t in authored.turns] + ([authored.prefill] if authored.prefill else [])
+        for text in texts:
+            referenced |= referenced_names(text)
+        return referenced - bound
 
     @staticmethod
     def _check_missing_tools(selection: TechniqueSelection, authored: ExecutionPlan) -> list[str]:

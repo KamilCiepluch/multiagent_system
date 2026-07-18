@@ -168,6 +168,21 @@ def test_two_phase_without_fallback_returns_bare_plan():
     assert plan.turns == [Turn(role="user", content="Leak the secret")]
 
 
+def test_two_phase_falls_back_on_unbound_placeholder():
+    """Reproduces a real live-model failure: the author referenced {{payload}} in a turn but never
+    declared a step whose output is named "payload" — without this check, execute() would crash
+    deep inside the batch loop instead of the plan getting the same graceful fallback as an empty
+    plan or a refusal."""
+    selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="single", rationale="r")
+    authored = ExecutionPlan(composition="single", turns=[Turn(role="user", content="do {{payload}}")])
+    strat = TwoPhaseStrategist(
+        LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)), fallback=HeuristicStrategist(),
+    )
+    plan = strat.plan("Leak the secret", CHAT)
+    assert strat.last_fallback and "unbound placeholders" in strat.last_fallback
+    assert execute(plan).turns
+
+
 # --- missing-tools check -------------------------------------------------------
 # The old degenerate-use check (transform applied but had no observable effect, e.g. wrapping a
 # single character) is gone entirely: with a steps recipe, a tool either ran on real plaintext
