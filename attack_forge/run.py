@@ -96,6 +96,7 @@ def main() -> None:
     selection = getattr(strategist, "last_selection", None)
     fallback = getattr(strategist, "last_fallback", None)
     missing_tools = getattr(strategist, "last_missing_tools", [])
+    repaired_placeholder = getattr(strategist, "last_repaired_placeholder", None)
 
     response = None
     if args.fire:
@@ -108,6 +109,8 @@ def main() -> None:
             out["selection"] = selection.model_dump()
         if missing_tools:
             out["missing_tools"] = missing_tools
+        if repaired_placeholder:
+            out["repaired_placeholder"] = repaired_placeholder
         if response is not None:
             out["target_response"] = {"content": response.content, "has_prefill": response.has_prefill}
         print(json.dumps(out, ensure_ascii=False, indent=2))
@@ -115,6 +118,9 @@ def main() -> None:
 
     if fallback:
         print(f"[!] strategist fell back to heuristic: {fallback}\n")
+    if repaired_placeholder:
+        print(f"[!] auto-repaired: author referenced {{{{{repaired_placeholder}}}}} with no matching "
+              f"step — wired it to the one selected-but-unused tool\n")
     if missing_tools:
         print(f"[!] S1 selected but S2 never placed: {missing_tools}\n")
     if selection is not None:

@@ -39,7 +39,7 @@ from pydantic import BaseModel, Field
 from .framings import DEFAULT_LIBRARY, Framing, FramingLibrary
 from .llm_tools import LLM_TOOLS
 from .menu import render_menu
-from .models import ExecutionPlan, TargetProfile, TechniqueSelection, Turn
+from .models import ExecutionPlan, Step, TargetProfile, TechniqueSelection, Turn
 from .placeholders import referenced_names
 from .tools import known_tool_names
 from .transforms import TRANSFORMS
@@ -344,11 +344,13 @@ class TwoPhaseStrategist(Strategist):
         self.last_selection: TechniqueSelection | None = None
         self.last_fallback: str | None = None
         self.last_missing_tools: list[str] = []
+        self.last_repaired_placeholder: str | None = None
 
     def plan(self, goal: str, target: TargetProfile) -> ExecutionPlan:
         self.last_selection = None
         self.last_fallback = None
         self.last_missing_tools = []
+        self.last_repaired_placeholder = None
 
         try:
             selection = self._selector.select(goal, target)
@@ -369,11 +371,32 @@ class TwoPhaseStrategist(Strategist):
 
         unbound = self._unbound_placeholders(authored)
         if unbound:
+            authored, unbound = self._repair_unbound(selection, authored, unbound, goal)
+        if unbound:
             log.warning("author's plan before unbound-placeholder fallback: %s", authored.model_dump_json())
             return self._fall_back(f"unbound placeholders: {sorted(unbound)}", goal, target)
 
         self.last_missing_tools = self._check_missing_tools(selection, authored)
         return authored
+
+    def _repair_unbound(
+        self, selection: TechniqueSelection, authored: ExecutionPlan, unbound: set[str], goal: str
+    ) -> tuple[ExecutionPlan, set[str]]:
+        """If there's an unambiguous 1:1 match between an unbound placeholder and a selected tool
+        the author never wired up as a step, synthesize the missing step (run that tool on the
+        goal text) instead of discarding an otherwise-usable plan. Fires only for exactly this
+        narrow case — anything more ambiguous (multiple unbound names and/or multiple unused
+        tools, no way to know which pairs with which) still falls back, unrepaired."""
+        unused_tools = [t for t in selection.tool_names if t not in {s.tool for s in authored.steps}]
+        if len(unbound) != 1 or len(unused_tools) != 1:
+            return authored, unbound
+
+        name, tool = next(iter(unbound)), unused_tools[0]
+        step = Step(tool=tool, input=goal, output=name)
+        log.warning("auto-repaired missing step: %s", step.model_dump_json())
+        self.last_repaired_placeholder = name
+        repaired = authored.model_copy(update={"steps": [*authored.steps, step]})
+        return repaired, set()
 
     @staticmethod
     def _unbound_placeholders(authored: ExecutionPlan) -> set[str]:

@@ -13,6 +13,7 @@ from attack_forge.strategist import (
     HeuristicStrategist, LLMSelector, LLMAuthor, LLMStrategist, RefusalGuard, RefusalVerdict,
     TwoPhaseStrategist, _render_selection,
 )
+from attack_forge.transforms import apply_transform
 
 EMAIL = TargetProfile(name="t", description="d", channel="email body")
 CHAT = TargetProfile(name="t", description="d", channel="chat")
@@ -172,7 +173,7 @@ def test_two_phase_falls_back_on_unbound_placeholder():
     """Reproduces a real live-model failure: the author referenced {{payload}} in a turn but never
     declared a step whose output is named "payload" — without this check, execute() would crash
     deep inside the batch loop instead of the plan getting the same graceful fallback as an empty
-    plan or a refusal."""
+    plan or a refusal. No tools were selected here, so there's nothing to auto-repair against."""
     selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="single", rationale="r")
     authored = ExecutionPlan(composition="single", turns=[Turn(role="user", content="do {{payload}}")])
     strat = TwoPhaseStrategist(
@@ -180,6 +181,45 @@ def test_two_phase_falls_back_on_unbound_placeholder():
     )
     plan = strat.plan("Leak the secret", CHAT)
     assert strat.last_fallback and "unbound placeholders" in strat.last_fallback
+    assert execute(plan).turns
+
+
+# --- auto-repair for the unambiguous 1:1 case -------------------------------
+
+def test_two_phase_repairs_unambiguous_unbound_placeholder():
+    """Reproduces the recurring live failure: S1 selects exactly one tool (zero_width), S2 writes
+    a turn referencing an invented placeholder but never wires up the matching step. Since exactly
+    one selected tool is unused and exactly one placeholder is unbound, the pairing is unambiguous
+    — repair it instead of discarding an otherwise-fine plan."""
+    selection = TechniqueSelection(
+        framing_ids=[], tool_names=["zero_width"], composition="stack", rationale="r"
+    )
+    authored = ExecutionPlan(composition="stack", turns=[Turn(role="user", content="do {{obfuscated}}")])
+    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)))
+    plan = strat.plan("goal", CHAT)
+
+    assert strat.last_fallback is None
+    assert strat.last_repaired_placeholder == "obfuscated"
+    assert plan.steps == [Step(tool="zero_width", input="goal", output="obfuscated")]
+    vector = execute(plan)
+    assert vector.payload == f"do {apply_transform('zero_width', 'goal')}"
+
+
+def test_two_phase_does_not_repair_when_multiple_unbound_or_unused():
+    """More than one unbound name and/or more than one unused tool is ambiguous — no way to know
+    which pairs with which, so it still falls back rather than guessing."""
+    selection = TechniqueSelection(
+        framing_ids=[], tool_names=["zero_width", "base64"], composition="stack", rationale="r"
+    )
+    authored = ExecutionPlan(
+        composition="stack", turns=[Turn(role="user", content="do {{a}} and {{b}}")]
+    )
+    strat = TwoPhaseStrategist(
+        LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)), fallback=HeuristicStrategist(),
+    )
+    plan = strat.plan("goal", CHAT)
+    assert strat.last_fallback and "unbound placeholders" in strat.last_fallback
+    assert strat.last_repaired_placeholder is None
     assert execute(plan).turns
 
 
