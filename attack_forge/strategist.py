@@ -64,9 +64,17 @@ class Author(ABC):
 def _render_target(p: TargetProfile) -> str:
     lines = [f"name: {p.name}", f"description: {p.description}", f"channel: {p.channel}"]
     if p.known_defenses:
-        lines.append("known_defenses: " + ", ".join(p.known_defenses))
+        lines.append("agent defenses: " + ", ".join(p.known_defenses))
     if p.known_vulnerabilities:
-        lines.append("known_vulnerabilities: " + ", ".join(p.known_vulnerabilities))
+        lines.append("agent vulnerabilities (lean in): " + ", ".join(p.known_vulnerabilities))
+    if p.model:
+        lines.append(f"model: {p.model}")
+    if p.model_vulnerabilities:
+        lines.append("model vulnerabilities (lean in): " + ", ".join(p.model_vulnerabilities))
+    if p.model_resistant_to:
+        lines.append("model resists (AVOID — known ineffective): " + ", ".join(p.model_resistant_to))
+    if p.system:
+        lines.append("\n" + p.system)
     return "\n".join(lines)
 
 

@@ -21,13 +21,15 @@ Role = Literal["system", "user", "assistant"]
 
 
 class TargetProfile(BaseModel):
-    """Everything the strategist needs to know about a single target agent.
+    """Everything the strategist needs to know about the agent under attack.
 
-    Single-agent for now; a target may later be a chain of agents (A1→A2→A3) where the
-    goal is only fully realized at the final hop — that extension will come when needed.
+    Beyond the agent's own surface (channel/defenses/vulnerabilities) it carries the personalized
+    intel the selector attacks *with*: the `system` it lives in (architecture + sibling agents) and
+    the `model` that powers it plus that model's known weaknesses. `system_kb.build_target_profile`
+    assembles this from the system + model knowledge bases.
     """
 
-    name: str = Field(description="short identifier, e.g. 'email_exfil'")
+    name: str = Field(description="short identifier, e.g. 'email_agent'")
     description: str = Field(description="what the target agent is and does")
     channel: str = Field(description="injection surface, e.g. 'email body', 'chat', 'search result'")
     known_defenses: list[str] = Field(
@@ -36,7 +38,17 @@ class TargetProfile(BaseModel):
     )
     known_vulnerabilities: list[str] = Field(
         default_factory=list,
-        description="known weaknesses / model susceptibilities to lean into",
+        description="agent-specific weaknesses to lean into",
+    )
+    system: str = Field(
+        default="", description="the system this agent lives in: architecture + sibling agents"
+    )
+    model: str = Field(default="", description="the model powering this agent, e.g. 'gpt-oss:20b'")
+    model_vulnerabilities: list[str] = Field(
+        default_factory=list, description="the model's known susceptibilities to lean into"
+    )
+    model_resistant_to: list[str] = Field(
+        default_factory=list, description="techniques the model is known to resist — avoid these"
     )
 
 

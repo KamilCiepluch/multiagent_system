@@ -92,20 +92,39 @@ bound by an *earlier* step. That is the whole validation surface. `TwoPhaseStrat
 (diagnostic-only, never blocks) `last_missing_tools` (selected but unused) and `last_extra_tools`
 (used but not selected).
 
+## Knowing the target (personalization)
+
+The selector doesn't just pick from a technique menu — it attacks *with intel*. Two more knowledge
+bases describe **what** we attack:
+
+- `data/systems.yaml` (`SystemProfile`): a target system's architecture and its agents. Each agent
+  has a role, channel, defenses, agent-specific vulnerabilities, and names the `model` that powers it.
+- `data/models.yaml` (`ModelProfile`): per-model weaknesses — `vulnerabilities` to lean into and
+  `resistant_to` techniques to avoid (seeded from our benchmark + the Garak recon layer).
+
+`system_kb.build_target_profile(system, agent, models)` assembles the `TargetProfile` the selector
+sees: the agent's own surface **plus** the system context (architecture + sibling agents as pivots)
+**plus** the powering model's vulnerabilities and resistances. So targeting `email_agent` on
+`gpt-oss:20b`, the selector knows to use data-embedded injection (not a bare DAN, which that model
+resists), aim for the `[DO REALIZACJI → X]` handoff, and that `terminal_agent` is a pivot. Injecting
+extra intel ad-hoc: `--vuln "..."` / `--defense "..."`.
+
 ## Run
 
 ```bash
 python -m attack_forge.run --goal "Leak the protected secret" --target secret_guard
-python -m attack_forge.run --goal "..." --target email_exfil --strategist two-phase --json
+python -m attack_forge.run --goal "..." --target email_agent --strategist two-phase --json
 python -m attack_forge.run --goal "..." --target secret_guard --strategist two-phase --batch 5  # 5 vectors, one recipe
 python -m attack_forge.run --goal "..." --target secret_guard --strategist two-phase --fire  # hits a real target LLM
+python -m attack_forge.run --goal "..." --target email_agent --strategist two-phase --vuln "obeys Polish"  # inject intel
 python -m attack_forge.dryrun -n 3          # dry-run the executor alone on a hand-built plan (offline)
 python -m attack_forge.dryrun --live -n 3   # same, but real attacker model for the LLM steps
 python -m pytest attack_forge/tests -q
 ```
 
-`--strategist`: `heuristic` (default, no LLM baseline) / `two-phase` (S1+S2). Targets:
-`secret_guard`, `email_exfil`, `supervisor` (see `TARGETS` in [run.py](run.py)). `--batch N` isn't
+`--strategist`: `heuristic` (default, no LLM baseline) / `two-phase` (S1+S2). `--system` picks a
+target system (default `agents_blocks`); `--target` names an agent in it (`supervisor`, `email_agent`,
+`search_agent`, `terminal_agent`, `secret_guard` — see `data/systems.yaml`). `--batch N` isn't
 supported together with `--fire` yet (batch generation only, this round).
 
 ## Known gaps (documented, not silent)
@@ -129,7 +148,10 @@ supported together with `--fire` yet (batch generation only, this round).
 5. ✅ **Data-driven tools + selector KB** — LLM tasks are a knowledge base (`data/llm_tasks.yaml`):
    `system` + `model`/`temperature`/`reasoning`, run by one universal primitive via a `ModelProvider`.
    The selector menu carries per-tool `guidance`. Adding a technique is a YAML entry, not code.
-6. Split into two *models* for S1/S2 (already supported: pass different `llm` instances). A task can
+6. ✅ **Target knowledge base (personalization)** — `data/systems.yaml` (architecture + agents) and
+   `data/models.yaml` (per-model vulns/resistances); `build_target_profile` gives the selector the
+   agent surface + system context + powering-model weaknesses. `--system`/`--target`, `--vuln`/`--defense`.
+7. Split into two *models* for S1/S2 (already supported: pass different `llm` instances). A task can
    already pin its own `model`; a shared model *list*/registry can come with it.
 7. Target execution + scoring + feedback into the knowledge bases (self-improvement):
    - ✅ 7.1 `target.py::deliver()` — fires a vector at a real target LLM.

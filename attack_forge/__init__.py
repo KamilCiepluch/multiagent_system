@@ -27,6 +27,10 @@ from .placeholders import fill, UnknownPlaceholder
 from .tools import call_tool, known_tool_names, UnknownTool, MissingLLM
 from .executor import execute, execute_batch
 from .framings import Framing, FramingLibrary, DEFAULT_LIBRARY
+from .system_kb import (
+    ModelProfile, AgentProfile, SystemProfile, ModelLibrary, SystemLibrary,
+    DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile,
+)
 from .menu import render_menu
 from .strategist import (
     Strategist, Selector, Author, StrategistError, pipeline_errors,
@@ -45,6 +49,8 @@ __all__ = [
     "call_tool", "known_tool_names", "UnknownTool", "MissingLLM",
     "execute", "execute_batch",
     "Framing", "FramingLibrary", "DEFAULT_LIBRARY", "render_menu",
+    "ModelProfile", "AgentProfile", "SystemProfile", "ModelLibrary", "SystemLibrary",
+    "DEFAULT_MODEL_LIBRARY", "DEFAULT_SYSTEM_LIBRARY", "build_target_profile",
     "Strategist", "Selector", "Author", "StrategistError", "pipeline_errors",
     "HeuristicSelector", "HeuristicAuthor", "HeuristicStrategist",
     "LLMSelector", "LLMAuthor", "TwoPhaseStrategist",
