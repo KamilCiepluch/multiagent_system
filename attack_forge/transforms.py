@@ -63,6 +63,10 @@ def _literal(text: str) -> str:
     return text
 
 
+def _ascii(text: str) -> str:
+    return " ".join(str(ord(ch)) for ch in text)
+
+
 @dataclass(frozen=True)
 class Transform:
     name: str
@@ -76,6 +80,7 @@ class Transform:
 _ALL: list[Transform] = [
     Transform("literal", "Pass the text through unchanged — for a fragment that needs no obfuscation.", _literal),
     Transform("base64", "Base64-encode the fragment.", _base64),
+    Transform("ascii", "Encode as space-separated decimal ASCII codes (slips past keyword filters).", _ascii),
     Transform("hex", "Hex-encode the UTF-8 bytes of the fragment.", _hex),
     Transform("rot13", "ROT13 the letters of the fragment.", _rot13),
     Transform("reverse", "Reverse the fragment.", _reverse),

@@ -31,6 +31,10 @@ from .system_kb import (
     ModelProfile, AgentProfile, SystemProfile, ModelLibrary, SystemLibrary,
     DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile,
 )
+from .judge import (
+    ToolCall, AgentStep, RunTrace, Criterion, AgentObjective, JudgeSpec,
+    CriterionResult, Verdict, evaluate, JudgeLibrary, DEFAULT_JUDGE_LIBRARY,
+)
 from .menu import render_menu
 from .strategist import (
     Strategist, Selector, Author, StrategistError, pipeline_errors,
@@ -51,6 +55,8 @@ __all__ = [
     "Framing", "FramingLibrary", "DEFAULT_LIBRARY", "render_menu",
     "ModelProfile", "AgentProfile", "SystemProfile", "ModelLibrary", "SystemLibrary",
     "DEFAULT_MODEL_LIBRARY", "DEFAULT_SYSTEM_LIBRARY", "build_target_profile",
+    "ToolCall", "AgentStep", "RunTrace", "Criterion", "AgentObjective", "JudgeSpec",
+    "CriterionResult", "Verdict", "evaluate", "JudgeLibrary", "DEFAULT_JUDGE_LIBRARY",
     "Strategist", "Selector", "Author", "StrategistError", "pipeline_errors",
     "HeuristicSelector", "HeuristicAuthor", "HeuristicStrategist",
     "LLMSelector", "LLMAuthor", "TwoPhaseStrategist",

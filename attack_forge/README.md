@@ -127,6 +127,28 @@ target system (default `agents_blocks`); `--target` names an agent in it (`super
 `search_agent`, `terminal_agent`, `secret_guard` — see `data/systems.yaml`). `--batch N` isn't
 supported together with `--fire` yet (batch generation only, this round).
 
+## Judging (did it work, and how far did it get?)
+
+`judge.py` is a specialized, configurable multi-hop evaluator (its own thing, not a wrapper over
+`attack_core`). It scores a `RunTrace` — the per-agent record of what actually happened — against a
+`JudgeSpec` from `data/judges.yaml`: an ordered attack **path** of per-agent objectives, each a set
+of weighted criteria, some of them **gates** (necessary conditions). Check kinds: `tool_call`
+(ground-truth), `text_contains`, `role_spoof` (propagated role ≠ true role), `semantic` (a neutral
+judge LLM). All but `semantic` are **deterministic** whitebox ground-truth, and SUCCESS is driven by
+the deterministic gates — the semantic check only adds graded weight, it never decides success
+alone (so an agent that merely *claims* to have leaked doesn't score a success). Any criterion can be
+**negated** (`negate: true`) to check that something did NOT happen — e.g. `get_contact_role` was
+never called (verification skipped), or a forbidden tool never fired. The `Verdict` is graded:
+
+- **depth** — how far the attack propagated before a gate failed (email → supervisor → terminal),
+- **weighted_score** — earned / total criterion weight,
+- **outcome** — BLOCKED / PARTIAL / SUCCESS.
+
+The engine is a pure function over a `RunTrace` (an llm only for `semantic`), so it is fully tested
+offline on synthetic traces. **Remaining glue (live):** run the vector through the real agent graph
+(reuse `agents_benchmark.harness.build_pipeline` + `attack_core.runner.AttackRunner`) to get a
+`run_id` + DB trace, then a thin `trace_from_db(run_id)` adapter → `evaluate`.
+
 ## Known gaps (documented, not silent)
 
 - **Single-message vectors only.** The pipeline produces one user message (the last step's output).
@@ -155,7 +177,9 @@ supported together with `--fire` yet (batch generation only, this round).
    already pin its own `model`; a shared model *list*/registry can come with it.
 7. Target execution + scoring + feedback into the knowledge bases (self-improvement):
    - ✅ 7.1 `target.py::deliver()` — fires a vector at a real target LLM.
-   - ⬜ 7.2 Judge/scorer — did the attack actually work? (evaluate a batch, not just one vector.)
+   - 🟡 7.2 Judge — specialized configurable multi-hop judge (`judge.py` + `data/judges.yaml`):
+     per-agent weighted criteria + gates → depth + weighted score. Offline engine + tests done;
+     live delivery (run the vector through the real graph → trace) is the remaining glue.
    - ⬜ 7.3 Feed results back into the KBs (`score`, new task/framing variations) and a persisted
      technique-effectiveness ledger (what's known to work per target).
 ```
