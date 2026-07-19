@@ -1,7 +1,10 @@
 """Data contracts of attack_forge.
 
-`ExecutionPlan` is the operations IR: what the (attack-aware) strategist emits and what the
-(attack-agnostic) executor interprets. `AttackVector` is the executor's finalized output.
+`ExecutionPlan` is the operations IR: a single ordered pipeline of `steps`. Each step runs one
+tool on plaintext input and binds the result to a name; the message delivered to the target is the
+output of the LAST step. There is exactly one representation — the recipe — so there is no separate
+free-prose layer to keep in sync with the steps (the failure mode the old `turns`+placeholders
+design kept tripping on). `AttackVector` is the executor's finalized output.
 
 `TargetProfile` and `TechniqueSelection` are attack-aware but stay here as plain data, so both
 strategist tiers (and tests) can import them without pulling in prompt/LLM machinery.
@@ -38,17 +41,25 @@ class TargetProfile(BaseModel):
 
 
 class TechniqueSelection(BaseModel):
-    """S1 output: which techniques to use, decided before any attack text exists."""
+    """S1 output: which techniques to use, decided before any attack text exists.
 
-    framing_ids: list[str] = Field(
-        default_factory=list, description="chosen framing ids from the library (may be empty for a bare request)"
+    Framings are tools too now: a wrapper (e.g. a DAN persona) is an LLM-backed `wrap_*` tool in
+    `tool_names`, alongside deterministic transforms and `paraphrase`. So there is one list to pick
+    from, not a framing list plus a tool list.
+
+    Field order is deliberate: `rationale` FIRST, so the model reasons before it commits the list —
+    otherwise it emits an empty `tool_names` and only then "thinks" in the rationale (observed).
+    """
+
+    rationale: str = Field(
+        description="reason FIRST here: which tools you'll use and why — then fill tool_names to match"
     )
     tool_names: list[str] = Field(
         default_factory=list,
-        description="chosen tool names (deterministic transforms and/or LLM-backed tools alike)",
+        description="EXACT tool names from the menu (e.g. base64, zero_width, wrap_diagnostic_mode); "
+                    "names not on the menu are dropped. Empty = a bare plaintext request (rarely what you want)",
     )
     composition: Composition
-    rationale: str = Field(default="", description="why these choices — no attack text here")
 
 
 class Turn(BaseModel):
@@ -74,19 +85,14 @@ class Step(BaseModel):
 
 
 class ExecutionPlan(BaseModel):
-    """Operations IR: an ordered recipe (`steps`) plus message templates (`turns`) whose content
-    may reference a step's output via `{{name}}` placeholders (see `placeholders.py`).
-    Attack-agnostic — the executor just runs the recipe and fills the templates.
+    """Operations IR: a single ordered pipeline of `steps`. The message delivered to the target is
+    the output of the LAST step, so a valid plan has at least one step (use the `literal` tool for a
+    fragment that needs no transform). Attack-agnostic — the executor just runs the recipe.
     """
 
     composition: Composition
     steps: list[Step] = Field(
-        default_factory=list, description="ordered tool calls; nothing here is pre-transformed"
-    )
-    turns: list[Turn] = Field(description="ordered messages; content may contain {{name}} placeholders")
-    prefill: Optional[str] = Field(
-        default=None,
-        description="optional trailing assistant opener the target continues from; may contain {{name}} placeholders",
+        description="ordered tool calls (>=1); the last step's output is the delivered message"
     )
 
 
@@ -95,12 +101,11 @@ class AttackVector(BaseModel):
 
     composition: Composition
     turns: list[Turn]
-    # convenience: content of the single user turn when the vector is one message; else None.
+    # convenience: content of the single user turn (the pipeline's final output).
     payload: Optional[str] = None
-    prefill: Optional[str] = None
-    applied_transforms: list[str] = Field(default_factory=list)
+    applied_tools: list[str] = Field(default_factory=list)
 
     def preview(self) -> str:
-        if self.payload is not None and not self.prefill:
+        if self.payload is not None:
             return self.payload
         return "\n".join(f"[{t.role}] {t.content}" for t in self.turns)

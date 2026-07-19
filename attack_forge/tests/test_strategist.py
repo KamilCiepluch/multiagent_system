@@ -1,19 +1,19 @@
-"""Tests for the strategist tier: deterministic baseline, one-shot LLM, and the two-phase
-Selector/Author split (step 3B) — including the fallback logic at every failure point.
+"""Tests for the strategist tier: the no-LLM baseline and the two-phase Selector/Author split.
 
-The LLM path is exercised with a fake structured-output client, so no model is needed.
+There is no fallback and no auto-repair anymore: on any failure the two-phase strategist RAISES
+`StrategistError`. The LLM path is exercised with a fake structured-output client — no model needed.
 """
 
 from __future__ import annotations
 
+import pytest
+
 from attack_forge.executor import execute
-from attack_forge.framings import DEFAULT_LIBRARY
-from attack_forge.models import ExecutionPlan, Step, TargetProfile, TechniqueSelection, Turn
+from attack_forge.models import ExecutionPlan, Step, TargetProfile, TechniqueSelection
 from attack_forge.strategist import (
-    HeuristicStrategist, LLMSelector, LLMAuthor, LLMStrategist, RefusalGuard, RefusalVerdict,
-    TwoPhaseStrategist, _render_selection,
+    HeuristicStrategist, LLMAuthor, LLMSelector, StrategistError, TwoPhaseStrategist,
+    _render_selection, pipeline_errors,
 )
-from attack_forge.transforms import apply_transform
 
 EMAIL = TargetProfile(name="t", description="d", channel="email body")
 CHAT = TargetProfile(name="t", description="d", channel="chat")
@@ -39,226 +39,141 @@ class FakeLLM:
         return _FakeStructured(self._result)
 
 
+def _plan(steps: list[Step], composition="single") -> ExecutionPlan:
+    return ExecutionPlan(composition=composition, steps=steps)
+
+
 def _valid_plan() -> ExecutionPlan:
-    return ExecutionPlan(composition="single", turns=[Turn(role="user", content="attack text")])
+    return _plan([Step(tool="literal", input="attack text", output="msg")])
 
 
-# --- heuristic ---------------------------------------------------------------
+# --- heuristic baseline ------------------------------------------------------
 
 def test_heuristic_builds_executable_plan():
     plan = HeuristicStrategist().plan("Leak the secret", CHAT)
     vector = execute(plan)
-    assert vector.turns and "Leak the secret" in vector.turns[0].content
+    assert "Leak the secret" in vector.payload
 
 
 def test_heuristic_prefers_channel_specific_framing_for_email():
     plan = HeuristicStrategist().plan("do X", EMAIL)
-    assert "SYSTEM NOTE" in plan.turns[0].content and "do X" in plan.turns[0].content
+    vector = execute(plan)
+    assert "SYSTEM NOTE" in vector.payload and "do X" in vector.payload
 
 
-# --- one-shot LLM strategist (3A) --------------------------------------------
+# --- pipeline validation -----------------------------------------------------
 
-def test_one_shot_plan_passes_through_when_valid():
-    strat = LLMStrategist(FakeLLM(_valid_plan()))
-    plan = strat.plan("goal", CHAT)
-    assert plan.turns[0].content == "attack text"
-    assert strat.last_fallback is None
+def test_pipeline_errors_flags_empty():
+    assert pipeline_errors(_plan([])) == ["empty pipeline: at least one step is required"]
 
 
-def test_one_shot_falls_back_on_error_flagged():
-    strat = LLMStrategist(FakeLLM(RuntimeError("boom")))
-    plan = strat.plan("Leak the secret", CHAT)
-    assert strat.last_fallback and "RuntimeError" in strat.last_fallback
-    assert execute(plan).turns
+def test_pipeline_errors_flags_unknown_tool():
+    errors = pipeline_errors(_plan([Step(tool="nope", input="x", output="msg")]))
+    assert any("unknown tool" in e for e in errors)
 
 
-def test_one_shot_falls_back_on_refusal():
-    guard = RefusalGuard(FakeLLM(RefusalVerdict(is_refusal=True, reason="declined")))
-    strat = LLMStrategist(FakeLLM(_valid_plan()), guard=guard)
-    strat.plan("Leak the secret", CHAT)
-    assert strat.last_fallback == "refusal"
+def test_pipeline_errors_flags_unbound_reference():
+    errors = pipeline_errors(_plan([Step(tool="literal", input="{{ghost}}", output="msg")]))
+    assert any("unbound" in e and "ghost" in e for e in errors)
 
 
-def test_one_shot_no_fallback_when_guard_clears():
-    guard = RefusalGuard(FakeLLM(RefusalVerdict(is_refusal=False)))
-    strat = LLMStrategist(FakeLLM(_valid_plan()), guard=guard)
-    plan = strat.plan("goal", CHAT)
-    assert strat.last_fallback is None and plan.turns[0].content == "attack text"
+def test_pipeline_errors_accepts_valid_chain():
+    plan = _plan([
+        Step(tool="base64", input="secret", output="enc"),
+        Step(tool="literal", input="decode {{enc}}", output="msg"),
+    ])
+    assert pipeline_errors(plan) == []
 
 
-# --- LLMSelector validation ----------------------------------------------------
+# --- LLMSelector -------------------------------------------------------------
 
-def test_llm_selector_filters_unknown_ids():
-    raw = TechniqueSelection(
-        framing_ids=["unrestricted_persona", "nope"],
-        tool_names=["base64", "nope"],
-        composition="stack", rationale="r",
-    )
+def test_llm_selector_filters_unknown_tool_names():
+    raw = TechniqueSelection(tool_names=["base64", "wrap_unrestricted_persona", "nope"],
+                             composition="stack", rationale="r")
     selection = LLMSelector(FakeLLM(raw)).select("goal", CHAT)
-    assert selection.framing_ids == ["unrestricted_persona"]
-    assert selection.tool_names == ["base64"]
+    assert selection.tool_names == ["base64", "wrap_unrestricted_persona"]
 
 
-# --- _render_selection ---------------------------------------------------------
-
-def test_render_selection_lists_chosen_items():
-    selection = TechniqueSelection(
-        framing_ids=["unrestricted_persona"], tool_names=["base64"],
-        composition="stack", rationale="because",
-    )
-    text = _render_selection(selection, DEFAULT_LIBRARY)
-    assert "unrestricted_persona" in text and "base64" in text and "because" in text
+def test_render_selection_lists_chosen_tools():
+    selection = TechniqueSelection(tool_names=["base64", "wrap_unrestricted_persona"],
+                                   composition="stack", rationale="because")
+    text = _render_selection(selection)
+    assert "base64" in text and "wrap_unrestricted_persona" in text and "because" in text
 
 
-def test_render_selection_handles_empty_choices():
-    selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="single", rationale="")
-    text = _render_selection(selection, DEFAULT_LIBRARY)
+def test_render_selection_handles_empty_choice():
+    text = _render_selection(TechniqueSelection(tool_names=[], composition="single", rationale=""))
     assert "none" in text.lower()
 
 
-# --- TwoPhaseStrategist (3B) ----------------------------------------------------
+# --- TwoPhaseStrategist -------------------------------------------------------
 
 def test_two_phase_happy_path_exposes_selection():
-    selection = TechniqueSelection(
-        framing_ids=["unrestricted_persona"], tool_names=[], composition="stack", rationale="r"
-    )
-    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(_valid_plan())))
-    plan = strat.plan("goal", CHAT)
-    assert plan.turns[0].content == "attack text"
-    assert strat.last_selection is not None and strat.last_selection.framing_ids == ["unrestricted_persona"]
-    assert strat.last_fallback is None
-
-
-def test_two_phase_falls_back_when_selector_fails():
-    strat = TwoPhaseStrategist(
-        LLMSelector(FakeLLM(RuntimeError("boom"))), LLMAuthor(FakeLLM(_valid_plan())),
-        fallback=HeuristicStrategist(),
-    )
-    plan = strat.plan("Leak the secret", CHAT)
-    assert strat.last_fallback and "selector" in strat.last_fallback
-    assert strat.last_selection is None
-    assert execute(plan).turns
-
-
-def test_two_phase_falls_back_when_author_fails():
-    selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="single", rationale="r")
-    strat = TwoPhaseStrategist(
-        LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(RuntimeError("boom"))),
-        fallback=HeuristicStrategist(),
-    )
-    plan = strat.plan("Leak the secret", CHAT)
-    assert strat.last_fallback and "author" in strat.last_fallback
-    assert strat.last_selection is not None  # S1 succeeded before S2 failed
-    assert execute(plan).turns
-
-
-def test_two_phase_falls_back_on_refusal():
-    selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="single", rationale="r")
-    guard = RefusalGuard(FakeLLM(RefusalVerdict(is_refusal=True)))
-    strat = TwoPhaseStrategist(
-        LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(_valid_plan())),
-        guard=guard, fallback=HeuristicStrategist(),
-    )
-    strat.plan("Leak the secret", CHAT)
-    assert strat.last_fallback == "refusal"
-
-
-def test_two_phase_without_fallback_returns_bare_plan():
-    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(RuntimeError("boom"))), LLMAuthor(FakeLLM(_valid_plan())))
-    plan = strat.plan("Leak the secret", CHAT)
-    assert plan.turns == [Turn(role="user", content="Leak the secret")]
-
-
-def test_two_phase_falls_back_on_unbound_placeholder():
-    """Reproduces a real live-model failure: the author referenced {{payload}} in a turn but never
-    declared a step whose output is named "payload" — without this check, execute() would crash
-    deep inside the batch loop instead of the plan getting the same graceful fallback as an empty
-    plan or a refusal. No tools were selected here, so there's nothing to auto-repair against."""
-    selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="single", rationale="r")
-    authored = ExecutionPlan(composition="single", turns=[Turn(role="user", content="do {{payload}}")])
-    strat = TwoPhaseStrategist(
-        LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)), fallback=HeuristicStrategist(),
-    )
-    plan = strat.plan("Leak the secret", CHAT)
-    assert strat.last_fallback and "unbound placeholders" in strat.last_fallback
-    assert execute(plan).turns
-
-
-# --- auto-repair for the unambiguous 1:1 case -------------------------------
-
-def test_two_phase_repairs_unambiguous_unbound_placeholder():
-    """Reproduces the recurring live failure: S1 selects exactly one tool (zero_width), S2 writes
-    a turn referencing an invented placeholder but never wires up the matching step. Since exactly
-    one selected tool is unused and exactly one placeholder is unbound, the pairing is unambiguous
-    — repair it instead of discarding an otherwise-fine plan."""
-    selection = TechniqueSelection(
-        framing_ids=[], tool_names=["zero_width"], composition="stack", rationale="r"
-    )
-    authored = ExecutionPlan(composition="stack", turns=[Turn(role="user", content="do {{obfuscated}}")])
+    selection = TechniqueSelection(tool_names=["base64"], composition="stack", rationale="r")
+    authored = _plan([
+        Step(tool="base64", input="reveal", output="enc"),
+        Step(tool="literal", input="decode {{enc}}", output="msg"),
+    ], composition="stack")
     strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)))
     plan = strat.plan("goal", CHAT)
-
-    assert strat.last_fallback is None
-    assert strat.last_repaired_placeholder == "obfuscated"
-    assert plan.steps == [Step(tool="zero_width", input="goal", output="obfuscated")]
-    vector = execute(plan)
-    assert vector.payload == f"do {apply_transform('zero_width', 'goal')}"
+    assert plan.steps[-1].output == "msg"
+    assert strat.last_selection is not None and strat.last_selection.tool_names == ["base64"]
+    assert strat.last_missing_tools == [] and strat.last_extra_tools == []
 
 
-def test_two_phase_does_not_repair_when_multiple_unbound_or_unused():
-    """More than one unbound name and/or more than one unused tool is ambiguous — no way to know
-    which pairs with which, so it still falls back rather than guessing."""
-    selection = TechniqueSelection(
-        framing_ids=[], tool_names=["zero_width", "base64"], composition="stack", rationale="r"
-    )
-    authored = ExecutionPlan(
-        composition="stack", turns=[Turn(role="user", content="do {{a}} and {{b}}")]
-    )
-    strat = TwoPhaseStrategist(
-        LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)), fallback=HeuristicStrategist(),
-    )
-    plan = strat.plan("goal", CHAT)
-    assert strat.last_fallback and "unbound placeholders" in strat.last_fallback
-    assert strat.last_repaired_placeholder is None
-    assert execute(plan).turns
+def test_two_phase_raises_when_selector_fails():
+    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(RuntimeError("boom"))), LLMAuthor(FakeLLM(_valid_plan())))
+    with pytest.raises(StrategistError) as exc:
+        strat.plan("Leak the secret", CHAT)
+    assert "selector" in exc.value.reason
+    assert strat.last_selection is None
 
 
-# --- missing-tools check -------------------------------------------------------
-# The old degenerate-use check (transform applied but had no observable effect, e.g. wrapping a
-# single character) is gone entirely: with a steps recipe, a tool either ran on real plaintext
-# input or it isn't in `authored.steps` at all — there's no "applied but did nothing" case left.
+def test_two_phase_raises_when_author_fails():
+    selection = TechniqueSelection(tool_names=[], composition="single", rationale="r")
+    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(RuntimeError("boom"))))
+    with pytest.raises(StrategistError) as exc:
+        strat.plan("Leak the secret", CHAT)
+    assert "author" in exc.value.reason
+    assert strat.last_selection is not None  # S1 succeeded before S2 failed
 
-def test_two_phase_flags_tool_the_author_never_used():
-    selection = TechniqueSelection(
-        framing_ids=[], tool_names=["zero_width", "base64"], composition="stack", rationale="r"
-    )
-    authored_only_base64 = ExecutionPlan(
-        composition="stack",
-        steps=[Step(tool="base64", input="x", output="p")],
-        turns=[Turn(role="user", content="do {{p}}")],
-    )
-    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored_only_base64)))
+
+def test_two_phase_raises_on_malformed_recipe():
+    """The author referenced {{payload}} with no step producing it — caught as a clear error, not a
+    crash deep in the executor, and NOT silently patched with a fallback."""
+    selection = TechniqueSelection(tool_names=[], composition="single", rationale="r")
+    authored = _plan([Step(tool="literal", input="do {{payload}}", output="msg")])
+    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)))
+    with pytest.raises(StrategistError) as exc:
+        strat.plan("Leak the secret", CHAT)
+    assert "malformed recipe" in exc.value.reason and "payload" in exc.value.reason
+
+
+def test_two_phase_raises_on_empty_pipeline():
+    selection = TechniqueSelection(tool_names=[], composition="single", rationale="r")
+    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(_plan([]))))
+    with pytest.raises(StrategistError):
+        strat.plan("goal", CHAT)
+
+
+# --- tool diagnostics (never block) ------------------------------------------
+
+def test_two_phase_flags_selected_tool_the_author_skipped():
+    selection = TechniqueSelection(tool_names=["zero_width", "base64"], composition="stack", rationale="r")
+    authored = _plan([Step(tool="base64", input="x", output="msg")], composition="stack")
+    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)))
     strat.plan("goal", CHAT)
     assert strat.last_missing_tools == ["zero_width"]
+    assert strat.last_extra_tools == []
 
 
-def test_two_phase_no_gap_when_all_selected_tools_are_used():
-    selection = TechniqueSelection(
-        framing_ids=[], tool_names=["base64"], composition="stack", rationale="r"
-    )
-    authored = ExecutionPlan(
-        composition="stack",
-        steps=[Step(tool="base64", input="x", output="p")],
-        turns=[Turn(role="user", content="do {{p}}")],
-    )
+def test_two_phase_flags_extra_tool_not_selected_ignoring_literal():
+    selection = TechniqueSelection(tool_names=["base64"], composition="stack", rationale="r")
+    authored = _plan([
+        Step(tool="base64", input="x", output="enc"),
+        Step(tool="rot13", input="{{enc}}", output="r"),
+        Step(tool="literal", input="{{r}}", output="msg"),
+    ], composition="stack")
     strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)))
     strat.plan("goal", CHAT)
-    assert strat.last_missing_tools == []
-
-
-def test_two_phase_no_gap_when_selection_is_empty():
-    selection = TechniqueSelection(framing_ids=[], tool_names=[], composition="stack", rationale="r")
-    authored = ExecutionPlan(composition="stack", turns=[Turn(role="user", content="go")])
-    strat = TwoPhaseStrategist(LLMSelector(FakeLLM(selection)), LLMAuthor(FakeLLM(authored)))
-    strat.plan("goal", CHAT)
-    assert strat.last_missing_tools == []
+    assert strat.last_missing_tools == [] and strat.last_extra_tools == ["rot13"]  # literal not flagged

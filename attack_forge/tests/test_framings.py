@@ -50,8 +50,9 @@ def test_add_and_save_roundtrip(tmp_path):
     assert b is not None and b.score == 0.5 and b.target_tags == ["chat"]
 
 
-def test_menu_includes_all_three_kinds():
+def test_menu_includes_all_tool_kinds():
     menu = render_menu()
-    assert "STRUCTURES" in menu and "TRANSFORMS" in menu and "FRAMINGS" in menu
-    assert "base64" in menu            # a transform
-    assert "unrestricted_persona" in menu  # a framing
+    assert "STRUCTURES" in menu and "TRANSFORMS" in menu and "WRAPPERS" in menu
+    assert "base64" in menu                       # a transform
+    assert "paraphrase" in menu                   # an LLM rewrite tool
+    assert "wrap_unrestricted_persona" in menu    # a framing, now a wrap tool

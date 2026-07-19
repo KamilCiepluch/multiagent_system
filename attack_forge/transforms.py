@@ -2,9 +2,9 @@
 fragment of a payload.
 
 These are the reusable, attack-agnostic core. Each transform is a pure function (trivially
-unit-testable) registered by name in `TRANSFORMS`. The executor invokes them by name when it
-expands inline directives (see `directives.py`); later the same registry can be exposed to a
-tool-calling agent. Growing the toolbox = one entry in `TRANSFORMS`.
+unit-testable) registered by name in `TRANSFORMS`. The executor invokes them by name as pipeline
+steps (see `executor.py`); they share one registry/contract with the LLM-backed tools in
+`llm_tools.py` and `framing_tools.py`. Growing the toolbox = one entry in `TRANSFORMS`.
 """
 
 from __future__ import annotations
@@ -59,6 +59,10 @@ def _morse(text: str) -> str:
     return " ".join(_MORSE.get(ch.upper(), ch) for ch in text)
 
 
+def _literal(text: str) -> str:
+    return text
+
+
 @dataclass(frozen=True)
 class Transform:
     name: str
@@ -70,6 +74,7 @@ class Transform:
 
 
 _ALL: list[Transform] = [
+    Transform("literal", "Pass the text through unchanged — for a fragment that needs no obfuscation.", _literal),
     Transform("base64", "Base64-encode the fragment.", _base64),
     Transform("hex", "Hex-encode the UTF-8 bytes of the fragment.", _hex),
     Transform("rot13", "ROT13 the letters of the fragment.", _rot13),

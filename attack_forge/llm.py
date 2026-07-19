@@ -15,10 +15,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from config import settings  # noqa: E402
 
 
-def build_strategist_llm(*, temperature: float = 0.6, reasoning: bool | None = None):
+def build_strategist_llm(*, model: str | None = None, temperature: float = 0.6, reasoning: bool | None = None):
     from langchain_ollama import ChatOllama
 
-    model = settings.meta_attacker_model or settings.ollama_model
+    model = model or settings.meta_attacker_model or settings.ollama_model
     base_url = settings.meta_attacker_base_url or settings.ollama_base_url
     reason = settings.capture_thinking if reasoning is None else reasoning
 
