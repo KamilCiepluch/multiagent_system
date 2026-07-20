@@ -177,9 +177,16 @@ offline on synthetic traces. **Remaining glue (live):** run the vector through t
    already pin its own `model`; a shared model *list*/registry can come with it.
 7. Target execution + scoring + feedback into the knowledge bases (self-improvement):
    - ✅ 7.1 `target.py::deliver()` — fires a vector at a real target LLM.
-   - 🟡 7.2 Judge — specialized configurable multi-hop judge (`judge.py` + `data/judges.yaml`):
-     per-agent weighted criteria + gates → depth + weighted score. Offline engine + tests done;
-     live delivery (run the vector through the real graph → trace) is the remaining glue.
-   - ⬜ 7.3 Feed results back into the KBs (`score`, new task/framing variations) and a persisted
-     technique-effectiveness ledger (what's known to work per target).
+   - ✅ 7.2 Judge — specialized configurable multi-hop judge (`judge.py` + `data/judges.yaml`):
+     per-agent weighted criteria + gates → depth + weighted score. Offline engine + tests + live
+     delivery (`live.py`: vector → real graph → trace → verdict) done.
+   - 🟡 7.3 Reflection (`reflect.py`) — the arrow back. Rank the judged batch (deterministic, over
+     `Verdict` ground truth), then an analyst LLM distills two channels: `attack_signal` (what the
+     strongest vectors did that the weakest didn't → feeds the next plan; empty on a flat flop) and
+     `defense_insight` (what the target reliably resisted → defense knowledge), plus a `refine/pivot/
+     abandon` recommendation. Wired into `live.py` (printed after the batch summary). The signal is
+     PRODUCED but not yet consumed or persisted.
+   - ⬜ 7.4 Close the loop: feed `attack_signal` into `strategist.plan(feedback=...)` for an adaptive
+     re-plan (short loop), and persist `defense_insight`/`score` into the KBs + a technique-
+     effectiveness ledger — what's known to work per target (long loop).
 ```

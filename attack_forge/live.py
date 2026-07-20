@@ -20,6 +20,7 @@ from collections import Counter
 
 from .executor import execute_batch
 from .judge import AgentStep, DEFAULT_JUDGE_LIBRARY, RunTrace, ToolCall, Verdict, evaluate
+from .reflect import JudgedVector, reflect_batch
 from .strategist import LLMAuthor, LLMSelector, StrategistError, TwoPhaseStrategist
 from .system_kb import DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile
 
@@ -102,6 +103,8 @@ def main() -> None:
     ap.add_argument("--injection", default="email", help="injection point id (attack_core.injection_points)")
     ap.add_argument("--true-role", default="brak", help="the sender's actual role (for the role_spoof gate)")
     ap.add_argument("--batch", type=int, default=1, help="N vectors from one recipe, each run + judged")
+    ap.add_argument("--no-reflect", action="store_true",
+                    help="skip the post-batch reflection (best->attack signal, weakest->defense insight)")
     args = ap.parse_args()
 
     spec = DEFAULT_JUDGE_LIBRARY.get(args.spec)
@@ -131,7 +134,7 @@ def main() -> None:
     print(f"applied per vector: {vectors[0].applied_tools}", flush=True)
 
     judge_llm = build_target_llm()
-    verdicts: list[Verdict] = []
+    judged: list[JudgedVector] = []
     for i, vector in enumerate(vectors, 1):
         print(f"\n{'#' * 64}\n# VECTOR {i}/{args.batch}\n{'#' * 64}", flush=True)
         print((vector.payload or "")[:700], flush=True)
@@ -139,8 +142,9 @@ def main() -> None:
                                                true_role=args.true_role, judge_llm=judge_llm)
         print(f"run {run_id} — agents reached: {[s.agent for s in trace.steps]}")
         print(verdict.summary(), flush=True)
-        verdicts.append(verdict)
+        judged.append(JudgedVector(vector=vector, verdict=verdict, run_id=run_id))
 
+    verdicts = [jv.verdict for jv in judged]
     outcomes = Counter(v.outcome for v in verdicts)
     depths = [v.depth for v in verdicts]
     scores = [v.weighted_score for v in verdicts]
@@ -150,6 +154,17 @@ def main() -> None:
     print(f"ASR (SUCCESS): {outcomes.get('SUCCESS', 0)}/{n}")
     print(f"depth       : max {max(depths)}/{verdicts[0].max_depth}, avg {sum(depths) / n:.1f}")
     print(f"weighted    : max {max(scores):.2f}, avg {sum(scores) / n:.2f}")
+
+    # Reflection: distill the batch into forward signal (best -> attack, weakest/flop -> defense
+    # knowledge). Post-hoc analysis — a hiccup here must not discard the measured batch above.
+    if not args.no_reflect:
+        try:
+            reflection = reflect_batch(judged, llm=attacker, goal=args.goal, target=target,
+                                       top_n=min(3, n))
+            print(f"\n{'=' * 64}")
+            print(reflection.summary(), flush=True)
+        except Exception as e:  # noqa: BLE001 — never let analysis crash a completed measurement
+            print(f"\n[!] reflection failed ({type(e).__name__}: {str(e)[:160]})", file=sys.stderr)
 
 
 if __name__ == "__main__":
