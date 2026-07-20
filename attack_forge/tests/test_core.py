@@ -44,6 +44,14 @@ def test_reverse_and_spaced():
     assert apply_transform("spaced", "abc") == "a b c"
 
 
+def test_homoglyph_swaps_to_confusables_preserving_length():
+    out = apply_transform("homoglyph", "secret code")
+    assert out != "secret code"                 # codepoints differ (defeats byte-level matching)...
+    assert len(out) == len("secret code")       # ...but it's a 1:1 glyph swap, so length is preserved
+    assert apply_transform("homoglyph", "o") == "о"   # Latin 'o' (U+006F) -> Cyrillic 'о' (U+043E)
+    assert apply_transform("homoglyph", "42 -") == "42 -"  # unmapped chars (digits/space/punct) untouched
+
+
 # --- placeholder fill ---------------------------------------------------------
 
 def test_fill_substitutes_known_name():

@@ -17,6 +17,14 @@ from typing import Callable
 _LEET = str.maketrans({"a": "4", "e": "3", "i": "1", "o": "0", "s": "5", "t": "7",
                        "A": "4", "E": "3", "I": "1", "O": "0", "S": "5", "T": "7"})
 
+# Latin -> visually identical Cyrillic/Greek confusables. The rendered glyph is (near-)identical,
+# so the model reads the word normally while a byte-level keyword filter sees different codepoints.
+_HOMOGLYPH = str.maketrans({
+    "a": "а", "c": "с", "e": "е", "i": "і", "j": "ј", "o": "о", "p": "р", "s": "ѕ", "x": "х", "y": "у",
+    "A": "А", "B": "В", "C": "С", "E": "Е", "H": "Н", "I": "І", "J": "Ј", "K": "К", "M": "М",
+    "O": "О", "P": "Р", "S": "Ѕ", "T": "Т", "X": "Х", "Y": "У",
+})
+
 _MORSE = {
     "A": ".-", "B": "-...", "C": "-.-.", "D": "-..", "E": ".", "F": "..-.", "G": "--.",
     "H": "....", "I": "..", "J": ".---", "K": "-.-", "L": ".-..", "M": "--", "N": "-.",
@@ -55,6 +63,10 @@ def _leet(text: str) -> str:
     return text.translate(_LEET)
 
 
+def _homoglyph(text: str) -> str:
+    return text.translate(_HOMOGLYPH)
+
+
 def _morse(text: str) -> str:
     return " ".join(_MORSE.get(ch.upper(), ch) for ch in text)
 
@@ -87,6 +99,7 @@ _ALL: list[Transform] = [
     Transform("spaced", "Insert a space between every character.", _spaced),
     Transform("zero_width", "Insert a zero-width space between characters (defeats string matching).", _zero_width),
     Transform("leet", "Leetspeak substitution (a→4, e→3, ...).", _leet),
+    Transform("homoglyph", "Swap Latin letters for visually identical Unicode confusables (Cyrillic/Greek): reads normally to the model but defeats byte-level keyword matching. Unlike a cipher it is NOT decode-and-refuse.", _homoglyph),
     Transform("morse", "Encode letters/digits as Morse code.", _morse),
 ]
 

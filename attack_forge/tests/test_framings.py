@@ -54,5 +54,17 @@ def test_menu_includes_all_tool_kinds():
     menu = render_menu()
     assert "STRUCTURES" in menu and "TRANSFORMS" in menu and "WRAPPERS" in menu
     assert "base64" in menu                       # a transform
+    assert "homoglyph" in menu                    # the new deterministic transform
     assert "paraphrase" in menu                   # an LLM rewrite tool
     assert "wrap_unrestricted_persona" in menu    # a framing, now a wrap tool
+
+
+def test_new_framings_load_and_become_wrap_tools():
+    """The freshly added framings must parse from the seed YAML and register as wrap_* tools."""
+    from attack_forge.framing_tools import WRAP_TOOLS
+
+    for fid in ("refusal_suppression", "affirmative_prefix", "emotional_appeal",
+                "persuasive_email", "competing_objectives"):
+        assert DEFAULT_LIBRARY.get(fid) is not None, f"{fid} missing from library"
+        assert f"wrap_{fid}" in WRAP_TOOLS, f"wrap_{fid} not built as a tool"
+    assert "wrap_refusal_suppression" in render_menu()

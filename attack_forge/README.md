@@ -46,9 +46,9 @@ but is never used as an automatic fallback.
 
 | kind          | realized as                          | examples                                   |
 |---------------|--------------------------------------|--------------------------------------------|
-| **Transform** | pure `str→str` code (a step)          | literal, base64, hex, rot13, reverse, spaced, morse |
-| **LLM task**  | one LLM call, from a KB entry (a step, non-deterministic) | paraphrase, translate_pl, translate_de, translate_en, insert_noise |
-| **Wrapper / framing** | one LLM call, from a KB entry (a step) — writes a persona/pretext message around the payload | `wrap_unrestricted_persona` (DAN), `wrap_authority_audit`, `wrap_data_smuggle`, ... |
+| **Transform** | pure `str→str` code (a step)          | literal, base64, hex, rot13, reverse, spaced, zero_width, leet, homoglyph, morse |
+| **LLM task**  | one LLM call, from a KB entry (a step, non-deterministic) | paraphrase, translate_pl/de/fr/en, insert_noise, technical_terms, slang |
+| **Wrapper / framing** | one LLM call, from a KB entry (a step) — writes a persona/pretext message around the payload | `wrap_unrestricted_persona` (DAN), `wrap_authority_audit`, `wrap_data_smuggle`, persuasion (`wrap_logical_appeal`/`wrap_evidence_based`/`wrap_expert_endorsement`), output-conditioning (`wrap_refusal_suppression`/`wrap_affirmative_prefix`), `wrap_emotional_appeal`, `wrap_persuasive_email`, `wrap_competing_objectives`, ... |
 
 Transforms live in `transforms.py`. The LLM tasks and framing wrappers are **data, not code**: each
 is one entry in a knowledge base (`data/llm_tasks.yaml`, `data/framings.yaml`) that becomes a named
