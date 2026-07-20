@@ -25,7 +25,7 @@ from .framing_tools import WRAP_TOOLS, build_wrap_tools
 from .llm_provider import ModelProvider, SingleModelProvider, as_provider
 from .placeholders import fill, UnknownPlaceholder
 from .tools import call_tool, known_tool_names, UnknownTool, MissingLLM
-from .executor import execute, execute_batch
+from .executor import execute, execute_batch, execute_steps
 from .framings import Framing, FramingLibrary, DEFAULT_LIBRARY
 from .system_kb import (
     ModelProfile, AgentProfile, SystemProfile, ModelLibrary, SystemLibrary,
@@ -37,10 +37,9 @@ from .judge import (
 )
 from .menu import render_menu
 from .strategist import (
-    Strategist, Selector, Author, StrategistError, pipeline_errors,
-    HeuristicSelector, HeuristicAuthor, HeuristicStrategist,
-    LLMSelector, LLMAuthor, TwoPhaseStrategist,
+    StrategistError, pipeline_errors, LLMSelector, LLMAuthor, make_plan,
 )
+from .lite import build_vector, build_batch
 from .target import TargetResponse, deliver
 
 __all__ = [
@@ -51,14 +50,13 @@ __all__ = [
     "ModelProvider", "SingleModelProvider", "as_provider",
     "fill", "UnknownPlaceholder",
     "call_tool", "known_tool_names", "UnknownTool", "MissingLLM",
-    "execute", "execute_batch",
+    "execute", "execute_batch", "execute_steps",
     "Framing", "FramingLibrary", "DEFAULT_LIBRARY", "render_menu",
     "ModelProfile", "AgentProfile", "SystemProfile", "ModelLibrary", "SystemLibrary",
     "DEFAULT_MODEL_LIBRARY", "DEFAULT_SYSTEM_LIBRARY", "build_target_profile",
     "ToolCall", "AgentStep", "RunTrace", "Criterion", "AgentObjective", "JudgeSpec",
     "CriterionResult", "Verdict", "evaluate", "JudgeLibrary", "DEFAULT_JUDGE_LIBRARY",
-    "Strategist", "Selector", "Author", "StrategistError", "pipeline_errors",
-    "HeuristicSelector", "HeuristicAuthor", "HeuristicStrategist",
-    "LLMSelector", "LLMAuthor", "TwoPhaseStrategist",
+    "StrategistError", "pipeline_errors", "LLMSelector", "LLMAuthor", "make_plan",
+    "build_vector", "build_batch",
     "TargetResponse", "deliver",
 ]

@@ -1,10 +1,10 @@
 """Executor — a deterministic-in-control-flow, attack-agnostic interpreter of an `ExecutionPlan`.
 
-It knows nothing about "attacks": it runs the plan's `steps` in order (binding each result to a
-name, resolving `{{name}}` references to earlier results), and the message delivered to the target
-is the output of the LAST step. All strategy and creativity live upstream in the strategist — the
-executor is the only thing that ever calls a tool, so an already-transformed value can never sneak
-into a step's input.
+It knows nothing about "attacks": it runs the plan's `steps` in order as a LINEAR pipeline. Each
+step's result feeds the next; an EMPTY `input` pipes the previous result straight in, and `{{0}}` /
+`{{prev}}` in an input mix an earlier result with the author's plaintext. The message delivered to
+the target is the output of the LAST step. All strategy lives upstream — the executor is the only
+thing that ever calls a tool, so an already-transformed value can never sneak into a step's input.
 
 Individual steps may be non-deterministic (an LLM-backed task or framing wrapper), which is what
 makes `execute_batch` useful: running the *same* plan N times reuses whatever is fixed (deterministic
@@ -21,23 +21,34 @@ from .placeholders import fill
 from .tools import call_tool
 
 
-def execute(plan: ExecutionPlan, *, provider=None) -> AttackVector:
+def execute_steps(plan: ExecutionPlan, *, provider=None) -> list[str]:
+    """Run the pipeline, returning EVERY step's output in order (the last is the delivered message).
+    Empty input on a non-first step pipes the previous result; otherwise `{{index}}`/`{{prev}}`
+    references are resolved from earlier steps."""
     if not plan.steps:
         raise ValueError("empty plan: a pipeline needs at least one step")
 
-    context: dict[str, str] = {}
-    applied: list[str] = []
-    for step in plan.steps:
-        resolved_input = fill(step.input, context)
-        context[step.output] = call_tool(step.tool, resolved_input, provider=provider)
-        applied.append(step.tool)
+    results: list[str] = []
+    for i, step in enumerate(plan.steps):
+        if not step.input.strip() and i > 0:
+            resolved = results[i - 1]                       # implicit pipe
+        else:
+            context = {str(j): results[j] for j in range(len(results))}
+            if results:
+                context["prev"] = results[-1]
+            resolved = fill(step.input, context)
+        results.append(call_tool(step.tool, resolved, provider=provider))
+    return results
 
-    message = context[plan.steps[-1].output]
+
+def execute(plan: ExecutionPlan, *, provider=None) -> AttackVector:
+    results = execute_steps(plan, provider=provider)
+    message = results[-1]
     return AttackVector(
         composition=plan.composition,
         turns=[Turn(role="user", content=message)],
         payload=message,
-        applied_tools=applied,
+        applied_tools=[step.tool for step in plan.steps],
     )
 
 

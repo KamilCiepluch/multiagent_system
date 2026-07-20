@@ -88,29 +88,34 @@ class Turn(BaseModel):
 
 
 class Step(BaseModel):
-    """One recipe step: run `tool` on `input`, bind the result to `output`.
+    """One recipe step: run `tool` on `input`. The pipeline is LINEAR — by default each step's
+    result feeds the NEXT one, so there is NO name to invent or bind.
 
-    `input` is plaintext the author writes directly — it may embed `{{name}}` referencing an
-    earlier step's `output` (or be a bare literal fragment for the first step in a chain). The
-    author never sees or writes an already-transformed value: the executor is the only thing that
-    ever calls a tool, which is what rules out double-encoding (the author pre-computing a
-    transform itself and pasting the result back in).
+    `input` is plaintext the author writes directly. Leave it EMPTY to pipe the PREVIOUS step's
+    result straight into this tool (the normal case for a wrap_* step). To mix your own plaintext
+    with an earlier step's result, reference it by 0-based index: `{{0}}`, `{{1}}`, or `{{prev}}`.
+    The author never writes an already-transformed value — the executor is the only thing that runs
+    a tool — which rules out both double-encoding and the named-binding mistakes the old
+    (tool, input, output) contract kept hitting (output filled with the value; ref by tool name).
     """
 
     tool: str = Field(description="registered tool name, from the selection's tool_names")
-    input: str = Field(description="plaintext input; may contain {{name}} placeholders")
-    output: str = Field(description="name this step's result is bound to, referenced via {{name}}")
+    input: str = Field(
+        default="",
+        description="plaintext for the tool. EMPTY = pipe the PREVIOUS step's result. May embed "
+                    "{{0}}/{{1}}/{{prev}} to mix an earlier step's result with your own plaintext.",
+    )
 
 
 class ExecutionPlan(BaseModel):
-    """Operations IR: a single ordered pipeline of `steps`. The message delivered to the target is
-    the output of the LAST step, so a valid plan has at least one step (use the `literal` tool for a
-    fragment that needs no transform). Attack-agnostic — the executor just runs the recipe.
+    """Operations IR: a single ordered, LINEAR pipeline of `steps`. The message delivered to the
+    target is the output of the LAST step, so a valid plan has at least one step whose first step is
+    seeded (a non-empty `input`). Attack-agnostic — the executor just runs the recipe.
     """
 
     composition: Composition
     steps: list[Step] = Field(
-        description="ordered tool calls (>=1); the last step's output is the delivered message"
+        description="ordered tool calls (>=1); each feeds the next, the last step's output is the message"
     )
 
 

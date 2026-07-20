@@ -22,7 +22,7 @@ from .executor import execute_batch
 from .judge import AgentStep, DEFAULT_JUDGE_LIBRARY, JudgeSpec, RunTrace, ToolCall, Verdict, evaluate
 from .models import TargetProfile
 from .reflect import BatchReflection, JudgedVector, apply_to_target, reflect_batch
-from .strategist import LLMAuthor, LLMSelector, StrategistError, Strategist, TwoPhaseStrategist
+from .strategist import StrategistError, make_plan
 from .surfaces import SURFACES, Surface, index_for_injection, next_surface
 from .system_kb import DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile
 
@@ -92,18 +92,17 @@ def run_and_judge(payload: str, spec, *, injection_id: str = "email", true_role:
     return run_id, trace, verdict
 
 
-def run_iteration(strategist: Strategist, *, provider, judge_llm, analyst, goal: str,
+def run_iteration(attacker, *, provider, judge_llm, analyst, goal: str,
                   target: TargetProfile, spec: JudgeSpec, injection: str, true_role: str,
                   batch: int, reflect: bool, top_n: int = 3, label: str = "") -> BatchReflection | None:
-    """One full round: plan once -> fire a batch of `batch` vectors -> deliver+judge each -> summary
-    -> (optional) reflection. Returns the reflection (None if skipped or the analyst failed). Raises
-    `StrategistError` if planning fails — the caller decides whether that aborts the loop."""
-    plan = strategist.plan(goal, target)
+    """One full round: plan once (S1->S2) -> fire a batch of `batch` vectors -> deliver+judge each ->
+    summary -> (optional) reflection. Returns the reflection (None if skipped or the analyst failed).
+    Raises `StrategistError` if planning fails — the caller decides whether that aborts the loop."""
+    selection, plan = make_plan(goal, target, attacker)
     vectors = execute_batch(plan, batch, provider=provider)
 
-    sel = getattr(strategist, "last_selection", None)
     print(f"=== PLAN (S1+S2){label} — {batch} vector(s) from ONE recipe ===")
-    print(f"selected tools: {getattr(sel, 'tool_names', None)}")
+    print(f"selected tools: {selection.tool_names}")
     print(f"applied per vector: {vectors[0].applied_tools}", flush=True)
 
     judged: list[JudgedVector] = []
@@ -190,7 +189,6 @@ def main() -> None:
     attacker = build_strategist_llm()
     provider = ModelProvider(lambda model, temperature, reasoning:
                              build_strategist_llm(model=model, temperature=temperature, reasoning=reasoning))
-    strategist = TwoPhaseStrategist(LLMSelector(attacker), LLMAuthor(attacker))
 
     judge_llm = build_target_llm()
 
@@ -202,7 +200,7 @@ def main() -> None:
         label = f" — iteration {it}/{args.iterate}" + (f" [{surface.name}]" if args.pivot else "")
         try:
             reflection = run_iteration(
-                strategist, provider=provider, judge_llm=judge_llm, analyst=attacker, goal=args.goal,
+                attacker, provider=provider, judge_llm=judge_llm, analyst=attacker, goal=args.goal,
                 target=target, spec=spec, injection=surface.injection, true_role=surface.true_role,
                 batch=args.batch, reflect=not args.no_reflect, label=label)
         except StrategistError as e:
