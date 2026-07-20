@@ -186,9 +186,12 @@ offline on synthetic traces. **Remaining glue (live):** run the vector through t
      `defense_insight` (what the target reliably resisted → defense knowledge), plus a `refine/pivot/
      abandon` recommendation. Wired into `live.py` (printed after the batch summary). The signal is
      PRODUCED but not yet consumed or persisted.
-   - 🟡 7.4 Close the loop. SHORT loop DONE: `reflect.apply_to_target` folds each batch's reflection
-     into the target intel the next plan reads (`defense_insight` → `known_defenses`, `attack_signal`
-     → `known_vulnerabilities`, reusing the `--vuln`/`--defense` channel); `live.py --iterate K`
-     re-plans K times and stops early on an `abandon` recommendation. LONG loop (⬜): persist
-     `defense_insight`/`score` ACROSS runs into the KBs + a technique-effectiveness ledger.
+   - 🟡 7.4 Close the loop. SHORT loop DONE — two moves: (1) FINE, within a surface: `reflect.
+     apply_to_target` folds each batch's reflection into the target intel the next plan reads
+     (`defense_insight` → `known_defenses`, `attack_signal` → `known_vulnerabilities`, reusing the
+     `--vuln`/`--defense` channel); (2) COARSE, across surfaces: on a `pivot`/`abandon` reflection,
+     `live.py --pivot` escalates the `surfaces.py` ladder (email → skill → search_result — a Surface
+     bundles injection point + framed agent + judge spec). `--iterate K` drives K rounds and stops on
+     `abandon` (no `--pivot`) or an exhausted ladder. LONG loop (⬜): persist `defense_insight`/`score`
+     ACROSS runs into the KBs + a technique-effectiveness ledger.
 ```

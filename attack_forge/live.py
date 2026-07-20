@@ -23,6 +23,7 @@ from .judge import AgentStep, DEFAULT_JUDGE_LIBRARY, JudgeSpec, RunTrace, ToolCa
 from .models import TargetProfile
 from .reflect import BatchReflection, JudgedVector, apply_to_target, reflect_batch
 from .strategist import LLMAuthor, LLMSelector, StrategistError, Strategist, TwoPhaseStrategist
+from .surfaces import SURFACES, Surface, index_for_injection, next_surface
 from .system_kb import DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile
 
 _ROLE_RE = re.compile(r"rola:\s*(\w+)", re.IGNORECASE)  # \w only — avoids capturing trailing ',' etc.
@@ -157,13 +158,31 @@ def main() -> None:
     ap.add_argument("--iterate", type=int, default=1,
                     help="close the loop: re-plan K times, folding each batch's reflection into the "
                          "target intel the selector reads next (short adaptive loop). Default 1 = no re-plan")
+    ap.add_argument("--pivot", action="store_true",
+                    help="on a pivot/abandon reflection, escalate to the NEXT attack surface "
+                         "(email -> skill -> search_result) instead of only enriching in place")
     args = ap.parse_args()
 
-    spec = DEFAULT_JUDGE_LIBRARY.get(args.spec)
-    if spec is None:
-        ap.error(f"unknown judge spec '{args.spec}'; choose from {[s.id for s in DEFAULT_JUDGE_LIBRARY.list()]}")
     system = DEFAULT_SYSTEM_LIBRARY.get(args.system)
-    target = build_target_profile(system, args.target, DEFAULT_MODEL_LIBRARY)
+
+    # A surface bundles injection point + framed agent + judge spec (switching surface switches all
+    # three). With --pivot the loop climbs the SURFACES ladder starting at the one matching
+    # --injection; without it, the single surface described by the CLI args.
+    if args.pivot:
+        cur_idx = index_for_injection(args.injection)
+        surface = SURFACES[cur_idx]
+    else:
+        cur_idx = -1
+        surface = Surface(name="cli", injection=args.injection, target=args.target,
+                          spec=args.spec, true_role=args.true_role)
+
+    def _resolve(surf: Surface):
+        judge_spec = DEFAULT_JUDGE_LIBRARY.get(surf.spec)
+        if judge_spec is None:
+            ap.error(f"unknown judge spec '{surf.spec}'; choose from {[s.id for s in DEFAULT_JUDGE_LIBRARY.list()]}")
+        return judge_spec, build_target_profile(system, surf.target, DEFAULT_MODEL_LIBRARY)
+
+    spec, target = _resolve(surface)
 
     from .llm import build_strategist_llm, build_target_llm
     from .llm_provider import ModelProvider
@@ -175,16 +194,16 @@ def main() -> None:
 
     judge_llm = build_target_llm()
 
-    # Close the loop: each iteration plans -> fires+judges a batch -> reflects, then folds the
-    # reflection into the target intel the next plan reads (short adaptive loop). --iterate 1 keeps
-    # the old single-shot behavior. Only the best support the next attack (attack_signal), the
-    # weakest/flops harden defense knowledge (defense_insight) — see reflect.apply_to_target.
+    # Close the loop. Each iteration plans -> fires+judges a batch -> reflects. On `refine`, fold the
+    # reflection into the target intel the next plan reads (adapt technique WITHIN the surface). On
+    # `pivot`/`abandon` with --pivot, escalate to the next surface (a fresh target profile) — the
+    # coarse move the reflector keeps asking for when a surface flatly flops. --iterate 1 = single-shot.
     for it in range(1, args.iterate + 1):
-        label = f" — iteration {it}/{args.iterate}" if args.iterate > 1 else ""
+        label = f" — iteration {it}/{args.iterate}" + (f" [{surface.name}]" if args.pivot else "")
         try:
             reflection = run_iteration(
                 strategist, provider=provider, judge_llm=judge_llm, analyst=attacker, goal=args.goal,
-                target=target, spec=spec, injection=args.injection, true_role=args.true_role,
+                target=target, spec=spec, injection=surface.injection, true_role=surface.true_role,
                 batch=args.batch, reflect=not args.no_reflect, label=label)
         except StrategistError as e:
             print(f"[x] strategist failed: {e.reason}", file=sys.stderr)
@@ -192,14 +211,26 @@ def main() -> None:
 
         if reflection is None or it >= args.iterate:
             break
-        if reflection.recommendation == "abandon":
+
+        if args.pivot and reflection.recommendation in ("pivot", "abandon"):
+            nxt = next_surface(cur_idx)
+            if nxt is None:
+                print(f"\n[loop] surface ladder exhausted after '{surface.name}' — stopping.", flush=True)
+                break
+            cur_idx += 1
+            surface = nxt
+            spec, target = _resolve(surface)
+            print(f"\n[loop] '{reflection.recommendation}' -> pivoting surface to '{surface.name}' "
+                  f"(injection={surface.injection}, spec={surface.spec}, target={surface.target})", flush=True)
+        elif reflection.recommendation == "abandon":
             print(f"\n[loop] reflection recommends ABANDON — stopping after iteration {it}.", flush=True)
             break
-        target = apply_to_target(target, reflection)
-        print(f"\n[loop] folded reflection into target intel for iteration {it + 1}:")
-        print(f"       +defense: {reflection.defense_insight[:140]}")
-        if reflection.attack_signal:
-            print(f"       +vuln   : {reflection.attack_signal[:140]}", flush=True)
+        else:
+            target = apply_to_target(target, reflection)
+            print(f"\n[loop] folded reflection into target intel for iteration {it + 1}:")
+            print(f"       +defense: {reflection.defense_insight[:140]}")
+            if reflection.attack_signal:
+                print(f"       +vuln   : {reflection.attack_signal[:140]}", flush=True)
 
 
 if __name__ == "__main__":
