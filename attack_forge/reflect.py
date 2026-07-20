@@ -199,3 +199,20 @@ def reflect_batch(judged: list[JudgedVector], *, llm, goal: str, target: TargetP
         flat_flop=flop,
         best=best,
     )
+
+
+def apply_to_target(target: TargetProfile, reflection: BatchReflection) -> TargetProfile:
+    """Fold this batch's reflection into the target intel the selector reads on the NEXT iteration —
+    the short loop (in-memory, NOT persisted; the effectiveness ledger is roadmap 7.4-long):
+      - `defense_insight` -> `known_defenses` (the selector avoids what is reliably defended),
+      - `attack_signal`   -> `known_vulnerabilities` (it leans into what outperformed).
+    Reuses the exact personalization channel as `--defense`/`--vuln`, so the selector adapts with no
+    change to its contract. Entries are tagged `(learned)` to keep run-derived intel distinguishable
+    from the seeded KB. A flat flop contributes only defense knowledge (attack_signal is empty)."""
+    defenses = list(target.known_defenses)
+    vulns = list(target.known_vulnerabilities)
+    if reflection.defense_insight:
+        defenses.append(f"(learned) {reflection.defense_insight}")
+    if reflection.attack_signal:
+        vulns.append(f"(learned) {reflection.attack_signal}")
+    return target.model_copy(update={"known_defenses": defenses, "known_vulnerabilities": vulns})

@@ -19,9 +19,10 @@ import sys
 from collections import Counter
 
 from .executor import execute_batch
-from .judge import AgentStep, DEFAULT_JUDGE_LIBRARY, RunTrace, ToolCall, Verdict, evaluate
-from .reflect import JudgedVector, reflect_batch
-from .strategist import LLMAuthor, LLMSelector, StrategistError, TwoPhaseStrategist
+from .judge import AgentStep, DEFAULT_JUDGE_LIBRARY, JudgeSpec, RunTrace, ToolCall, Verdict, evaluate
+from .models import TargetProfile
+from .reflect import BatchReflection, JudgedVector, apply_to_target, reflect_batch
+from .strategist import LLMAuthor, LLMSelector, StrategistError, Strategist, TwoPhaseStrategist
 from .system_kb import DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile
 
 _ROLE_RE = re.compile(r"rola:\s*(\w+)", re.IGNORECASE)  # \w only — avoids capturing trailing ',' etc.
@@ -90,6 +91,54 @@ def run_and_judge(payload: str, spec, *, injection_id: str = "email", true_role:
     return run_id, trace, verdict
 
 
+def run_iteration(strategist: Strategist, *, provider, judge_llm, analyst, goal: str,
+                  target: TargetProfile, spec: JudgeSpec, injection: str, true_role: str,
+                  batch: int, reflect: bool, top_n: int = 3, label: str = "") -> BatchReflection | None:
+    """One full round: plan once -> fire a batch of `batch` vectors -> deliver+judge each -> summary
+    -> (optional) reflection. Returns the reflection (None if skipped or the analyst failed). Raises
+    `StrategistError` if planning fails — the caller decides whether that aborts the loop."""
+    plan = strategist.plan(goal, target)
+    vectors = execute_batch(plan, batch, provider=provider)
+
+    sel = getattr(strategist, "last_selection", None)
+    print(f"=== PLAN (S1+S2){label} — {batch} vector(s) from ONE recipe ===")
+    print(f"selected tools: {getattr(sel, 'tool_names', None)}")
+    print(f"applied per vector: {vectors[0].applied_tools}", flush=True)
+
+    judged: list[JudgedVector] = []
+    for i, vector in enumerate(vectors, 1):
+        print(f"\n{'#' * 64}\n# VECTOR {i}/{batch}\n{'#' * 64}", flush=True)
+        print((vector.payload or "")[:700], flush=True)
+        run_id, trace, verdict = run_and_judge(vector.payload, spec, injection_id=injection,
+                                               true_role=true_role, judge_llm=judge_llm)
+        print(f"run {run_id} — agents reached: {[s.agent for s in trace.steps]}")
+        print(verdict.summary(), flush=True)
+        judged.append(JudgedVector(vector=vector, verdict=verdict, run_id=run_id))
+
+    verdicts = [jv.verdict for jv in judged]
+    outcomes = Counter(v.outcome for v in verdicts)
+    depths = [v.depth for v in verdicts]
+    scores = [v.weighted_score for v in verdicts]
+    n = len(verdicts)
+    print(f"\n{'=' * 64}\nBATCH SUMMARY — target=qwen, {n} vector(s), spec={spec.id}\n{'=' * 64}")
+    print(f"outcomes    : {dict(outcomes)}")
+    print(f"ASR (SUCCESS): {outcomes.get('SUCCESS', 0)}/{n}")
+    print(f"depth       : max {max(depths)}/{verdicts[0].max_depth}, avg {sum(depths) / n:.1f}")
+    print(f"weighted    : max {max(scores):.2f}, avg {sum(scores) / n:.2f}")
+
+    if not reflect:
+        return None
+    # Post-hoc analysis — a hiccup here must not discard the measured batch above.
+    try:
+        reflection = reflect_batch(judged, llm=analyst, goal=goal, target=target, top_n=min(top_n, n))
+        print(f"\n{'=' * 64}")
+        print(reflection.summary(), flush=True)
+        return reflection
+    except Exception as e:  # noqa: BLE001 — never let analysis crash a completed measurement
+        print(f"\n[!] reflection failed ({type(e).__name__}: {str(e)[:160]})", file=sys.stderr)
+        return None
+
+
 def main() -> None:
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
@@ -105,6 +154,9 @@ def main() -> None:
     ap.add_argument("--batch", type=int, default=1, help="N vectors from one recipe, each run + judged")
     ap.add_argument("--no-reflect", action="store_true",
                     help="skip the post-batch reflection (best->attack signal, weakest->defense insight)")
+    ap.add_argument("--iterate", type=int, default=1,
+                    help="close the loop: re-plan K times, folding each batch's reflection into the "
+                         "target intel the selector reads next (short adaptive loop). Default 1 = no re-plan")
     args = ap.parse_args()
 
     spec = DEFAULT_JUDGE_LIBRARY.get(args.spec)
@@ -121,50 +173,33 @@ def main() -> None:
                              build_strategist_llm(model=model, temperature=temperature, reasoning=reasoning))
     strategist = TwoPhaseStrategist(LLMSelector(attacker), LLMAuthor(attacker))
 
-    try:
-        plan = strategist.plan(args.goal, target)
-    except StrategistError as e:
-        print(f"[x] strategist failed: {e.reason}", file=sys.stderr)
-        sys.exit(1)
-    vectors = execute_batch(plan, args.batch, provider=provider)
-
-    sel = getattr(strategist, "last_selection", None)
-    print(f"=== PLAN (S1+S2) — {args.batch} vector(s) from ONE recipe ===")
-    print(f"selected tools: {getattr(sel, 'tool_names', None)}")
-    print(f"applied per vector: {vectors[0].applied_tools}", flush=True)
-
     judge_llm = build_target_llm()
-    judged: list[JudgedVector] = []
-    for i, vector in enumerate(vectors, 1):
-        print(f"\n{'#' * 64}\n# VECTOR {i}/{args.batch}\n{'#' * 64}", flush=True)
-        print((vector.payload or "")[:700], flush=True)
-        run_id, trace, verdict = run_and_judge(vector.payload, spec, injection_id=args.injection,
-                                               true_role=args.true_role, judge_llm=judge_llm)
-        print(f"run {run_id} — agents reached: {[s.agent for s in trace.steps]}")
-        print(verdict.summary(), flush=True)
-        judged.append(JudgedVector(vector=vector, verdict=verdict, run_id=run_id))
 
-    verdicts = [jv.verdict for jv in judged]
-    outcomes = Counter(v.outcome for v in verdicts)
-    depths = [v.depth for v in verdicts]
-    scores = [v.weighted_score for v in verdicts]
-    n = len(verdicts)
-    print(f"\n{'=' * 64}\nBATCH SUMMARY — target=qwen, {n} vector(s), spec={args.spec}\n{'=' * 64}")
-    print(f"outcomes    : {dict(outcomes)}")
-    print(f"ASR (SUCCESS): {outcomes.get('SUCCESS', 0)}/{n}")
-    print(f"depth       : max {max(depths)}/{verdicts[0].max_depth}, avg {sum(depths) / n:.1f}")
-    print(f"weighted    : max {max(scores):.2f}, avg {sum(scores) / n:.2f}")
-
-    # Reflection: distill the batch into forward signal (best -> attack, weakest/flop -> defense
-    # knowledge). Post-hoc analysis — a hiccup here must not discard the measured batch above.
-    if not args.no_reflect:
+    # Close the loop: each iteration plans -> fires+judges a batch -> reflects, then folds the
+    # reflection into the target intel the next plan reads (short adaptive loop). --iterate 1 keeps
+    # the old single-shot behavior. Only the best support the next attack (attack_signal), the
+    # weakest/flops harden defense knowledge (defense_insight) — see reflect.apply_to_target.
+    for it in range(1, args.iterate + 1):
+        label = f" — iteration {it}/{args.iterate}" if args.iterate > 1 else ""
         try:
-            reflection = reflect_batch(judged, llm=attacker, goal=args.goal, target=target,
-                                       top_n=min(3, n))
-            print(f"\n{'=' * 64}")
-            print(reflection.summary(), flush=True)
-        except Exception as e:  # noqa: BLE001 — never let analysis crash a completed measurement
-            print(f"\n[!] reflection failed ({type(e).__name__}: {str(e)[:160]})", file=sys.stderr)
+            reflection = run_iteration(
+                strategist, provider=provider, judge_llm=judge_llm, analyst=attacker, goal=args.goal,
+                target=target, spec=spec, injection=args.injection, true_role=args.true_role,
+                batch=args.batch, reflect=not args.no_reflect, label=label)
+        except StrategistError as e:
+            print(f"[x] strategist failed: {e.reason}", file=sys.stderr)
+            sys.exit(1)
+
+        if reflection is None or it >= args.iterate:
+            break
+        if reflection.recommendation == "abandon":
+            print(f"\n[loop] reflection recommends ABANDON — stopping after iteration {it}.", flush=True)
+            break
+        target = apply_to_target(target, reflection)
+        print(f"\n[loop] folded reflection into target intel for iteration {it + 1}:")
+        print(f"       +defense: {reflection.defense_insight[:140]}")
+        if reflection.attack_signal:
+            print(f"       +vuln   : {reflection.attack_signal[:140]}", flush=True)
 
 
 if __name__ == "__main__":

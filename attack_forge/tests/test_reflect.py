@@ -6,7 +6,8 @@ from __future__ import annotations
 from attack_forge.judge import Verdict
 from attack_forge.models import AttackVector, TargetProfile, Turn
 from attack_forge.reflect import (
-    JudgedVector, ReflectionNarrative, is_flat_flop, plan_quality, rank_batch, reflect_batch, select_best,
+    BatchReflection, JudgedVector, ReflectionNarrative, apply_to_target, is_flat_flop, plan_quality,
+    rank_batch, reflect_batch, select_best,
 )
 
 
@@ -90,3 +91,26 @@ def test_reflect_raises_on_empty_batch():
     import pytest
     with pytest.raises(ValueError):
         reflect_batch([], llm=_FakeLLM(None), goal="g", target=_TARGET)
+
+
+# --- apply_to_target: the short-loop fold (best->vuln, defense_insight->defense) --------------
+
+def test_apply_to_target_folds_both_channels_without_mutating():
+    base = TargetProfile(name="email_agent", description="d", channel="email body", model="qwen3.6:27b",
+                         known_defenses=["role lookup"], known_vulnerabilities=["latent injection"])
+    refl = BatchReflection(plan_quality="mixed", attack_signal="blend the ask in plain text",
+                           defense_insight="flags encoded blobs on the email surface",
+                           recommendation="refine", rationale="r", flat_flop=False)
+    out = apply_to_target(base, refl)
+    assert out is not base and base.known_defenses == ["role lookup"]          # original untouched
+    assert "(learned) flags encoded blobs on the email surface" in out.known_defenses
+    assert "(learned) blend the ask in plain text" in out.known_vulnerabilities
+
+
+def test_apply_to_target_flop_adds_only_defense_knowledge():
+    base = TargetProfile(name="t", description="d", channel="chat")
+    refl = BatchReflection(plan_quality="weak", attack_signal="", defense_insight="resists this whole class",
+                           recommendation="abandon", rationale="r", flat_flop=True)
+    out = apply_to_target(base, refl)
+    assert out.known_defenses == ["(learned) resists this whole class"]
+    assert out.known_vulnerabilities == []                                     # no attack_signal on a flop
