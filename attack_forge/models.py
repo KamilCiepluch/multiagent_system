@@ -50,6 +50,12 @@ class TargetProfile(BaseModel):
     model_resistant_to: list[str] = Field(
         default_factory=list, description="techniques the model is known to resist — avoid these"
     )
+    notes: str = Field(
+        default="",
+        description="free-text KB guidance (agent + model notes): surface-dependent caveats the "
+                    "lists can't capture — e.g. a technique that helps in chat but BACKFIRES on the "
+                    "execution surface. The selector must read this before choosing tools.",
+    )
 
 
 class TechniqueSelection(BaseModel):

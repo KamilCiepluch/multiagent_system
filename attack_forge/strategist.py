@@ -58,7 +58,10 @@ class Author(ABC):
     """S2: writes the recipe (a steps pipeline) using the tools a Selector chose."""
 
     @abstractmethod
-    def author(self, goal: str, target: TargetProfile, selection: TechniqueSelection) -> ExecutionPlan: ...
+    def author(self, goal: str, target: TargetProfile, selection: TechniqueSelection,
+               feedback: str | None = None) -> ExecutionPlan:
+        """`feedback` (optional) is the validation error from a previous rejected attempt — the
+        author should fix exactly that. This is a retry of the real LLM, NOT a canned fallback."""
 
 
 def _render_target(p: TargetProfile) -> str:
@@ -73,6 +76,10 @@ def _render_target(p: TargetProfile) -> str:
         lines.append("model vulnerabilities (lean in): " + ", ".join(p.model_vulnerabilities))
     if p.model_resistant_to:
         lines.append("model resists (AVOID — known ineffective): " + ", ".join(p.model_resistant_to))
+    if p.notes:
+        lines.append(
+            "SURFACE-DEPENDENT GUIDANCE (read BEFORE choosing tools — a technique can help in chat "
+            "yet BACKFIRE on this surface):\n" + p.notes)
     if p.system:
         lines.append("\n" + p.system)
     return "\n".join(lines)
@@ -127,7 +134,8 @@ class HeuristicAuthor(Author):
     def __init__(self, library: FramingLibrary = DEFAULT_LIBRARY):
         self._library = library
 
-    def author(self, goal: str, target: TargetProfile, selection: TechniqueSelection) -> ExecutionPlan:
+    def author(self, goal: str, target: TargetProfile, selection: TechniqueSelection,
+               feedback: str | None = None) -> ExecutionPlan:
         framing = _pick_framing(self._library, target)
         base = (framing.examples[0] if framing and framing.examples else framing.intent) if framing else ""
         content = _embed(base, goal) if base else goal
@@ -252,10 +260,19 @@ class LLMAuthor(Author):
         self._structured = llm.with_structured_output(ExecutionPlan, method="json_schema")
         self._library = library
 
-    def author(self, goal: str, target: TargetProfile, selection: TechniqueSelection) -> ExecutionPlan:
+    def author(self, goal: str, target: TargetProfile, selection: TechniqueSelection,
+               feedback: str | None = None) -> ExecutionPlan:
         messages = _AUTHOR_PROMPT.format_messages(
             goal=goal, target=_render_target(target), selection=_render_selection(selection),
         )
+        if feedback:
+            from langchain_core.messages import HumanMessage
+            messages = list(messages) + [HumanMessage(content=(
+                f"YOUR PREVIOUS RECIPE WAS REJECTED: {feedback}. Fix exactly that. Remember: each "
+                "step's `output` is a SHORT name you invent (e.g. p1, enc) — NOT the transformed "
+                "text; and every {{name}} in a step's `input` must exactly match the `output` of an "
+                "EARLIER step."
+            ))]
         return self._structured.invoke(messages)
 
 
@@ -263,17 +280,20 @@ class TwoPhaseStrategist(Strategist):
     """S1 Selector decides WHAT, S2 Author decides the recipe. Raises `StrategistError` on any
     failure — no fallback, no auto-repair (see module docstring)."""
 
-    def __init__(self, selector: Selector, author: Author):
+    def __init__(self, selector: Selector, author: Author, *, author_retries: int = 2):
         self._selector = selector
         self._author = author
+        self._author_retries = author_retries
         self.last_selection: TechniqueSelection | None = None
         self.last_missing_tools: list[str] = []
         self.last_extra_tools: list[str] = []
+        self.last_author_attempts: int = 0
 
     def plan(self, goal: str, target: TargetProfile) -> ExecutionPlan:
         self.last_selection = None
         self.last_missing_tools = []
         self.last_extra_tools = []
+        self.last_author_attempts = 0
 
         try:
             selection = self._selector.select(goal, target)
@@ -281,15 +301,27 @@ class TwoPhaseStrategist(Strategist):
             raise StrategistError(f"selector failed: {type(e).__name__}: {str(e)[:160]}") from e
         self.last_selection = selection
 
-        try:
-            plan = self._author.author(goal, target, selection)
-        except Exception as e:
-            raise StrategistError(f"author failed: {type(e).__name__}: {str(e)[:160]}") from e
+        # Retry the author (a real LLM retry, NOT a canned fallback) with the validation error as
+        # corrective feedback — an occasional naming slip shouldn't abort the whole run / loop.
+        plan = None
+        feedback: str | None = None
+        for attempt in range(self._author_retries + 1):
+            self.last_author_attempts = attempt + 1
+            try:
+                candidate = self._author.author(goal, target, selection, feedback=feedback)
+            except Exception as e:
+                feedback = f"author raised {type(e).__name__}: {str(e)[:160]}"
+                continue
+            errors = pipeline_errors(candidate)
+            if not errors:
+                plan = candidate
+                break
+            feedback = "malformed recipe: " + "; ".join(errors)
+            log.warning("author attempt %d rejected (%s)", attempt + 1, feedback)
 
-        errors = pipeline_errors(plan)
-        if errors:
-            log.warning("author's malformed plan: %s", plan.model_dump_json())
-            raise StrategistError("author produced a malformed recipe: " + "; ".join(errors))
+        if plan is None:
+            raise StrategistError(
+                f"author failed after {self._author_retries + 1} attempts: {feedback}")
 
         self.last_missing_tools, self.last_extra_tools = self._tool_diff(selection, plan)
         return plan

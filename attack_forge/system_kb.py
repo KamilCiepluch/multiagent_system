@@ -103,6 +103,16 @@ def build_target_profile(system: SystemProfile, agent_name: str, models: ModelLi
     if agent is None:
         raise KeyError(agent_name)
     model = models.get(agent.model)
+
+    # Carry the free-text notes forward — this is where the SURFACE-DEPENDENT guidance lives (e.g.
+    # "ascii helps in chat but backfires on the execution surface"), which the lists can't express
+    # and which the selector was previously never shown.
+    notes_parts: list[str] = []
+    if agent.notes:
+        notes_parts.append(f"agent — {agent.notes.strip()}")
+    if model and model.notes:
+        notes_parts.append(f"model ({agent.model}) — {model.notes.strip()}")
+
     return TargetProfile(
         name=agent.name,
         description=agent.role,
@@ -113,6 +123,7 @@ def build_target_profile(system: SystemProfile, agent_name: str, models: ModelLi
         model=agent.model,
         model_vulnerabilities=(model.vulnerabilities if model else []),
         model_resistant_to=(model.resistant_to if model else []),
+        notes="\n".join(notes_parts),
     )
 
 
