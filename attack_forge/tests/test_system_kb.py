@@ -86,6 +86,8 @@ def test_real_terminal_agent_surfaces_execution_guidance_to_selector():
     # the empirical 'do NOT encode on the execution surface; blend plain-text' lesson must now reach S1
     assert "SURFACE-DEPENDENT GUIDANCE" in rendered
     assert "plain" in rendered.lower() and "backfire" in rendered.lower()
+    # ...and the positive steer: persuasion is a dead end here, prefer the routine-step framing.
+    assert "wrap_routine_step" in rendered
 
 
 def test_real_gpt_oss_profile_has_vulns_and_resistances():

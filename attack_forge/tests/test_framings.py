@@ -64,7 +64,8 @@ def test_new_framings_load_and_become_wrap_tools():
     from attack_forge.framing_tools import WRAP_TOOLS
 
     for fid in ("refusal_suppression", "affirmative_prefix", "emotional_appeal",
-                "persuasive_email", "competing_objectives"):
+                "persuasive_email", "competing_objectives", "routine_step"):
         assert DEFAULT_LIBRARY.get(fid) is not None, f"{fid} missing from library"
         assert f"wrap_{fid}" in WRAP_TOOLS, f"wrap_{fid} not built as a tool"
     assert "wrap_refusal_suppression" in render_menu()
+    assert "wrap_routine_step" in render_menu()
