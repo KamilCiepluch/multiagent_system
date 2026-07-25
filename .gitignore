@@ -1,0 +1,23 @@
+.env
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.idea
+.vscode
+.claude/
+
+# Artefakty przebiegów AutoDAN-Turbo (biblioteka strategii + logi JSON)
+autodan_turbo/logs/
+
+# Raporty/hitlogi/HTML z skanów Garak (vuln_recon) — surowe artefakty, nie do repo
+vuln_recon/logs/
+
+# Klon oryginalnego AutoDAN-Turbo (cudze repo, tylko do testów referencyjnych)
+external/
+
+# Dumpy trace'ów z debugowania
+trace*.txt
+
+# Samodzielny stand do testów zdalnego proxy Ollamy (Bearer) — niezależny od repo, może mieć sekrety
+ollama_bearer_test/

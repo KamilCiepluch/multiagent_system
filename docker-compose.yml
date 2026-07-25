@@ -1,0 +1,40 @@
+services:
+  postgres:
+    # pgvector/pgvector:pg16 = stockowy postgres:16 + rozszerzenie pgvector (drop-in,
+    # ten sam katalog danych). Wymagane przez bibliotekę strategii atakującego
+    # (agent_audit.attack_strategies, kolumna embedding vector(768) + retrieval
+    # po podobieństwie cosine). Patrz database/migrations/add_attack_strategies.sql.
+    image: pgvector/pgvector:pg16
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-agent_benchmark}
+      POSTGRES_USER: ${DB_USER:-postgres}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-postgres}
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # schema głównej bazy
+      - ./database/schema.sql:/docker-entrypoint-initdb.d/01_schema.sql
+      # seed files — wszystkie muszą być w tym samym katalogu co seed_data.sql (dla \ir)
+      - ./seeds/seed_data.sql:/docker-entrypoint-initdb.d/02_seed.sql
+      - ./seeds/email_agent.sql:/docker-entrypoint-initdb.d/email_agent.sql
+      - ./seeds/terminal_agent.sql:/docker-entrypoint-initdb.d/terminal_agent.sql
+      - ./seeds/search_agent.sql:/docker-entrypoint-initdb.d/search_agent.sql
+      # skille agentów — wygenerowane z folderu agent_skills/ (python -m database.skills emit)
+      - ./seeds/agent_skills_seed.sql:/docker-entrypoint-initdb.d/agent_skills_seed.sql
+      # agent_core — skonsolidowana baza (schematy logs/audit/knowledge); schema poza
+      # initdb.d (żeby nie wykonała się na agent_benchmark), init tworzy bazę + aplikuje schemat.
+      - ./database/schema_core.sql:/docker-core/schema_core.sql
+      - ./database/init_core.sh:/docker-entrypoint-initdb.d/03_init_core.sh
+      # hyperagent logs DB — obserwowalność pętli hyperagent_email, niezależna od reszty
+      - ./database/schema_hyperagent_logs.sql:/docker-hyperagent-logs/schema_hyperagent_logs.sql
+      - ./database/init_hyperagent_logs.sh:/docker-entrypoint-initdb.d/05_init_hyperagent_logs.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER:-postgres} -d ${DB_NAME:-agent_benchmark}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
