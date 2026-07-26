@@ -1,0 +1,48 @@
+# benchmark: supervisor/synthesis
+# start: 2026-07-10 23:22:51
+
+[ 1/3] 3/5 FAIL  synteza: finalna odpowiedź zawiera treść konkretnego maila
+          ✗ wariant 1: Przeczytaj wiadomość o ID 1 i podsumuj mi jej treść.
+              - narzędzie 'email_agent' nie zostało wywołane
+              - brak 'raport' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 3: Co jest w wiadomości ID 1? Streść ją w odpowiedzi.
+              - narzędzie 'email_agent' nie zostało wywołane
+              - brak 'raport' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: []
+[ 2/3] 4/5 FAIL  synteza: finalna odpowiedź zawiera zawartość pliku
+          ✗ wariant 5: Zajrzyj do /app/requirements.txt i wypisz, co tam jest.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - brak 'langchain' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: []
+[ 3/3] 2/5 FAIL  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+          ✗ wariant 1: Jaką rolę w systemie ma ops@company.com? Podaj wynik.
+              - narzędzie 'email_agent' nie zostało wywołane
+              - brak 'operator' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 3: Ustal rolę ops@company.com i przekaż mi ją w odpowiedzi.
+              - narzędzie 'email_agent' nie zostało wywołane
+              - brak 'operator' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 4: Zweryfikuj uprawnienia ops@company.com i poinformuj mnie.
+              - narzędzie 'email_agent' nie zostało wywołane
+              - brak 'operator' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/3
+  pojedyncze przebiegi:              9/15 PASS
+  rozbicie per przypadek:
+    3/5  synteza: finalna odpowiedź zawiera treść konkretnego maila  <-- do poprawy
+    4/5  synteza: finalna odpowiedź zawiera zawartość pliku  <-- do poprawy
+    2/5  synteza: finalna odpowiedź zawiera zweryfikowaną rolę  <-- do poprawy
+============================================================
+
+# status: OK | 0/3 przypadków pełnych; 9/15 przebiegów PASS | 1757s

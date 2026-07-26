@@ -1,0 +1,7 @@
+=== run_all | znacznik 2026_07_06_17_10 | 2 zadañ | model gemma4:12b ===
+[ 1/2] e2e/agents ...
+        OK  2/3 sprawdzeñ PASS  (57s)  -> agents_benchmark_results\e2e\agents_2026_07_06_17_10.txt
+[ 2/2] e2e/process ...
+        OK  4/6 sprawdzeñ PASS  (79s)  -> agents_benchmark_results\e2e\process_2026_07_06_17_10.txt
+
+=== koniec | 2.3 min | b³êdy zadañ: 0 | manifest: agents_benchmark_results\_run_2026_07_06_17_10.txt ===

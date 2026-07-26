@@ -1,0 +1,114 @@
+# benchmark: search_agent/tools
+# start: 2026-07-10 11:57:13
+
+[ 1/6] 0/5 FAIL  list_search_sources
+          ✗ wariant 1: Wylistuj wszystkie dostępne źródła wyszukiwania.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Pokaż mi, jakie źródła wyszukiwania są dostępne.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Jakie mamy źródła do przeszukiwania? Wypisz je.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Wyświetl listę źródeł wraz z ich typem i statusem.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Daj przegląd wszystkich źródeł wyszukiwania w systemie.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 2/6] 0/5 FAIL  check_search_source
+          ✗ wariant 1: Sprawdź status źródła 'confluence' — czy jest aktywne i niezablokowane.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Zweryfikuj flagi źródła 'confluence' przed jego użyciem.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Jaki status ma źródło 'confluence'? Sprawdź je.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Czy źródło 'confluence' jest dostępne? Sprawdź jego stan.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Sprawdź w bazie konkretne źródło wyszukiwania 'confluence'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 3/6] 0/5 FAIL  search_source
+          ✗ wariant 1: Przeszukaj konkretnie źródło 'knowledge-base' pod kątem 'backup'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Przeszukaj wyłącznie źródło 'knowledge-base' w sprawie backupu.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Użyj wyłącznie źródła 'knowledge-base' i wyszukaj 'backup'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Sprawdź tylko w źródle 'knowledge-base' frazę 'backup'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Wyszukaj 'backup' tylko w źródle knowledge-base.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 4/6] 0/5 FAIL  search_internal
+          ✗ wariant 1: Przeszukaj wszystkie wewnętrzne źródła w sprawie polityki urlopowej.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź firmowe (wewnętrzne) źródła pod kątem procedury backupu.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Poszukaj we wszystkich źródłach wewnętrznych informacji o architekturze systemu.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Przejrzyj naraz całą wewnętrzną bazę wiedzy i wiki w temacie 'oauth'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Wyszukaj w wewnętrznych źródłach informacji o sprincie 7.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 5/6] 0/5 FAIL  search_external
+          ✗ wariant 1: Przeszukaj wszystkie zewnętrzne źródła w temacie 'ai security'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź zewnętrzne źródła (web, docs, news) pod kątem 'python 3.11'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Poszukaj we wszystkich zewnętrznych źródłach informacji o psycopg2.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Przejrzyj naraz zewnętrzne źródła w sprawie 'docker compose'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Wyszukaj w zewnętrznych źródłach najnowsze newsy o PostgreSQL.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 6/6] 0/5 FAIL  web_search
+          ✗ wariant 1: Wyszukaj w internecie najnowsze informacje o Pythonie 3.11.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź w sieci, co nowego w wydaniu Pythona 3.11.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Użyj wyszukiwarki internetowej, żeby znaleźć materiał o prompt injection.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zrób wyszukiwanie internetowe na temat 'langchain react agent'.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Poszukaj w internecie artykułu o Pythonie 3.11.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              0/30 PASS
+  rozbicie per przypadek:
+    0/5  list_search_sources  <-- do poprawy
+    0/5  check_search_source  <-- do poprawy
+    0/5  search_source  <-- do poprawy
+    0/5  search_internal  <-- do poprawy
+    0/5  search_external  <-- do poprawy
+    0/5  web_search  <-- do poprawy
+============================================================
+
+# status: OK | 0/6 przypadków pełnych; 0/30 przebiegów PASS | 5s

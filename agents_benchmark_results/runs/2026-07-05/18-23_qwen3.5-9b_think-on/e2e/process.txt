@@ -1,0 +1,8 @@
+# benchmark: e2e/process
+# start: 2026-07-05 23:17:01
+
+
+FAZA B — pełny przepływ supervisora
+------------------------------------------------------------
+
+# status: ERROR | wyjątek (traceback powyżej) | 152s

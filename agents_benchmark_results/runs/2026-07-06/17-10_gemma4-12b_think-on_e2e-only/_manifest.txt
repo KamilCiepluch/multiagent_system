@@ -1,0 +1,4 @@
+run_all | 2026_07_06_17_10 | model gemma4:12b | 2 zadań | 2.3 min
+------------------------------------------------------------------------
+OK    e2e/agents               2/3 sprawdzeń PASS  (57s)  agents_2026_07_06_17_10.txt
+OK    e2e/process              4/6 sprawdzeń PASS  (79s)  process_2026_07_06_17_10.txt

@@ -1,0 +1,52 @@
+# benchmark: search_agent/tools
+# start: 2026-07-05 18:23:39
+
+[ 1/6] 5/5 PASS  list_search_sources
+[ 2/6] 5/5 PASS  check_search_source
+[ 3/6] 4/5 FAIL  search_source
+          ✗ wariant 3: Użyj wyłącznie źródła 'knowledge-base' i wyszukaj 'backup'.
+              - narzędzie 'search_source' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 4/6] 4/5 FAIL  search_internal
+          ✗ wariant 2: Sprawdź firmowe (wewnętrzne) źródła pod kątem procedury backupu.
+              - narzędzie 'search_internal' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 5/6] 4/5 FAIL  search_external
+          ✗ wariant 1: Przeszukaj wszystkie zewnętrzne źródła w temacie 'ai security'.
+              - narzędzie 'search_external' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 6/6] 1/5 FAIL  web_search
+          ✗ wariant 2: Sprawdź w sieci, co nowego w wydaniu Pythona 3.11.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'list_search_sources', 'search_external', 'list_search_sources', 'search_source', 'search_source', 'search_source', 'search_source', 'search_source', 'search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'search_internal', 'search_external', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source', 'check_search_source', 'search_source']
+          ✗ wariant 3: Użyj wyszukiwarki internetowej, żeby znaleźć materiał o prompt injection.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'check_search_source', 'search_external', 'search_internal', 'search_external', 'search_internal', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external', 'search_external']
+          ✗ wariant 4: Zrób wyszukiwanie internetowe na temat 'langchain react agent'.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: ## Wyniki Wyszukiwania: 'langchain react agent' Nie znaleziono żadnych trafnych informacji na temat **`langchain react agent`** w przeszukanych źródłach zewnętrznych: | Źródło | Status wyniku | Komentarz | |--------|---------------|-----------| | **[news-feed]** (aktualności branżowe) | Brak wiadomości | Nie ma ostatnich informacji dla tego tematu. | | **[tech-docs]** (dokumentacja techniczna) | B
+              narzędzia: ['list_skills', 'check_search_source', 'search_external']
+          ✗ wariant 5: Poszukaj w internecie artykułu o Pythonie 3.11.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: Przepraszam, ale po przeszukaniu wszystkich dostępnych źródeł (wewnętrzne i zewnętrzne) **nie udało mi się znaleźć artykułu ani dokumentacji dotyczącej Pythona 3.11**. ## Wyniki wyszukiwania: | Źródło | Status wyniku | |--------|---------------| | **web** (zewnętrzne - ogólne wyszukiwanie internetowe) | Brak trafnych wyników dla zapytań o "Python 3.11", "Python 3.12 features" itp. | | **tech-docs*
+              narzędzia: ['list_skills', 'list_search_sources', 'search_external', 'search_internal', 'search_external', 'search_external', 'check_search_source', 'search_external', 'search_internal']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 2/6
+  pojedyncze przebiegi:              23/30 PASS
+  rozbicie per przypadek:
+    5/5  list_search_sources
+    5/5  check_search_source
+    4/5  search_source  <-- do poprawy
+    4/5  search_internal  <-- do poprawy
+    4/5  search_external  <-- do poprawy
+    1/5  web_search  <-- do poprawy
+============================================================
+
+# status: OK | 2/6 przypadków pełnych; 23/30 przebiegów PASS | 497s

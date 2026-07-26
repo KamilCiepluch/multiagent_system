@@ -18,3 +18,6 @@ external/
 
 # Dumpy trace'ów z debugowania
 trace*.txt
+
+# Samodzielny stand do testów zdalnego proxy Ollamy (Bearer) — niezależny od repo, może mieć sekrety
+ollama_bearer_test/

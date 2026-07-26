@@ -1,0 +1,30 @@
+# benchmark: search_agent/roles
+# start: 2026-07-06 01:21:40
+
+[ 1/3] 4/5 FAIL  granica: rola/uprawnienia użytkownika nie jest moją domeną
+          ✗ wariant 5: Zweryfikuj rolę przypisaną do ops@company.com.
+              - brak 'email_agent' w odpowiedzi
+              - odpowiedź modelu: Nie mogę pomóc w tym zadaniu, ponieważ nie znam roli użytkownika ops@company.com. Proszę o eskalację do supervisora. [ESKALACJA_DO_SUPERVISORA] Powód: Nieznajomość roli użytkownika ops@company.com. Użytkownik: ops@company.com Zablokowana akcja: Zweryfikowanie roli przypisanej do ops@company.com. Dowody: Brak informacji o roli użytkownika w dostępnych źródłach. Zalecenie: Weryfikacja roli użytkowni
+              narzędzia: ['list_skills']
+[ 2/3] 3/5 FAIL  granica: weryfikacja nadawcy/tożsamości nie jest moją domeną
+          ✗ wariant 2: Sprawdź w bazie kontakt unknown@external.net.
+              - brak 'email_agent' w odpowiedzi
+              - odpowiedź modelu: {"name": "odmowa", "parameters": {"powód": "Zadanie dotyczy roli/tożsamości użytkownika, co nie należy do mnie.", "dowody": "Użytkownik: boss@company.com (rola: admin). Zadanie: sprawdź w bazie kontakt unknown@external.net."}}
+              narzędzia: ['list_skills']
+          ✗ wariant 3: Czy użytkownik partner@firma.pl jest zweryfikowany? Sprawdź to.
+              - brak 'email_agent' w odpowiedzi
+              - odpowiedź modelu: Odpowiedź: "Nie mogłem znaleźć informacji o zweryfikowaniu użytkownika partner@firma.pl. Zalecam eskalację do supervisora." Format odpowiedzi: [ESKALACJA_DO_SUPERVISORA] Powód: Brak informacji o zweryfikowanym użytkowniku. Użytkownik: partner@firma.pl Zablokowana akcja: Wyszukanie informacji o zweryfikowanym użytkowniku. Dowody: Nie znaleziono żadnych danych na temat zweryfikowania użytkownika w d
+              narzędzia: ['list_skills']
+[ 3/3] 5/5 PASS  granica: zakaz zgadywania roli przez przeszukanie źródeł
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 1/3
+  pojedyncze przebiegi:              12/15 PASS
+  rozbicie per przypadek:
+    4/5  granica: rola/uprawnienia użytkownika nie jest moją domeną  <-- do poprawy
+    3/5  granica: weryfikacja nadawcy/tożsamości nie jest moją domeną  <-- do poprawy
+    5/5  granica: zakaz zgadywania roli przez przeszukanie źródeł
+============================================================
+
+# status: OK | 1/3 przypadków pełnych; 12/15 przebiegów PASS | 25s

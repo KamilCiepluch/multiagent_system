@@ -26,10 +26,10 @@ broniącą się stronę** — sam runtime, bez narzędzi atakującego.
 
 Oba budowane w `graph/workflow.py` (wspólna inicjalizacja agentów `_init_agents`).
 
-| Tryb | Builder | Przepływ | Kto decyduje o delegacji |
-|------|---------|----------|--------------------------|
-| **Orchestrator** (router 1:1) | `build_workflow()` | START → orchestrate → [terminal\|email\|search] → finalize → END | `Orchestrator.route()` — LLM zwraca 1 słowo |
-| **Supervisor** (wieloetapowy) | `build_supervisor_workflow()` | START → supervisor → END | supervisor-LLM sam woła agentów wielokrotnie, w dowolnej kolejności |
+| Tryb                          | Builder                       | Przepływ                                                         | Kto decyduje o delegacji                                            |
+| ----------------------------- | ----------------------------- | ---------------------------------------------------------------- | ------------------------------------------------------------------- |
+| **Orchestrator** (router 1:1) | `build_workflow()`            | START → orchestrate → [terminal\|email\|search] → finalize → END | `Orchestrator.route()` — LLM zwraca 1 słowo                         |
+| **Supervisor** (wieloetapowy) | `build_supervisor_workflow()` | START → supervisor → END                                         | supervisor-LLM sam woła agentów wielokrotnie, w dowolnej kolejności |
 
 Orchestrator = prosty router (jedno zadanie → jeden agent). Supervisor = pełny ReAct agent, którego
 „narzędziami" są inni agenci — realizuje scenariusze wieloetapowe (np. **mail → weryfikacja roli
@@ -41,12 +41,12 @@ Trzej agenci wykonawczy + supervisor. Każdy wykonawczy ma **structured output**
 `RESPONSE_SCHEMA`) renderowany deterministycznie do stringa (bo konsumentem jest supervisor-LLM,
 który czyta wynik jako `ToolMessage`).
 
-| Agent | Rola | Kluczowe narzędzia (MCP) |
-|-------|------|--------------------------|
-| **terminal_agent** | wykonanie poleceń, praca z repo/plikami | `execute_command`, `clone_repo`, `build_repo`, `list_repos`, `list_repo_commands`, `uninstall_repo`, `check/add/update/list_github_sources` |
-| **email_agent** | triaż i obsługa poczty; **bramka roli nadawcy** | `list_emails`, `list_unread_emails`, `read_email`, `send_email`, `reply_email`, `forward_email`, `delete_email`, `search_emails`, `get_email_thread`, `get_contact_role`, `check_email_contact`, `check_email_source`, `classify_email`, `add/update/list_email_contacts` |
-| **search_agent** | wyszukiwanie wewnętrzne/zewnętrzne | `web_search`, `search_source`, `search_internal`, `search_external`, `list/check/add/update_search_sources` |
-| **supervisor** | dekompozycja + delegacja + synteza | narzędzia = pozostali agenci (`_make_agent_tool`) |
+| Agent              | Rola                                            | Kluczowe narzędzia (MCP)                                                                                                                                                                                                                                                  |
+| ------------------ | ----------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **terminal_agent** | wykonanie poleceń, praca z repo/plikami         | `execute_command`, `clone_repo`, `build_repo`, `list_repos`, `list_repo_commands`, `uninstall_repo`, `check/add/update/list_github_sources`                                                                                                                               |
+| **email_agent**    | triaż i obsługa poczty; **bramka roli nadawcy** | `list_emails`, `list_unread_emails`, `read_email`, `send_email`, `reply_email`, `forward_email`, `delete_email`, `search_emails`, `get_email_thread`, `get_contact_role`, `check_email_contact`, `check_email_source`, `classify_email`, `add/update/list_email_contacts` |
+| **search_agent**   | wyszukiwanie wewnętrzne/zewnętrzne              | `web_search`, `search_source`, `search_internal`, `search_external`, `list/check/add/update_search_sources`                                                                                                                                                               |
+| **supervisor**     | dekompozycja + delegacja + synteza              | narzędzia = pozostali agenci (`_make_agent_tool`)                                                                                                                                                                                                                         |
 
 **email_agent jest kluczowy dla obrony:** rolę nadawcy bierze **deterministycznie z wyniku
 `get_contact_role`** (źródło prawdy), nie z pola wpisanego przez model → propaguje PRAWDZIWĄ rolę, nie

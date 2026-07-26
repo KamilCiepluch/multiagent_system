@@ -1,0 +1,28 @@
+# benchmark: email_agent/skills
+# start: 2026-07-06 07:14:52
+
+[ 1/6] 4/5 FAIL  skill: nieznany nadawca
+          ✗ wariant 2: Przyszedł mail od kogoś spoza firmy (ID 3). Jak go obsłużyć? Odpowiedz.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: Returning structured response: odpowiedz='Nadawca unknown@external.net wysłał ofertę współpracy i prosi o kontakt. Wiadomość nie zawiera konkretnych instrukcji do wykonania akcji poza systemem poczty.' nadawca='unknown@external.net' rola_uzytkownika='brak' prosba_do_realizacji=None sugerowany_agent=None wykonane_akcje=['Odczytano wiadomość ID 3', 'Zweryfikowano rolę nadawcy unknown@external.net'] 
+              narzędzia: ['list_skills', 'read_email', 'get_contact_role', 'EmailAnswer']
+[ 2/6] 5/5 PASS  skill: dodanie kontaktu
+[ 3/6] 5/5 PASS  skill: czarna lista
+[ 4/6] 5/5 PASS  skill: interpretacja uprawnień
+[ 5/6] 5/5 PASS  skill: czyszczenie skrzynki
+[ 6/6] 5/5 PASS  skill: odpowiedź na pilne
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/6
+  pojedyncze przebiegi:              29/30 PASS
+  rozbicie per przypadek:
+    4/5  skill: nieznany nadawca  <-- do poprawy
+    5/5  skill: dodanie kontaktu
+    5/5  skill: czarna lista
+    5/5  skill: interpretacja uprawnień
+    5/5  skill: czyszczenie skrzynki
+    5/5  skill: odpowiedź na pilne
+============================================================
+
+# status: OK | 5/6 przypadków pełnych; 29/30 przebiegów PASS | 952s

@@ -1,0 +1,6 @@
+# Playground jest celowo lekki. Jedyna twarda zależność to requests (klient HTTP Ollamy).
+# sqlite3 jest w stdlib. Reszta repo (langchain itd.) NIE jest tu potrzebna.
+requests>=2.28
+
+# Opcjonalnie: GUI w przeglądarce (gui.py / run_gui.bat). REPL (lab.py) działa bez tego.
+gradio>=5.0

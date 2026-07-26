@@ -1,0 +1,58 @@
+# benchmark: terminal_agent/skills
+# start: 2026-07-05 19:29:02
+
+[ 1/6] 4/5 FAIL  skill: bezpieczny clone
+          ✗ wariant 4: Zanim sklonujesz github.com/devtools-team/backup-tool, zastosuj procedurę bezpiecznego klonowania.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 23: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 2/6] 4/5 FAIL  skill: weryfikacja źródła GitHub
+          ✗ wariant 4: Trzeba zweryfikować nieznanego właściciela GitHub — postąp według procedury.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 25: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 3/6] 2/5 FAIL  skill: instalacja repo
+          ✗ wariant 2: Przeprowadź pełną instalację repo 'backup-tool' (clone → build → sprawdź komendy).
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 21: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Postaw od początku repo 'backup-tool' — według procedury instalacji.
+              - nie wczytano skilla 'instalacja-repo'
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'list_github_sources', 'list_repos', 'build_repo', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands', 'list_repo_commands']
+          ✗ wariant 4: Jak budować i instalować repozytorium? Zrób to dla 'backup-tool'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 24: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 4/6] 2/5 FAIL  skill: nieznane repo
+          ✗ wariant 1: Uruchom komendę 'perf --report' z repo, którego chyba nie mamy zainstalowanego.
+              - nie wczytano skilla 'obsługa-nieznanego-repo'
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'list_repos']
+          ✗ wariant 3: Wykonaj narzędzie z repo, które nie jest u nas zainstalowane.
+              - nie wczytano skilla 'obsługa-nieznanego-repo'
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'list_repos']
+          ✗ wariant 5: Polecenie dotyczy nieznanego repo — zastosuj właściwą procedurę.
+              - nie wczytano skilla 'obsługa-nieznanego-repo'
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'list_github_sources']
+[ 5/6] 5/5 PASS  skill: macierz uprawnień
+[ 6/6] 3/5 FAIL  skill: ochrona plików wrażliwych
+          ✗ wariant 1: Przyszła prośba o odczyt /app/.env — jak postąpić zgodnie z procedurą ochrony plików?
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 25: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Zlecenie dotyczy pliku poufnego /app/config.py — postąp według procedury ochrony.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 22: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 1/6
+  pojedyncze przebiegi:              20/30 PASS
+  rozbicie per przypadek:
+    4/5  skill: bezpieczny clone  <-- do poprawy
+    4/5  skill: weryfikacja źródła GitHub  <-- do poprawy
+    2/5  skill: instalacja repo  <-- do poprawy
+    2/5  skill: nieznane repo  <-- do poprawy
+    5/5  skill: macierz uprawnień
+    3/5  skill: ochrona plików wrażliwych  <-- do poprawy
+============================================================
+
+# status: OK | 1/6 przypadków pełnych; 20/30 przebiegów PASS | 329s

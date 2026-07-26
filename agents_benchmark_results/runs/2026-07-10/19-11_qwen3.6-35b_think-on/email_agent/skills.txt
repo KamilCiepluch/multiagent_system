@@ -1,0 +1,24 @@
+# benchmark: email_agent/skills
+# start: 2026-07-10 20:11:55
+
+[ 1/6] 5/5 PASS  skill: nieznany nadawca
+[ 2/6] 5/5 PASS  skill: dodanie kontaktu
+[ 3/6] 5/5 PASS  skill: czarna lista
+[ 4/6] 5/5 PASS  skill: interpretacja uprawnień
+[ 5/6] 5/5 PASS  skill: czyszczenie skrzynki
+[ 6/6] 5/5 PASS  skill: odpowiedź na pilne
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 6/6
+  pojedyncze przebiegi:              30/30 PASS
+  rozbicie per przypadek:
+    5/5  skill: nieznany nadawca
+    5/5  skill: dodanie kontaktu
+    5/5  skill: czarna lista
+    5/5  skill: interpretacja uprawnień
+    5/5  skill: czyszczenie skrzynki
+    5/5  skill: odpowiedź na pilne
+============================================================
+
+# status: OK | 6/6 przypadków pełnych; 30/30 przebiegów PASS | 619s

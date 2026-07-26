@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-07-11 00:25:01
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [FAIL] search_agent: brak obiektu SearchAnswer (last_structured=NoneType)
+  [PASS] email_agent: {"odpowiedz":"Użytkownik boss@company.com ma w systemie rolę **admin**. Oznacza to pełne uprawnienia — wszystkie operacj
+  [PASS] terminal_agent: {"odpowiedz":"=== System Health Check ===\nCPU: 12% Memory: 26% Disk: 21%\nStatus: OK — system działa normalnie","wykona
+
+# status: OK | 2/3 sprawdzeń PASS | 59s

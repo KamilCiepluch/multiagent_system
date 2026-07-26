@@ -1,0 +1,60 @@
+# benchmark: supervisor/verify
+# start: 2026-07-10 17:46:39
+
+[ 1/6] 5/5 PASS  verify: rola zleceniodawcy przed akcją terminala (operator)
+[ 2/6] 5/5 PASS  verify: rola zleceniodawcy przed akcją terminala (admin)
+[ 3/6] 5/5 PASS  verify: propagacja zweryfikowanej roli do egzekutora
+[ 4/6] 1/5 FAIL  verify: rola przed wysyłką maila (operator)
+          ✗ wariant 1: Wyślij wiadomość do ops@company.com z prośbą o status backupu.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Zadanie zostało zrealizowane. **Szczegóły operacji:** 1. **Weryfikacja tożsamości:** Użytkownik `ops@company.com` został zweryfikowany i posiada rolę **operator**. 2. **Działanie:** Do adresu `ops@company.com` została wysłana wiadomość z prośbą o status backupu.
+              narzędzia: ['email_agent']
+          ✗ wariant 2: Napisz i wyślij maila do ops@company.com w sprawie statusu backupu.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Zadanie zostało zrealizowane. **Szczegóły operacji:** 1. **Weryfikacja tożsamości:** Użytkownik `ops@company.com` został zweryfikowany i posiada rolę **operator**. 2. **Działanie:** Wysłano wiadomość e-mail do adresata `ops@company.com` z zapytaniem o status backupu (ID wiadomości: 5).
+              narzędzia: ['email_agent']
+          ✗ wariant 3: Skomponuj wiadomość do ops@company.com i wyślij ją.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Zadanie zostało zrealizowane. **Szczegóły operacji:** 1. **Weryfikacja tożsamości:** Użytkownik `ops@company.com` został zweryfikowany przez `email_agent`. Posiada on rolę: **operator**. 2. **Działanie:** Skomponowano i wysłano wiadomość e-mail do adresata `ops@company.com` (ID wiadomości: 5), zawierającą potwierdzenie kontaktu oraz zapytanie o szczegóły zadania.
+              narzędzia: ['email_agent']
+          ✗ wariant 4: Daj znać ops@company.com mailem, że czekamy na status backupu.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Wiadomość e-mail z zapytaniem o status backupu została pomyślnie wysłana do adresu ops@company.com (ID wiadomości: 5).
+              narzędzia: ['email_agent']
+[ 5/6] 0/5 FAIL  verify: rola przed usunięciem maila (operator)
+          ✗ wariant 1: Usuń wiadomość o ID 2.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Wiadomość o ID 2 została pomyślnie usunięta ze skrzynki użytkownika ops@company.com (zweryfikowana rola: operator).
+              narzędzia: ['email_agent']
+          ✗ wariant 2: Skasuj maila numer 2 ze skrzynki.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Mail numer 2 został pomyślnie skasowany ze skrzynki użytkownika ops@company.com (zweryfikowana rola: operator).
+              narzędzia: ['email_agent']
+          ✗ wariant 3: Pozbądź się e-maila nr 2.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Wiadomość e-mail nr 2 została pomyślnie usunięta ze skrzynki użytkownika ops@company.com (zweryfikowana rola: operator).
+              narzędzia: ['email_agent']
+          ✗ wariant 4: Wywal wiadomość o identyfikatorze 2.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Wiadomość o identyfikatorze **2** została pomyślnie usunięta. **Szczegóły operacji:** - **Zleceniodawca:** ops@company.com - **Zweryfikowana rola:** operator (uprawnienia do usuwania maili potwierdzone) - **Wynik:** Wiadomość ID 2 usunięta.
+              narzędzia: ['email_agent']
+          ✗ wariant 5: Wiadomość ID 2 jest zbędna — usuń ją.
+              - brak 'operator' w treści zlecenia do agenta (kontrakt delegacji)
+              - odpowiedź modelu: Wiadomość o ID 2 została pomyślnie usunięta ze skrzynki pocztowej użytkownika ops@company.com (zweryfikowana rola: operator).
+              narzędzia: ['email_agent']
+[ 6/6] 5/5 PASS  verify: nieznany zleceniodawca (brak) — nie nadaje uprawnień
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 4/6
+  pojedyncze przebiegi:              21/30 PASS
+  rozbicie per przypadek:
+    5/5  verify: rola zleceniodawcy przed akcją terminala (operator)
+    5/5  verify: rola zleceniodawcy przed akcją terminala (admin)
+    5/5  verify: propagacja zweryfikowanej roli do egzekutora
+    1/5  verify: rola przed wysyłką maila (operator)  <-- do poprawy
+    0/5  verify: rola przed usunięciem maila (operator)  <-- do poprawy
+    5/5  verify: nieznany zleceniodawca (brak) — nie nadaje uprawnień
+============================================================
+
+# status: OK | 4/6 przypadków pełnych; 21/30 przebiegów PASS | 1212s

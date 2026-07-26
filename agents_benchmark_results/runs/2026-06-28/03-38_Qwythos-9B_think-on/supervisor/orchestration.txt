@@ -1,0 +1,56 @@
+# benchmark: supervisor/orchestration
+# start: 2026-06-28 06:57:21
+
+[ 1/4] 3/5 FAIL  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+          ✗ wariant 1: Znajdź naszą procedurę backupu w dokumentacji i wyślij jej streszczenie mailem do ops@company.com.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'email_agent' nie zostało wywołane
+              - odpowiedź modelu: KROK 0 — TOŻSAMOŚĆ ZANIM DZIAŁANIE Najpierw sprawdzam rolę zleceniodawcy, ponieważ zadanie wymaga wysyłki maila.
+              narzędzia: []
+          ✗ wariant 3: Sprawdź w bazie wiedzy zasady backupu, a wynik wyślij mailem do ops@company.com.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['email_agent']
+[ 2/4] 5/5 PASS  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+[ 3/4] 0/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 1: Wyszukaj najważniejsze zmiany w Pythonie 3.11 i zapisz podsumowanie do pliku /app/notes.txt.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: <tool_code> {"name": "search_agent", "task": "Zleceniodawca: boss@company.com\n\n[DO ZAGADNIENIA]: Najważniejsze zmiany w Pythonie 3.11 – wyszukaj i przedstaw kluczowe wprowadzenia/ulepszenia (np. zmiany w typowaniu, walidatorze kodu, bibliotekach, wydajności, bezpieczeństwie)."} </tool_code>
+              narzędzia: []
+          ✗ wariant 2: Znajdź informacje o Pythonie 3.11, a wynik zapisz w /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Wynik wyszukiwania był pusty — nie udało się odnaleźć żadnych informacji o Pythonie 3.11 w bazach wiedzy, do których ma dostęp agent. Nie mogę więc wykonać zapisu do /app/notes.txt.
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+          ✗ wariant 3: Sprawdź, co nowego w Pythonie 3.11 i umieść to w pliku /app/notes.txt.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 4: Zbierz fakty o Pythonie 3.11 i zapisz je do /app/notes.txt.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Nie mogę wykonać tego zadania — brak jest możliwości weryfikacji roli użytkownika boss@company.com (email_agent nie udostępnia danych osobowych kontaktów, a dostęp do roli wymaga procedury, której nie posiadam). Bez ustalenia roli nie mogę delegować akcji do terminal_agent. Proszę o dostarczenie uprawnień lub wskazanie właściwej procedury weryfikacji roli — wtedy kontynuuję.
+              narzędzia: ['email_agent', 'email_agent', 'email_agent', 'email_agent']
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Ponieważ email_agent nie potwierdził roli (brak kontaktu) i search_agent zgłosił brak not release w wewnętrznych źródłach, sprawdzę stan repozytorium Python oraz obecny plik notes.txt. Zlecenie: terminal_agent: Użytkownik: boss@company.com (rola: viewer) — pokaż strukturę Docs/whatsnew/3.11 w repo cpython i zawartość /app/notes.txt. Cel: ustalić czy repo zawiera noty release 3.11 i co już jest zap
+              narzędzia: ['email_agent', 'search_agent']
+[ 4/4] 4/5 FAIL  orkiestracja: pobierz spotkania, potem wyślij mailem
+          ✗ wariant 4: Zbierz nadchodzące spotkania i wyślij je mailem zespołowi ops@company.com.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Jaka jest Twoja rola (admin/operator/viewer)?
+              narzędzia: ['email_agent']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 1/4
+  pojedyncze przebiegi:              12/20 PASS
+  rozbicie per przypadek:
+    3/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem  <-- do poprawy
+    5/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+    0/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    4/5  orkiestracja: pobierz spotkania, potem wyślij mailem  <-- do poprawy
+============================================================
+
+# status: OK | 1/4 przypadków pełnych; 12/20 przebiegów PASS | 2452s

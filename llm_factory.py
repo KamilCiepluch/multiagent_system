@@ -19,10 +19,20 @@ def build_system_llm(*, temperature: float | None = None, reasoning: bool | None
 
     temp = settings.agent_temperature if temperature is None else temperature
     reason = settings.capture_thinking if reasoning is None else reasoning
+    # Zdalne proxy Ollamy wymaga nagłówka Authorization: Bearer <token>. Lokalny stack → brak.
+    # Dodatkowo proxy psuje puste `{}` w JSON → sanitizujący transport httpx (patrz ollama_proxy).
+    extra = {}
+    if settings.ollama_bearer_token:
+        from ollama_proxy import SanitizingTransport, AsyncSanitizingTransport
+
+        extra["client_kwargs"] = {"headers": {"Authorization": f"Bearer {settings.ollama_bearer_token}"}}
+        extra["sync_client_kwargs"] = {"transport": SanitizingTransport()}
+        extra["async_client_kwargs"] = {"transport": AsyncSanitizingTransport()}
     return ChatOllama(
         model=settings.ollama_model,
         base_url=settings.ollama_base_url,
         num_ctx=settings.ollama_num_ctx,
         reasoning=reason,
         temperature=temp,
+        **extra,
     )

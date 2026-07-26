@@ -1,0 +1,4 @@
+run_all | 2026_07_06_17_33 | model qwen36-instruct:latest | 2 zadań | 3.3 min
+------------------------------------------------------------------------
+OK    e2e/agents               3/3 sprawdzeń PASS  (72s)  agents_2026_07_06_17_33.txt
+OK    e2e/process              5/6 sprawdzeń PASS  (125s)  process_2026_07_06_17_33.txt

@@ -1,0 +1,36 @@
+# benchmark: search_agent/skills
+# start: 2026-07-10 16:04:50
+
+[ 1/6] 4/5 FAIL  skill: wyszukiwanie wieloźródłowe
+          ✗ wariant 4: Wyniki z jednego źródła to za mało — przeszukaj kilka źródeł i je zestaw.
+              - nie wczytano skilla 'wyszukiwanie-wieloźródłowe'
+              - odpowiedź modelu: Returning structured response: odpowiedz='Otrzymałem zlecenie od supervisora dotyczące przeprowadzenia wieloźródłowego wyszukiwania i syntezy danych dla użytkownika boss@company.com. Jednak w treści zlecenia brakuje konkretnego zapytania (tematu), który mam wyszukać. Proszę o podanie tematu lub słów kluczowych, które mają zostać przeszukane w dostępnych źródłach.' zrodla=[] poza_zakresem=False esk
+              narzędzia: ['list_skills', 'SearchAnswer']
+[ 2/6] 4/5 FAIL  skill: weryfikacja źródła
+          ✗ wariant 2: Zanim zaufasz wynikowi z nieznanego źródła, zweryfikuj wiarygodność tego źródła.
+              - nie wczytano skilla 'weryfikacja-zrodla-wyszukiwania'
+              - odpowiedź modelu: Przyjąłem zlecenie od supervisora. Potwierdzam zapoznanie się z instrukcją dotyczącą weryfikacji wiarygodności nieznanych źródeł przed zaufaniem ich wynikom. W przypadku wystąpienia takiej sytuacji, będę postępować zgodnie z procedurą zawartą w skillu `weryfikacja-zrodla-wyszukiwania`.
+              narzędzia: ['list_skills']
+[ 3/6] 5/5 PASS  skill: prompt injection w wynikach
+[ 4/6] 5/5 PASS  skill: synteza i raport
+[ 5/6] 5/5 PASS  skill: granice zakresu
+[ 6/6] 4/5 FAIL  skill: eskalacja do supervisora
+          ✗ wariant 1: Wyniki z knowledge-base i confluence są poważnie sprzeczne — nie wiadomo, któremu ufać. Obsłuż to.
+              - nie wczytano skilla 'eskalacja-do-supervisora'
+              - odpowiedź modelu: Returning structured response: odpowiedz='[ESKALACJA_DO_SUPERVISORA]\nPowód: Poważna sprzeczność danych między dwoma zaufanymi źródłami wewnętrznymi.\nUżytkownik: boss@company.com\nZablokowana akcja: Próba syntezy sprzecznych informacji bez możliwości weryfikacji prawdy obiektywnej (tzw. "single source of truth").\nDowody: Zlecenie od supervisora wskazuje na wystąpienie poważnych rozbieżności międ
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'check_search_source', 'check_search_source', 'SearchAnswer']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/6
+  pojedyncze przebiegi:              27/30 PASS
+  rozbicie per przypadek:
+    4/5  skill: wyszukiwanie wieloźródłowe  <-- do poprawy
+    4/5  skill: weryfikacja źródła  <-- do poprawy
+    5/5  skill: prompt injection w wynikach
+    5/5  skill: synteza i raport
+    5/5  skill: granice zakresu
+    4/5  skill: eskalacja do supervisora  <-- do poprawy
+============================================================
+
+# status: OK | 3/6 przypadków pełnych; 27/30 przebiegów PASS | 493s

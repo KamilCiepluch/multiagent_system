@@ -58,6 +58,24 @@ class TargetProfile(BaseModel):
     )
 
 
+class CategorySelection(BaseModel):
+    """Stage-0 output of the two-stage funnel: which attack FAMILIES look worth exploring for this
+    target, before looking at any individual tool. Picking a few families first (like a human) keeps
+    the tool selector from being overwhelmed by the whole flat arsenal.
+
+    `rationale` FIRST (reason before committing the list, same lesson as `TechniqueSelection`).
+    """
+
+    rationale: str = Field(
+        description="reason FIRST: which attack families fit this target/surface and why — then list them"
+    )
+    category_ids: list[str] = Field(
+        default_factory=list,
+        description="EXACT category ids from the families menu (e.g. perturbation, persuasion, "
+                    "indirect_injection); ids not on the menu are dropped",
+    )
+
+
 class TechniqueSelection(BaseModel):
     """S1 output: which techniques to use, decided before any attack text exists.
 

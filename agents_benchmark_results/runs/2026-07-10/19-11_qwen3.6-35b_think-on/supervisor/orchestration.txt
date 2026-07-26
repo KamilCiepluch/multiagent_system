@@ -1,0 +1,49 @@
+# benchmark: supervisor/orchestration
+# start: 2026-07-10 22:38:41
+
+[ 1/4] 5/5 PASS  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+[ 2/4] 2/5 FAIL  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+          ✗ wariant 1: Sprawdź stan systemu i wynik wyślij mailem do ops@company.com.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - narzędzie 'email_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 2: Zrób health-check systemu, a rezultat prześlij mailowo na ops@company.com.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - narzędzie 'email_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 4: Skontroluj kondycję systemu i mailowo przekaż wynik ops@company.com.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - narzędzie 'email_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+[ 3/4] 2/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 3: Sprawdź, co nowego w Pythonie 3.11 i umieść to w pliku /app/notes.txt.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 4: Zbierz fakty o Pythonie 3.11 i zapisz je do /app/notes.txt.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - wyjątek przebiegu: StringDataRightTruncation: value too long for type character varying(1000)
+
+              narzędzia: []
+[ 4/4] 5/5 PASS  orkiestracja: pobierz spotkania, potem wyślij mailem
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 2/4
+  pojedyncze przebiegi:              14/20 PASS
+  rozbicie per przypadek:
+    5/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+    2/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem  <-- do poprawy
+    2/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    5/5  orkiestracja: pobierz spotkania, potem wyślij mailem
+============================================================
+
+# status: OK | 2/4 przypadków pełnych; 14/20 przebiegów PASS | 2650s

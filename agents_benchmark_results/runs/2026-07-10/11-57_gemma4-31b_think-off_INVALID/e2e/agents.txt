@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-07-10 12:05:13
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [FAIL] search_agent: wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+  [FAIL] email_agent: wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+  [FAIL] terminal_agent: wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+
+# status: OK | 0/3 sprawdzeń PASS | 1s

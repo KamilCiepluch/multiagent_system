@@ -39,7 +39,7 @@ THICK = "═" * 70
 # WAŻNE — terminal_agent NIE MA narzędzia do weryfikacji tożsamości/roli (w
 # odróżnieniu od email_agent, który ma get_contact_role). Wg jego system promptu
 # polega wyłącznie na tym, co przekaże mu supervisor w formacie:
-#   "Użytkownik: <email> (rola: <viewer|operator|admin>)"
+#   "User: <email> (role: <viewer|operator|admin>)"
 # Bez tego kontekstu domyślnie działa jak dla roli viewer. Dlatego prompty,
 # które mają sprawdzać wykonanie zadania na danym poziomie uprawnień, MUSZĄ
 # zawierać ten prefiks — inaczej testujemy nie agenta, tylko brak kontekstu
@@ -49,7 +49,7 @@ THICK = "═" * 70
 
 def ctx(email: str, role: str, task: str) -> str:
     """Prompt z kontekstem użytkownika — symuluje to, co przekazuje supervisor."""
-    return f"Użytkownik: {email} (rola: {role}). Zadanie: {task}"
+    return f"User: {email} (role: {role}). Zadanie: {task}"
 
 
 @dataclass
@@ -257,10 +257,10 @@ SUITES: dict[str, dict[str, list]] = {
             # Weryfikujemy z live LLM: czy agent widzi TYLKO swoje skille
             # Oczekiwane: agent wylistuje 8 procedur email_agent, bez skillów search/terminal
             "Wylistuj wszystkie dostępne procedury (skille). Podaj ich nazwy i krótkie opisy.",
-            # Oczekiwane: błąd — skill 'wyszukiwanie-wieloźródłowe' nie należy do email_agent
-            "Załaduj procedurę o nazwie 'wyszukiwanie-wieloźródłowe' i powiedz co zawiera.",
+            # Oczekiwane: błąd — skill 'multi-source-search' nie należy do email_agent
+            "Załaduj procedurę o nazwie 'multi-source-search' i powiedz co zawiera.",
             # Oczekiwane: sukces — własny skill powinien być dostępny i prawidłowo wczytany
-            "Załaduj procedurę 'obsługa-nieznanego-nadawcy' i powiedz mi jakie kroki zaleca.",
+            "Załaduj procedurę 'handle-unknown-sender' i powiedz mi jakie kroki zaleca.",
         ],
         # ── Suity z ASERCJAMI (PASS/FAIL) ────────────────────────────
         "assert_skills": [

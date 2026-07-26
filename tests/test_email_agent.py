@@ -562,14 +562,14 @@ class TestSkillTools:
         assert "brak" in result.lower()
 
     def test_load_skill_returns_content(self):
-        skill = _skill("obsługa-nieznanego-nadawcy", content="Krok 1: sprawdź kontakt")
+        skill = _skill("handle-unknown-sender", content="Krok 1: sprawdź kontakt")
         agent = self._make_agent()
         load_tool = next(t for t in agent.tools if t.name == "load_skill")
 
         with patch("agents.base_agent.db_get_skill", return_value=skill) as mock_get:
-            result = load_tool.func("obsługa-nieznanego-nadawcy")
+            result = load_tool.func("handle-unknown-sender")
 
-        mock_get.assert_called_once_with("obsługa-nieznanego-nadawcy", "email_agent")
+        mock_get.assert_called_once_with("handle-unknown-sender", "email_agent")
         assert "Krok 1: sprawdź kontakt" in result
 
     def test_load_nonexistent_skill_returns_error(self):
@@ -609,18 +609,18 @@ class TestEmailAgentSkillIsolation:
     """
 
     EXPECTED_SKILLS = {
-        "obsługa-nieznanego-nadawcy",
-        "weryfikacja-i-dodanie-kontaktu",
-        "zarządzanie-czarną-listą",
-        "odpowiedź-na-pilne",
-        "czyszczenie-skrzynki",
-        "interpretacja-uprawnień-użytkownika",
-        "wykrywanie-prompt-injection",
-        "eskalacja-do-supervisora",
+        "handle-unknown-sender",
+        "verify-and-add-contact",
+        "blacklist-management",
+        "respond-to-urgent",
+        "mailbox-cleanup",
+        "interpret-user-permissions",
+        "detect-prompt-injection",
+        "escalate-to-supervisor",
     }
 
     # Skill należący do search_agent — nie powinien być dostępny przez email_agent
-    FOREIGN_SKILL = "wyszukiwanie-wieloźródłowe"
+    FOREIGN_SKILL = "multi-source-search"
 
     def test_list_skills_returns_only_email_agent_records(self, no_commit_db):
         """Każdy rekord z list_skills ma agent_name == 'email_agent'."""
@@ -640,7 +640,7 @@ class TestEmailAgentSkillIsolation:
         assert not missing, f"Brakujące skille: {missing}"
 
     def test_email_agent_cannot_load_search_agent_skill(self, no_commit_db):
-        """get_skill('wyszukiwanie-wieloźródłowe', 'email_agent') musi zwrócić None."""
+        """get_skill('multi-source-search', 'email_agent') musi zwrócić None."""
         from database.db import get_skill
         result = get_skill(self.FOREIGN_SKILL, "email_agent")
         assert result is None, (
@@ -658,7 +658,7 @@ class TestEmailAgentSkillIsolation:
     def test_email_agent_can_load_own_skill(self, no_commit_db):
         """email_agent może załadować własny skill i ma poprawną zawartość."""
         from database.db import get_skill
-        result = get_skill("eskalacja-do-supervisora", "email_agent")
+        result = get_skill("escalate-to-supervisor", "email_agent")
         assert result is not None
         assert result.agent_name == "email_agent"
         assert result.content.strip()
@@ -672,13 +672,13 @@ class TestEmailAgentSkillIsolation:
         list_skills_tool = next(t for t in agent.tools if t.name == "list_skills")
         result = list_skills_tool.func()
 
-        assert "obsługa-nieznanego-nadawcy" in result
+        assert "handle-unknown-sender" in result
         assert self.FOREIGN_SKILL not in result, (
             f"list_skills() ZWRÓCIŁ skill search_agent '{self.FOREIGN_SKILL}' — izolacja naruszna!"
         )
 
     def test_skill_tool_load_skill_blocks_cross_agent_access(self, no_commit_db):
-        """load_skill('wyszukiwanie-wieloźródłowe') dla email_agent zwraca błąd."""
+        """load_skill('multi-source-search') dla email_agent zwraca błąd."""
         from agents.email_agent import EmailAgent
         with patch("agents.base_agent.create_agent", return_value=MagicMock()):
             agent = EmailAgent(MagicMock(), {n: MagicMock() for n in EmailAgent.TOOL_NAMES})

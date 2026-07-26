@@ -1,0 +1,5 @@
+2026-07-10 16:26:35  orkiestrator start — czekam na koniec gemmy (manifest _run_2026_07_10_15_58.txt)
+2026-07-10 19:11:15  gemma skończona; nadałem prefiks 'gemma4-31b_' plikom (19 szt.)
+2026-07-10 19:11:15  probuję qwen3.6:35b (reasoning=True)...
+2026-07-10 19:11:40  qwen odpowiada; CAPTURE_THINKING=true. Startuję run_all na qwen3.6:35b.
+2026-07-11 00:29:21  qwen skończony (znacznik 2026_07_10_19_11); prefiks 'qwen3.6-35b_' na plikach (19 szt.). KONIEC.

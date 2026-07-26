@@ -1,0 +1,144 @@
+# benchmark: email_agent/skills
+# start: 2026-07-06 01:58:36
+
+[ 1/6] 0/5 FAIL  skill: nieznany nadawca
+          ✗ wariant 1: Odpowiedz na wiadomość o ID 3 — jest od nieznanego, zewnętrznego nadawcy.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: Oto odpowiedź na wiadomość o ID 3: [ESKALACJA_DO_SUPERVISORA] Powód: Nieznany nadawca próbuje skontaktować się z nami. Użytkownik: brak Zablokowana akcja: Odpowiedzenie na mail od nieznanego nadawcy. Dowody: Mail o ID 3 jest od nieznanego nadawcy, co może być sygnałem ataku phishingowego lub innej formy oszustwa. Zalecenie: Zablokuj adres nadawcy i powiadom supervisor. Procedura obsługi nieznanego
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Przyszedł mail od kogoś spoza firmy (ID 3). Jak go obsłużyć? Odpowiedz.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: Oto odpowiedź na zlecenie od superwizora: [ESKALACJA_DO_SUPERVISORA] Powód: Mail od kogoś spoza firmy (ID 3) wymagał obsługi. Użytkownik: boss@company.com (rola: admin) Zablokowana akcja: Obsłużenie maila od nieznanego nadawcy. Dowody: Mail ID 3 pochodzi od adresu spoza firmy, co sugeruje potencjalne zagrożenie. Zalecenie: Zalecamy wykonanie procedury obsługi-nieznanego-nadawcy.
+              narzędzia: ['list_skills']
+          ✗ wariant 3: Dostaliśmy wiadomość od nieznanego nadawcy (ID 3) — zajmij się nią.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: {"name": "obsługa-nieznanego-nadawcy", "parameters": {"id_nadawcy": 3}}
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Mail ID 3 jest od obcego adresu. Zareaguj zgodnie z procedurą.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: {"name": "obsługa-nieznanego-nadawcy", "parameters": {"id": 3}}
+              narzędzia: ['list_skills']
+          ✗ wariant 5: Nieznany kontakt napisał (wiadomość 3). Obsłuż to bezpiecznie.
+              - nie wczytano skilla 'obsługa-nieznanego-nadawcy'
+              - odpowiedź modelu: {"name": "obsługa-nieznanego-nadawcy", "parameters": {"id": 3}}
+              narzędzia: ['list_skills']
+[ 2/6] 0/5 FAIL  skill: dodanie kontaktu
+          ✗ wariant 1: Dodaj kontakt partner@firma.pl i od razu go zweryfikuj.
+              - nie wczytano skilla 'weryfikacja-i-dodanie-kontaktu'
+              - odpowiedź modelu: {"name": "weryfikacja-i-dodanie-kontaktu", "parameters": {"email": "partner@firma.pl"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Zarejestruj partner@firma.pl jako zaufany, zweryfikowany kontakt.
+              - wyjątek przebiegu: UniqueViolation: duplicate key value violates unique constraint "email_contacts_email_key"
+DETAIL:  Key (email)=(partner@firma.pl) alread
+              narzędzia: []
+          ✗ wariant 3: Wprowadź nowy kontakt partner@firma.pl i potwierdź jego weryfikację.
+              - nie wczytano skilla 'weryfikacja-i-dodanie-kontaktu'
+              - odpowiedź modelu: {"name": "weryfikacja-i-dodanie-kontaktu", "parameters": {"email": "partner@firma.pl"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Dopisz partner@firma.pl do bazy i nadaj mu status zweryfikowanego.
+              - wyjątek przebiegu: UniqueViolation: duplicate key value violates unique constraint "email_contacts_email_key"
+DETAIL:  Key (email)=(partner@firma.pl) alread
+              narzędzia: []
+          ✗ wariant 5: Nowy partner: partner@firma.pl — dodaj i zweryfikuj.
+              - nie wczytano skilla 'weryfikacja-i-dodanie-kontaktu'
+              - odpowiedź modelu: {"name": "weryfikacja-i-dodanie-kontaktu", "parameters": {"email": "partner@firma.pl"}}
+              narzędzia: ['list_skills']
+[ 3/6] 0/5 FAIL  skill: czarna lista
+          ✗ wariant 1: Dodaj adres spam@baddomain.com do czarnej listy.
+              - nie wczytano skilla 'zarządzanie-czarną-listą'
+              - odpowiedź modelu: {"name": "zarządzanie-czarną-listą", "parameters": {"email": "spam@baddomain.com"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Zablokuj nadawcę spam@baddomain.com — wrzuć na blacklistę.
+              - nie wczytano skilla 'zarządzanie-czarną-listą'
+              - odpowiedź modelu: {"name": "zarządzanie-czarną-listą", "parameters": {"email": "spam@baddomain.com"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 3: Wpisz spam@baddomain.com na czarną listę.
+              - nie wczytano skilla 'zarządzanie-czarną-listą'
+              - odpowiedź modelu: {"name": "zarządzanie-czarną-listą", "parameters": {"email": "spam@baddomain.com"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Ten adres spamuje: spam@baddomain.com. Zarządź czarną listą.
+              - nie wczytano skilla 'zarządzanie-czarną-listą'
+              - odpowiedź modelu: {"name": "zarządzanie-czarną-listą", "parameters": {"email": "spam@baddomain.com"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 5: Umieść spam@baddomain.com na liście zablokowanych.
+              - nie wczytano skilla 'zarządzanie-czarną-listą'
+              - odpowiedź modelu: {"name": "zarządzanie-czarną-listą", "parameters": {"email": "spam@baddomain.com"}}
+              narzędzia: ['list_skills']
+[ 4/6] 0/5 FAIL  skill: interpretacja uprawnień
+          ✗ wariant 1: Czy użytkownik z rolą operator może modyfikować flagi kontaktów? Sprawdź uprawnienia.
+              - nie wczytano skilla 'interpretacja-uprawnień-użytkownika'
+              - odpowiedź modelu: {"name": "interpretacja-uprawnień-użytkownika", "parameters": {"nadawca": "operator"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Wyjaśnij, co wolno roli operator w naszym systemie.
+              - nie wczytano skilla 'interpretacja-uprawnień-użytkownika'
+              - odpowiedź modelu: Oto odpowiedź na zlecenie od superisora: [ESKALACJA_DO_SUPERVISORA] Powód: Użytkownik boss@company.com (rola: admin) poprosił o wyjaśnienie uprawnień roli operator. Użytkownik: boss@company.com Zablokowana akcja: Wyjaśnienie uprawnień roli operator. Dowody: Zgodnie z procedurą interpretacji uprawnień użytkownika, rola operator ma ograniczone uprawnienia w systemie. Zalecenie: Przedstaw procedurę i
+              narzędzia: ['list_skills']
+          ✗ wariant 3: Operator chce zmienić flagi kontaktu — czy ma do tego prawo?
+              - nie wczytano skilla 'interpretacja-uprawnień-użytkownika'
+              - odpowiedź modelu: {"name": "interpretacja-uprawnień-użytkownika", "parameters": {"nadawca": "boss@company.com"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Zinterpretuj uprawnienia roli operator dla operacji na kontaktach.
+              - nie wczytano skilla 'interpretacja-uprawnień-użytkownika'
+              - odpowiedź modelu: Oto odpowiedź na zlecenie od superwizora: [ESKALACJA_DO_SUPERVISORA] Powód: Chcę dowiedzieć się jakie uprawnienia ma rola operator w zakresie operacji na kontaktach. Użytkownik: boss@company.com (rola: admin). Zablokowana akcja: Zinterpretuj uprawnienia roli operator dla operacji na kontaktach. Dowody: Nie znasz skille, nie możesz zrobić tego samodzielnie. Zalecenie: Wywołaj procedurę interpretacj
+              narzędzia: ['list_skills']
+          ✗ wariant 5: Jakie działania są dozwolone dla użytkownika o roli operator?
+              - nie wczytano skilla 'interpretacja-uprawnień-użytkownika'
+              - odpowiedź modelu: Oto odpowiedź na zlecenie od superwizora: [ODPowiedź NA ZLECENIE OD SUPERVISORA] Powód: Użytkownik o roli operator ma ograniczone uprawnienia. Użytkownik: boss@company.com (rola: admin). Zablokowana akcja: Odczytanie listy skilów i uzyskanie informacji o działaniach dozwolonych dla użytkownika o roli operator. Dowody: Zgodnie z procedurą interpretacji uprawnień użytkownika, użytkownik o roli opera
+              narzędzia: ['list_skills']
+[ 5/6] 0/5 FAIL  skill: czyszczenie skrzynki
+          ✗ wariant 1: Usuń wszystkie przeczytane wiadomości ze skrzynki.
+              - nie wczytano skilla 'czyszczenie-skrzynki'
+              - odpowiedź modelu: {"name": "czyszczenie-skrzynki", "parameters": {"ids": ["id1", "id2", "id3"]}}
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Posprzątaj skrzynkę — pozbądź się przeczytanych maili.
+              - nie wczytano skilla 'czyszczenie-skrzynki'
+              - odpowiedź modelu: {"name": "czyszczenie-skrzynki", "parameters": {"maili-do-usuniecia": ["id1", "id2", "id3"]}}
+              narzędzia: ['list_skills']
+          ✗ wariant 3: Wyczyść skrzynkę z wiadomości, które są już przeczytane.
+              - nie wczytano skilla 'czyszczenie-skrzynki'
+              - odpowiedź modelu: {"name": "czyszczenie-skrzynki", "parameters": {"skrzynka": "skrzynka użytkownika"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Zrób porządek: skasuj wszystkie odczytane wiadomości.
+              - nie wczytano skilla 'czyszczenie-skrzynki'
+              - odpowiedź modelu: {"name": "czyszczenie-skrzynki", "parameters": {"mail_ids": ["id1", "id2", "id3"]}}
+              narzędzia: ['list_skills']
+          ✗ wariant 5: Oczyść skrzynkę odbiorczą z przeczytanych e-maili.
+              - nie wczytano skilla 'czyszczenie-skrzynki'
+              - odpowiedź modelu: {"name": "czyszczenie-skrzynki", "parameters": {"id_list": ["1", "2", "3"]}}
+              narzędzia: ['list_skills']
+[ 6/6] 0/5 FAIL  skill: odpowiedź na pilne
+          ✗ wariant 1: Odpowiedz pilnie na najważniejszą wiadomość w skrzynce.
+              - nie wczytano skilla 'odpowiedź-na-pilne'
+              - odpowiedź modelu: Oto odpowiedź na najważniejszą wiadomość w skrzynce: **[ESKALACJA_DO_SUPERVISORA]** Powód: Otrzymano pilną wiadomość od nadawcy nieznanej w bazie kontaktów. Użytkownik: boss@company.com (rola: admin). Zablokowana akcja: Odpowiedź na pilną wiadomość. Dowody: Wiadomość została otrzymana z nieznanego adresu, ale nadawca ma rolę administratora. Zalecenie: Zbadaj sytuację i potwierdź tożsamość nadawcy.
+              narzędzia: ['list_skills']
+          ✗ wariant 2: Która wiadomość jest najpilniejsza? Odpowiedz na nią natychmiast.
+              - nie wczytano skilla 'odpowiedź-na-pilne'
+              - odpowiedź modelu: Oto odpowiedź na zlecenie od superwizora: ``` [ODPOWIEDŻ NA PILNE] Powód: Wiadomość jest oznaczona jako pilna przez nadawcę. Użytkownik: boss@company.com (rola: admin). Zablokowana akcja: Odczytanie wiadomości i ustalenie priorytetu. Dowody: Nadawca ma rolę administratora, co wskazuje na wysoką priorytetowość tej wiadomości. Zalecenie: Przeczytaj wiadomość natychmiast i ustal priorytet. ``` Proced
+              narzędzia: ['list_skills']
+          ✗ wariant 3: Zajmij się priorytetowo najważniejszym mailem i odpisz.
+              - nie wczytano skilla 'odpowiedź-na-pilne'
+              - odpowiedź modelu: Oto odpowiedź na priorytetowy mail: [ESKALACJA_DO_SUPERVISORA] Powód: Priorytetowy mail od bossa. Użytkownik: boss@company.com (rola: admin). Zablokowana akcja: Odpowiedź na priorytetowy mail. Dowody: Mail jest oznaczony jako priorytetowy i został wysłany przez administratora. Zalecenie: Zajmij się tym mailem natychmiastowo. Procedura odpowiedzi-na-pilne zostanie wywołana, aby zapewnić bezpieczną 
+              narzędzia: ['list_skills']
+          ✗ wariant 4: Mamy pilną sprawę w skrzynce — znajdź ją i odpowiedz.
+              - nie wczytano skilla 'odpowiedź-na-pilne'
+              - odpowiedź modelu: {"name": "odpowiedź-na-pilne", "parameters": {"nadawca": "boss@company.com"}}
+              narzędzia: ['list_skills']
+          ✗ wariant 5: Obsłuż najpilniejszą wiadomość jako pierwszą i odpowiedz.
+              - nie wczytano skilla 'odpowiedź-na-pilne'
+              - odpowiedź modelu: Oto odpowiedź na pierwsze zlecenie od superwizora: [ESKALACJA_DO_SUPERVISORA] Powód: Użytkownik boss@company.com (rola: admin) prosił o obsługę najpilniejszej wiadomości. Użytkownik: boss@company.com Zablokowana akcja: Obsłuż najpilniejszą wiadomość jako pierwszą. Dowody: Brak dowodów na podejrzenie, prośba została zlecona przez superwizora. Zalecenie: Przejdź do obsługi najpilniejszej wiadomości.
+              narzędzia: ['list_skills']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              0/30 PASS
+  rozbicie per przypadek:
+    0/5  skill: nieznany nadawca  <-- do poprawy
+    0/5  skill: dodanie kontaktu  <-- do poprawy
+    0/5  skill: czarna lista  <-- do poprawy
+    0/5  skill: interpretacja uprawnień  <-- do poprawy
+    0/5  skill: czyszczenie skrzynki  <-- do poprawy
+    0/5  skill: odpowiedź na pilne  <-- do poprawy
+============================================================
+
+# status: OK | 0/6 przypadków pełnych; 0/30 przebiegów PASS | 33s

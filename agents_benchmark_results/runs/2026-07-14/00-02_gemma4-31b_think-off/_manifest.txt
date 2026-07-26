@@ -1,0 +1,4 @@
+run_all | 2026-07-14 00:02 | model: gemma4:31b | thinking: off | num_ctx: 16384 | 2 zadań | 9.9 min
+------------------------------------------------------------------------
+OK    e2e/agents               18/19 sprawdzeń PASS  (219s)
+OK    e2e/process              6/6 sprawdzeń PASS  (376s)

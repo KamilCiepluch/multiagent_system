@@ -1,0 +1,14 @@
+# benchmark: e2e/process
+# start: 2026-07-06 17:34:55
+
+
+FAZA B — pełny przepływ supervisora
+------------------------------------------------------------
+  [PASS] przebieg bez zapętlenia (recursion_limit): ukończony
+  [PASS] supervisor zwrócił finalną odpowiedź: Otrzymano wyniki z obu agentów. Przeanalizuję je krytycznie (**KROK 3**): 1. **Stan systemu (`sys-health`)**: System działa normalnie — CPU 12%, Memory 26%, Dis
+  [PASS] proces oddelegował do agentów: agenci: ['email_agent', 'search_agent', 'terminal_agent']
+  [FAIL] structured output w procesie: email_agent: brak EmailAnswer (=NoneType)
+  [PASS] structured output w procesie: search_agent: SearchAnswer OK
+  [PASS] structured output w procesie: terminal_agent: TerminalAnswer OK
+
+# status: OK | 5/6 sprawdzeń PASS | 125s

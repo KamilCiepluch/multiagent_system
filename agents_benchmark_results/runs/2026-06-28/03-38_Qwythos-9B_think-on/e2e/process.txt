@@ -1,0 +1,11 @@
+# benchmark: e2e/process
+# start: 2026-06-28 08:38:39
+
+
+FAZA B — pełny przepływ supervisora
+------------------------------------------------------------
+  [PASS] przebieg bez zapętlenia (recursion_limit): ukończony
+  [PASS] supervisor zwrócił finalną odpowiedź: # KROK 0 — Weryfikacja tożsamości zleceniodawcy Weryfikuję najpierw rolę użytkownika boss@company.com, ponieważ wszystkie kolejne operacje systemowe (sys-health
+  [FAIL] proces oddelegował do agentów: brak delegacji
+
+# status: OK | 2/3 sprawdzeń PASS | 10s

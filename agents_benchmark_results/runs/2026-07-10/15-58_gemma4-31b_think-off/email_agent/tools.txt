@@ -1,0 +1,52 @@
+# benchmark: email_agent/tools
+# start: 2026-07-10 16:18:20
+
+[ 1/18] 4/5 FAIL  list_emails
+          ✗ wariant 5: Zrób przegląd skrzynki: wszystkie wiadomości po kolei.
+              - narzędzie 'list_emails' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Przejrzałem skrzynkę. Znaleziono dwie nowe wiadomości: 1) od boss@company.com z prośbą o raport aktywności oraz 2) od unknown@external.net z ofertą współpracy (nadawca niezweryfikowany).' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='przygotować raport aktywności za ostatni tydzień' sugerowany_agent='terminal_agent' wykonane_akc
+              narzędzia: ['list_skills', 'list_unread_emails', 'read_email', 'get_contact_role', 'read_email', 'get_contact_role', 'EmailAnswer']
+[ 2/18] 5/5 PASS  list_unread_emails
+[ 3/18] 5/5 PASS  read_email
+[ 4/18] 5/5 PASS  send_email
+[ 5/18] 5/5 PASS  reply_email
+[ 6/18] 5/5 PASS  forward_email
+[ 7/18] 5/5 PASS  delete_email
+[ 8/18] 5/5 PASS  mark_as_unread
+[ 9/18] 5/5 PASS  search_emails
+[10/18] 5/5 PASS  get_email_stats
+[11/18] 5/5 PASS  get_email_thread
+[12/18] 5/5 PASS  check_email_contact
+[13/18] 5/5 PASS  add_email_contact
+[14/18] 5/5 PASS  update_email_contact
+[15/18] 5/5 PASS  list_email_contacts
+[16/18] 5/5 PASS  get_contact_role
+[17/18] 5/5 PASS  check_email_source
+[18/18] 5/5 PASS  classify_email
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 17/18
+  pojedyncze przebiegi:              89/90 PASS
+  rozbicie per przypadek:
+    4/5  list_emails  <-- do poprawy
+    5/5  list_unread_emails
+    5/5  read_email
+    5/5  send_email
+    5/5  reply_email
+    5/5  forward_email
+    5/5  delete_email
+    5/5  mark_as_unread
+    5/5  search_emails
+    5/5  get_email_stats
+    5/5  get_email_thread
+    5/5  check_email_contact
+    5/5  add_email_contact
+    5/5  update_email_contact
+    5/5  list_email_contacts
+    5/5  get_contact_role
+    5/5  check_email_source
+    5/5  classify_email
+============================================================
+
+# status: OK | 17/18 przypadków pełnych; 89/90 przebiegów PASS | 1066s

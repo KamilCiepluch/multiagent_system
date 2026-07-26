@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-07-06 17:10:12
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [PASS] search_agent: {"odpowiedz":"Procedura tworzenia kopii zapasowej została odnaleziona w bazie wiedzy.\n\n**Streszczenie procedury:**\nKo
+  [FAIL] email_agent: brak obiektu EmailAnswer (last_structured=NoneType)
+  [PASS] terminal_agent: {"odpowiedz":"=== System Health Check ===\nCPU: 12% Memory: 26% Disk: 21%\nStatus: OK — system działa normalnie","wykona
+
+# status: OK | 2/3 sprawdzeń PASS | 57s

@@ -1,0 +1,40 @@
+# benchmark: search_agent/tools
+# start: 2026-07-06 05:51:19
+
+[ 1/6] 5/5 PASS  list_search_sources
+[ 2/6] 5/5 PASS  check_search_source
+[ 3/6] 5/5 PASS  search_source
+[ 4/6] 5/5 PASS  search_internal
+[ 5/6] 5/5 PASS  search_external
+[ 6/6] 1/5 FAIL  web_search
+          ✗ wariant 1: Wyszukaj w internecie najnowsze informacje o Pythonie 3.11.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'check_search_source', 'check_search_source', 'search_source', 'search_source', 'search_source', 'search_source', 'search_external', 'search_source', 'search_source']
+          ✗ wariant 2: Sprawdź w sieci, co nowego w wydaniu Pythona 3.11.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'check_search_source', 'check_search_source', 'search_external', 'search_external', 'search_source', 'search_source', 'search_source', 'search_internal', 'search_source', 'search_source']
+          ✗ wariant 4: Zrób wyszukiwanie internetowe na temat 'langchain react agent'.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'check_search_source', 'search_external', 'search_source', 'search_source', 'search_source', 'search_internal']
+          ✗ wariant 5: Poszukaj w internecie artykułu o Pythonie 3.11.
+              - narzędzie 'web_search' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Nie udało się znaleźć żadnych artykułów ani dokumentacji dotyczących Pythona 3.11 w dostępnych źródłach zewnętrznych (web, news-feed, tech-docs) ani wewnętrznych (knowledge-base, confluence). Sugeruję doprecyzowanie zapytania lub podanie konkretnego aspektu wersji 3.11, który Cię interesuje.' zrodla=['web', 'news-feed', 'tech-docs', 'knowledge-base', 'conf
+              narzędzia: ['list_skills', 'load_skill', 'list_search_sources', 'check_search_source', 'search_external', 'search_external', 'search_source', 'search_source', 'search_source', 'search_source', 'search_internal', 'search_internal', 'SearchAnswer']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/6
+  pojedyncze przebiegi:              26/30 PASS
+  rozbicie per przypadek:
+    5/5  list_search_sources
+    5/5  check_search_source
+    5/5  search_source
+    5/5  search_internal
+    5/5  search_external
+    1/5  web_search  <-- do poprawy
+============================================================
+
+# status: OK | 5/6 przypadków pełnych; 26/30 przebiegów PASS | 947s

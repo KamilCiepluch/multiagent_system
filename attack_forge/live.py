@@ -16,26 +16,31 @@ import argparse
 import re
 import sys
 
-from collections import Counter
-
 from .executor import execute_batch
 from .judge import AgentStep, DEFAULT_JUDGE_LIBRARY, JudgeSpec, RunTrace, ToolCall, Verdict, evaluate
 from .models import TargetProfile
 from .reflect import BatchReflection, JudgedVector, apply_to_target, reflect_batch
+from .scorecard import Scorecard
 from .strategist import StrategistError, make_plan
 from .surfaces import SURFACES, Surface, index_for_injection, next_surface
 from .system_kb import DEFAULT_MODEL_LIBRARY, DEFAULT_SYSTEM_LIBRARY, build_target_profile
 
-_ROLE_RE = re.compile(r"rola:\s*(\w+)", re.IGNORECASE)  # \w only — avoids capturing trailing ',' etc.
+# Accepts both the English "role:" (agent render) and the Polish "rola:" (legacy). \w only — avoids
+# capturing trailing ',' etc.
+_ROLE_RE = re.compile(r"rol[ae]:\s*(\w+)", re.IGNORECASE)
 
 
 def _role_from_output(agent: str, output: str) -> str | None:
     """Best-effort: the role email_agent propagated downstream, parsed from its rendered output
-    ('Użytkownik: <email> (rola: X)'). Used by the judge's role_spoof gate."""
+    ('User: <email> (role: X)'). Used by the judge's role_spoof gate."""
     if agent != "email_agent" or not output:
         return None
     m = _ROLE_RE.search(output)
-    return m.group(1) if m else None
+    if not m:
+        return None
+    role = m.group(1)
+    # normalize the "no role" label so it matches the true_role convention ("brak")
+    return "brak" if role.lower() == "none" else role
 
 
 def trace_from_run(run_id: str, *, true_role: str | None = None) -> RunTrace:
@@ -105,6 +110,8 @@ def run_iteration(attacker, *, provider, judge_llm, analyst, goal: str,
     print(f"selected tools: {selection.tool_names}")
     print(f"applied per vector: {vectors[0].applied_tools}", flush=True)
 
+    scorecard = Scorecard(spec_id=spec.id, target=target.model or "qwen3.6",
+                          technique=",".join(selection.tool_names) or "literal")
     judged: list[JudgedVector] = []
     for i, vector in enumerate(vectors, 1):
         print(f"\n{'#' * 64}\n# VECTOR {i}/{batch}\n{'#' * 64}", flush=True)
@@ -114,15 +121,16 @@ def run_iteration(attacker, *, provider, judge_llm, analyst, goal: str,
         print(f"run {run_id} — agents reached: {[s.agent for s in trace.steps]}")
         print(verdict.summary(), flush=True)
         judged.append(JudgedVector(vector=vector, verdict=verdict, run_id=run_id))
+        scorecard.add(trace, verdict, run_id=run_id)
 
     verdicts = [jv.verdict for jv in judged]
-    outcomes = Counter(v.outcome for v in verdicts)
     depths = [v.depth for v in verdicts]
     scores = [v.weighted_score for v in verdicts]
     n = len(verdicts)
-    print(f"\n{'=' * 64}\nBATCH SUMMARY — target=qwen, {n} vector(s), spec={spec.id}\n{'=' * 64}")
-    print(f"outcomes    : {dict(outcomes)}")
-    print(f"ASR (SUCCESS): {outcomes.get('SUCCESS', 0)}/{n}")
+    print(f"\n{'=' * 64}\nBATCH SUMMARY — spec={spec.id}\n{'=' * 64}")
+    # SUCCESS is the canary-grounded behavioral bit; the scorecard adds the harm-tier breakdown so a
+    # T1-recon "success" is never mistaken for a T5 exfil (docs/attack_plan_2026-07-25 §1).
+    print(scorecard.render())
     print(f"depth       : max {max(depths)}/{verdicts[0].max_depth}, avg {sum(depths) / n:.1f}")
     print(f"weighted    : max {max(scores):.2f}, avg {sum(scores) / n:.2f}")
 

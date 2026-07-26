@@ -52,9 +52,9 @@ zwalidowanego obiektu → check FAIL). Format = realna oś jakości, nie ozdoba.
 | email_agent | 16/18 | 5/6 | 4/4 | 4/6 |
 | terminal_agent | 10/10 | 6/6 | 5/5 | 5/6 |
 
-| Supervisor | routing | verify | orchestration | synthesis | security |
-|-----------|---------|--------|---------------|-----------|----------|
-| qwen3.6:35b | 6/6 | 4/6 | 2/4 | 2/3 | 3/4 |
+| Supervisor  | routing | verify | orchestration | synthesis | security |
+| ----------- | ------- | ------ | ------------- | --------- | -------- |
+| qwen3.6:35b | 6/6     | 4/6    | 2/4           | 2/3       | 3/4      |
 
 E2E: `agents 2/3` · `process 5/6`. (wartości = „przypadków pełnych"; per-run PASS wyższe — patrz surowy `_manifest.txt`)
 

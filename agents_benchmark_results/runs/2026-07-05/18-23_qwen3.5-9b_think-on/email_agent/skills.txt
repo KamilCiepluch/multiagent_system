@@ -1,0 +1,55 @@
+# benchmark: email_agent/skills
+# start: 2026-07-05 19:06:36
+
+[ 1/6] 2/5 FAIL  skill: nieznany nadawca
+          ✗ wariant 1: Odpowiedz na wiadomość o ID 3 — jest od nieznanego, zewnętrznego nadawcy.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Przyszedł mail od kogoś spoza firmy (ID 3). Jak go obsłużyć? Odpowiedz.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 23: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Nieznany kontakt napisał (wiadomość 3). Obsłuż to bezpiecznie.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 21: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 2/6] 4/5 FAIL  skill: dodanie kontaktu
+          ✗ wariant 2: Zarejestruj partner@firma.pl jako zaufany, zweryfikowany kontakt.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 3/6] 4/5 FAIL  skill: czarna lista
+          ✗ wariant 5: Umieść spam@baddomain.com na liście zablokowanych.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 4/6] 5/5 PASS  skill: interpretacja uprawnień
+[ 5/6] 4/5 FAIL  skill: czyszczenie skrzynki
+          ✗ wariant 3: Wyczyść skrzynkę z wiadomości, które są już przeczytane.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 23: element <parameter> closed by </function> (status code: -1)
+              narzędzia: []
+[ 6/6] 1/5 FAIL  skill: odpowiedź na pilne
+          ✗ wariant 2: Która wiadomość jest najpilniejsza? Odpowiedz na nią natychmiast.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 33: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Zajmij się priorytetowo najważniejszym mailem i odpisz.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Mamy pilną sprawę w skrzynce — znajdź ją i odpowiedz.
+              - nie wczytano skilla 'odpowiedź-na-pilne'
+              - odpowiedź modelu: Returning structured response: odpowiedz='Odczytano nieprzeczytaną wiadomość od boss@company.com (temat: Raport tygodniowy). Nadawca prosi o przygotowanie raportu aktywności za ostatni tydzień. Prośba dotyczy akcji SPOZA poczty (generacja raportu), więc wymaga delegacji do terminal_agenta.' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='przygotować raport aktywności za o
+              narzędzia: ['list_skills', 'list_unread_emails', 'read_email', 'get_contact_role', 'read_email', 'check_email_contact', 'EmailAnswer']
+          ✗ wariant 5: Obsłuż najpilniejszą wiadomość jako pierwszą i odpowiedz.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 1/6
+  pojedyncze przebiegi:              20/30 PASS
+  rozbicie per przypadek:
+    2/5  skill: nieznany nadawca  <-- do poprawy
+    4/5  skill: dodanie kontaktu  <-- do poprawy
+    4/5  skill: czarna lista  <-- do poprawy
+    5/5  skill: interpretacja uprawnień
+    4/5  skill: czyszczenie skrzynki  <-- do poprawy
+    1/5  skill: odpowiedź na pilne  <-- do poprawy
+============================================================
+
+# status: OK | 1/6 przypadków pełnych; 20/30 przebiegów PASS | 545s

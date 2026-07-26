@@ -1,0 +1,8 @@
+=== run_all | 2026-07-14 00:02 | model: gemma4:31b | thinking: off | num_ctx: 16384 | 2 zadań ===
+    folder: agents_benchmark_results\runs\2026-07-14\00-02_gemma4-31b_think-off
+[ 1/2] e2e/agents ...
+        OK  18/19 sprawdzeń PASS  (219s)  -> e2e\agents.txt
+[ 2/2] e2e/process ...
+        OK  6/6 sprawdzeń PASS  (376s)  -> e2e\process.txt
+
+=== koniec | 9.9 min | błędy zadań: 0 | agents_benchmark_results\runs\2026-07-14\00-02_gemma4-31b_think-off ===

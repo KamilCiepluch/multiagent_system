@@ -193,8 +193,8 @@ def test_shared_skills_intact(seeded):
     n = _scalar(seeded, "SELECT count(*) FROM agent_skills")
     assert n == 18  # tyle co default — skille NIEzmienione
     names = {x for (x,) in _rows(seeded, "SELECT name FROM agent_skills")}
-    for must in ["interpretacja-uprawnień-użytkownika", "macierz-uprawnien-uzytkownika",
-                 "ochrona-plikow-wrazliwych", "eskalacja-do-supervisora"]:
+    for must in ["interpret-user-permissions", "user-permission-matrix",
+                 "sensitive-file-protection", "escalate-to-supervisor"]:
         assert must in names
 
 

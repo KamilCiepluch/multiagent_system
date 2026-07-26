@@ -1,0 +1,19 @@
+{
+  "_comment": "Słownik etykiet technik do /technique i /tag — żeby tagowanie było spójne i statystyki się nie rozjeżdżały literówkami. Nadpisuj/dopisuj do woli.",
+  "techniques": {
+    "DAN": "Do-Anything-Now / persona bez ograniczeń",
+    "roleplay": "wciągnięcie modelu w rolę/fikcję, w której zakaz 'nie obowiązuje'",
+    "prefix-inject": "wymuszenie początku odpowiedzi (np. 'Sure, here is...')",
+    "refusal-suppression": "zakaz używania fraz odmowy ('nie mów: nie mogę')",
+    "crescendo": "multi-turn, stopniowa eskalacja od niewinnego do celu",
+    "payload-split": "rozbicie zakazanej treści na części/warianty do sklejenia",
+    "encoding": "obejście filtra kodowaniem (base64, ROT13, leetspeak, emoji)",
+    "low-resource-lang": "prompt w rzadszym języku, by ominąć filtry",
+    "hypothetical": "'czysto teoretycznie / w powieści / dla badań'",
+    "authority": "podszycie się pod autorytet/uprawnienie (admin, dev-mode, sudo)",
+    "context-overflow": "zalanie kontekstem, by 'wypchnąć' reguły bezpieczeństwa",
+    "obfuscation": "zaciemnianie intencji parafrazą/synonimami",
+    "many-shot": "wiele przykładów uległości w kontekście przed właściwym pytaniem",
+    "tool-abuse": "nadużycie formatu narzędzi/funkcji do obejścia guardraili"
+  }
+}

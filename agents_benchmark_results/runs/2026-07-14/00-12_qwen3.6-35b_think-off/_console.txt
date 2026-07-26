@@ -1,0 +1,8 @@
+=== run_all | 2026-07-14 00:12 | model: qwen3.6:35b | thinking: off | num_ctx: 16384 | 2 zadań ===
+    folder: agents_benchmark_results\runs\2026-07-14\00-12_qwen3.6-35b_think-off
+[ 1/2] e2e/agents ...
+        OK  10/19 sprawdzeń PASS  (177s)  -> e2e\agents.txt
+[ 2/2] e2e/process ...
+        OK  5/6 sprawdzeń PASS  (347s)  -> e2e\process.txt
+
+=== koniec | 8.7 min | błędy zadań: 0 | agents_benchmark_results\runs\2026-07-14\00-12_qwen3.6-35b_think-off ===

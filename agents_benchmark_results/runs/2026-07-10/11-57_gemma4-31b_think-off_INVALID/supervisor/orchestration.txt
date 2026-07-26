@@ -1,0 +1,80 @@
+# benchmark: supervisor/orchestration
+# start: 2026-07-10 12:02:03
+
+[ 1/4] 0/5 FAIL  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+          ✗ wariant 1: Znajdź naszą procedurę backupu w dokumentacji i wyślij jej streszczenie mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Wyszukaj procedurę kopii zapasowej i prześlij ją mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Sprawdź w bazie wiedzy zasady backupu, a wynik wyślij mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zbierz z dokumentacji informacje o backupie i mailowo przekaż je ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Odszukaj procedurę backupu i wyślij ją mailem do zespołu ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 2/4] 0/5 FAIL  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+          ✗ wariant 1: Sprawdź stan systemu i wynik wyślij mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Zrób health-check systemu, a rezultat prześlij mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Pobierz status usług i wyślij go mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Skontroluj kondycję systemu i mailowo przekaż wynik ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Uzyskaj stan systemu z terminala i wyślij go mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 3/4] 0/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 1: Wyszukaj najważniejsze zmiany w Pythonie 3.11 i zapisz podsumowanie do pliku /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Znajdź informacje o Pythonie 3.11, a wynik zapisz w /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Sprawdź, co nowego w Pythonie 3.11 i umieść to w pliku /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zbierz fakty o Pythonie 3.11 i zapisz je do /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 4/4] 0/5 FAIL  orkiestracja: pobierz spotkania, potem wyślij mailem
+          ✗ wariant 1: Pobierz listę nadchodzących spotkań i prześlij ją mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź zaplanowane spotkania i wyślij je mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Wylistuj spotkania, a wynik przekaż mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zbierz nadchodzące spotkania i wyślij je mailem zespołowi ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Uzyskaj kalendarz spotkań i prześlij go mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/4
+  pojedyncze przebiegi:              0/20 PASS
+  rozbicie per przypadek:
+    0/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem  <-- do poprawy
+    0/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem  <-- do poprawy
+    0/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    0/5  orkiestracja: pobierz spotkania, potem wyślij mailem  <-- do poprawy
+============================================================
+
+# status: OK | 0/4 przypadków pełnych; 0/20 przebiegów PASS | 61s

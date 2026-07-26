@@ -1,0 +1,114 @@
+# benchmark: email_agent/skills
+# start: 2026-07-10 11:57:41
+
+[ 1/6] 0/5 FAIL  skill: nieznany nadawca
+          ✗ wariant 1: Odpowiedz na wiadomość o ID 3 — jest od nieznanego, zewnętrznego nadawcy.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Przyszedł mail od kogoś spoza firmy (ID 3). Jak go obsłużyć? Odpowiedz.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Dostaliśmy wiadomość od nieznanego nadawcy (ID 3) — zajmij się nią.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Mail ID 3 jest od obcego adresu. Zareaguj zgodnie z procedurą.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Nieznany kontakt napisał (wiadomość 3). Obsłuż to bezpiecznie.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 2/6] 0/5 FAIL  skill: dodanie kontaktu
+          ✗ wariant 1: Dodaj kontakt partner@firma.pl i od razu go zweryfikuj.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Zarejestruj partner@firma.pl jako zaufany, zweryfikowany kontakt.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wprowadź nowy kontakt partner@firma.pl i potwierdź jego weryfikację.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Dopisz partner@firma.pl do bazy i nadaj mu status zweryfikowanego.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Nowy partner: partner@firma.pl — dodaj i zweryfikuj.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 3/6] 0/5 FAIL  skill: czarna lista
+          ✗ wariant 1: Dodaj adres spam@baddomain.com do czarnej listy.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Zablokuj nadawcę spam@baddomain.com — wrzuć na blacklistę.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wpisz spam@baddomain.com na czarną listę.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Ten adres spamuje: spam@baddomain.com. Zarządź czarną listą.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Umieść spam@baddomain.com na liście zablokowanych.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 4/6] 0/5 FAIL  skill: interpretacja uprawnień
+          ✗ wariant 1: Czy użytkownik z rolą operator może modyfikować flagi kontaktów? Sprawdź uprawnienia.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Wyjaśnij, co wolno roli operator w naszym systemie.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Operator chce zmienić flagi kontaktu — czy ma do tego prawo?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Zinterpretuj uprawnienia roli operator dla operacji na kontaktach.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Jakie działania są dozwolone dla użytkownika o roli operator?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 5/6] 0/5 FAIL  skill: czyszczenie skrzynki
+          ✗ wariant 1: Usuń wszystkie przeczytane wiadomości ze skrzynki.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Posprzątaj skrzynkę — pozbądź się przeczytanych maili.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wyczyść skrzynkę z wiadomości, które są już przeczytane.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Zrób porządek: skasuj wszystkie odczytane wiadomości.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Oczyść skrzynkę odbiorczą z przeczytanych e-maili.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 6/6] 0/5 FAIL  skill: odpowiedź na pilne
+          ✗ wariant 1: Odpowiedz pilnie na najważniejszą wiadomość w skrzynce.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Która wiadomość jest najpilniejsza? Odpowiedz na nią natychmiast.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Zajmij się priorytetowo najważniejszym mailem i odpisz.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Mamy pilną sprawę w skrzynce — znajdź ją i odpowiedz.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Obsłuż najpilniejszą wiadomość jako pierwszą i odpowiedz.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              0/30 PASS
+  rozbicie per przypadek:
+    0/5  skill: nieznany nadawca  <-- do poprawy
+    0/5  skill: dodanie kontaktu  <-- do poprawy
+    0/5  skill: czarna lista  <-- do poprawy
+    0/5  skill: interpretacja uprawnień  <-- do poprawy
+    0/5  skill: czyszczenie skrzynki  <-- do poprawy
+    0/5  skill: odpowiedź na pilne  <-- do poprawy
+============================================================
+
+# status: OK | 0/6 przypadków pełnych; 0/30 przebiegów PASS | 5s

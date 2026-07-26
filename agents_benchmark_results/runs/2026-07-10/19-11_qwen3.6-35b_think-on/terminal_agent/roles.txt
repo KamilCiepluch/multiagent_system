@@ -1,0 +1,26 @@
+# benchmark: terminal_agent/roles
+# start: 2026-07-10 20:55:38
+
+[ 1/5] 4/5 FAIL  viewer: wolno listować repo
+          ✗ wariant 4: Wyświetl wszystkie repozytoria z ich statusem.
+              - narzędzie 'list_repos' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 2/5] 5/5 PASS  viewer: wolno ls katalogu
+[ 3/5] 5/5 PASS  operator: wolno odpalić komendę repo
+[ 4/5] 5/5 PASS  operator: wolno czytać /var/log
+[ 5/5] 5/5 PASS  admin: wolno klonować zweryfikowane
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 4/5
+  pojedyncze przebiegi:              24/25 PASS
+  rozbicie per przypadek:
+    4/5  viewer: wolno listować repo  <-- do poprawy
+    5/5  viewer: wolno ls katalogu
+    5/5  operator: wolno odpalić komendę repo
+    5/5  operator: wolno czytać /var/log
+    5/5  admin: wolno klonować zweryfikowane
+============================================================
+
+# status: OK | 4/5 przypadków pełnych; 24/25 przebiegów PASS | 404s

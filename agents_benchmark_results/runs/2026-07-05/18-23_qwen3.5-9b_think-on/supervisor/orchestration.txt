@@ -1,0 +1,58 @@
+# benchmark: supervisor/orchestration
+# start: 2026-07-05 20:55:02
+
+[ 1/4] 3/5 FAIL  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+          ✗ wariant 2: Wyszukaj procedurę kopii zapasowej i prześlij ją mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 36: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Sprawdź w bazie wiedzy zasady backupu, a wynik wyślij mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 40: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 2/4] 2/5 FAIL  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+          ✗ wariant 2: Zrób health-check systemu, a rezultat prześlij mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 22: element <function> closed by </parameter> (status code: 500)
+              narzędzia: []
+          ✗ wariant 3: Pobierz status usług i wyślij go mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 14: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Uzyskaj stan systemu z terminala i wyślij go mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 19: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 3/4] 1/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 1: Wyszukaj najważniejsze zmiany w Pythonie 3.11 i zapisz podsumowanie do pliku /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 28: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Znajdź informacje o Pythonie 3.11, a wynik zapisz w /app/notes.txt.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: []
+          ✗ wariant 3: Sprawdź, co nowego w Pythonie 3.11 i umieść to w pliku /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 41: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 4/4] 2/5 FAIL  orkiestracja: pobierz spotkania, potem wyślij mailem
+          ✗ wariant 1: Pobierz listę nadchodzących spotkań i prześlij ją mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 14: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź zaplanowane spotkania i wyślij je mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 14: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Wylistuj spotkania, a wynik przekaż mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 15: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/4
+  pojedyncze przebiegi:              8/20 PASS
+  rozbicie per przypadek:
+    3/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem  <-- do poprawy
+    2/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem  <-- do poprawy
+    1/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    2/5  orkiestracja: pobierz spotkania, potem wyślij mailem  <-- do poprawy
+============================================================
+
+# status: OK | 0/4 przypadków pełnych; 8/20 przebiegów PASS | 6552s

@@ -1,0 +1,63 @@
+# benchmark: supervisor/synthesis
+# start: 2026-07-10 12:03:04
+
+[ 1/3] 0/5 FAIL  synteza: finalna odpowiedź zawiera treść konkretnego maila
+          ✗ wariant 1: Przeczytaj wiadomość o ID 1 i podsumuj mi jej treść.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Otwórz maila numer 1 i powiedz, czego dotyczy.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Co jest w wiadomości ID 1? Streść ją w odpowiedzi.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Wyświetl treść e-maila nr 1 i podaj jego sedno.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Pokaż, o co chodzi w mailu o ID 1.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 2/3] 0/5 FAIL  synteza: finalna odpowiedź zawiera zawartość pliku
+          ✗ wariant 1: Odczytaj plik /app/requirements.txt i podaj jego zawartość.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Pokaż mi, co jest w /app/requirements.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Wyświetl zawartość pliku /app/requirements.txt.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Co zawiera /app/requirements.txt? Podaj treść.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Zajrzyj do /app/requirements.txt i wypisz, co tam jest.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 3/3] 0/5 FAIL  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+          ✗ wariant 1: Jaką rolę w systemie ma ops@company.com? Podaj wynik.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź i podaj mi poziom uprawnień ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Ustal rolę ops@company.com i przekaż mi ją w odpowiedzi.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zweryfikuj uprawnienia ops@company.com i poinformuj mnie.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Powiedz mi, jaką rolę ma ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/3
+  pojedyncze przebiegi:              0/15 PASS
+  rozbicie per przypadek:
+    0/5  synteza: finalna odpowiedź zawiera treść konkretnego maila  <-- do poprawy
+    0/5  synteza: finalna odpowiedź zawiera zawartość pliku  <-- do poprawy
+    0/5  synteza: finalna odpowiedź zawiera zweryfikowaną rolę  <-- do poprawy
+============================================================
+
+# status: OK | 0/3 przypadków pełnych; 0/15 przebiegów PASS | 55s

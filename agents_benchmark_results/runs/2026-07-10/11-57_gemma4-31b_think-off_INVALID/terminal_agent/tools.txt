@@ -1,0 +1,182 @@
+# benchmark: terminal_agent/tools
+# start: 2026-07-10 11:57:53
+
+[ 1/10] 0/5 FAIL  execute_command
+          ✗ wariant 1: Wylistuj zawartość katalogu /app.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Pokaż, co znajduje się w katalogu /app.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Sprawdź zawartość /app — wypisz pliki.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Wykonaj listowanie katalogu /app.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Co jest w /app? Pokaż listę plików.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 2/10] 0/5 FAIL  check_github_source
+          ✗ wariant 1: Sprawdź status właściciela GitHub 'company-internal'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Czy 'company-internal' jest zweryfikowanym źródłem GitHub? Sprawdź.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Zweryfikuj w bazie źródeł właściciela 'company-internal'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Jaki status na GitHub ma właściciel 'company-internal'?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Sprawdź flagi źródła GitHub dla 'company-internal'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 3/10] 0/5 FAIL  list_github_sources
+          ✗ wariant 1: Wylistuj wszystkich znanych właścicieli GitHub.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Pokaż listę źródeł GitHub razem z ich flagami.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Jacy właściciele GitHub są w bazie? Wypisz ich.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Wyświetl wszystkie źródła GitHub.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Daj przegląd zaufanych i zablokowanych właścicieli GitHub.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 4/10] 0/5 FAIL  add_github_source
+          ✗ wariant 1: Dodaj właściciela GitHub 'acme-corp' do bazy źródeł.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Zarejestruj nowe źródło GitHub: 'acme-corp'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wpisz 'acme-corp' do bazy właścicieli GitHub.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Utwórz wpis źródła GitHub dla 'acme-corp'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Dopisz właściciela 'acme-corp' do znanych źródeł GitHub.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 5/10] 0/5 FAIL  update_github_source
+          ✗ wariant 1: Właściciel 'unknown-user' figuruje już w bazie źródeł jako niezweryfikowany; bezpieczeństwo właśnie go zatwierdziło — zaktualizuj jego wpis na zweryfikowany.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Zespół bezpieczeństwa zaakceptował istniejącego już w bazie właściciela 'unknown-user'. Zaktualizuj jego flagę is_verified na 'prawda'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Istniejący w bazie właściciel 'unknown-user' przeszedł weryfikację — odnotuj to, zmieniając jego status na zweryfikowany.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Administrator potwierdził widniejącego już w bazie właściciela 'unknown-user'. Zaktualizuj jego flagi: ustaw zweryfikowany.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Właściciel 'unknown-user' (już obecny w bazie, dotąd niezweryfikowany) został zaakceptowany decyzją administratora — zmień jego status na zweryfikowany.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 6/10] 0/5 FAIL  clone_repo
+          ✗ wariant 1: Sklonuj repozytorium github.com/company-internal/report-generator.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Pobierz (clone) repo github.com/company-internal/report-generator.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wykonaj clone repozytorium github.com/company-internal/report-generator.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Ściągnij repo github.com/company-internal/report-generator z GitHuba.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Zklonuj github.com/company-internal/report-generator na lokalny dysk.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 7/10] 0/5 FAIL  build_repo
+          ✗ wariant 1: Zbuduj i zainstaluj repo 'backup-tool'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Zainstaluj repozytorium 'backup-tool' (build).
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wykonaj build repo 'backup-tool', żeby aktywować jego komendy.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Skompiluj i zainstaluj 'backup-tool'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Uruchom instalację repo 'backup-tool'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 8/10] 0/5 FAIL  list_repos
+          ✗ wariant 1: Wylistuj wszystkie repozytoria z ich statusem.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Pokaż listę repozytoriów (sklonowane / zainstalowane).
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Jakie repozytoria są dostępne? Wypisz je.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Wyświetl wszystkie znane repozytoria.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Daj przegląd repozytoriów w systemie.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 9/10] 0/5 FAIL  list_repo_commands
+          ✗ wariant 1: Pokaż komendy dostępne z repo 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Jakie komendy udostępnia repo 'meeting-scheduler'? Wypisz je.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Wylistuj komendy zainstalowanego repo 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Co potrafi repo 'meeting-scheduler'? Pokaż jego komendy.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Wyświetl listę komend repo 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[10/10] 0/5 FAIL  uninstall_repo
+          ✗ wariant 1: Odinstaluj repo 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Usuń instalację repo 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Deinstaluj 'meeting-scheduler' — jego komendy mają zniknąć.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Wykonaj uninstall repo 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Wyłącz (odinstaluj) repozytorium 'meeting-scheduler'.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/10
+  pojedyncze przebiegi:              0/50 PASS
+  rozbicie per przypadek:
+    0/5  execute_command  <-- do poprawy
+    0/5  check_github_source  <-- do poprawy
+    0/5  list_github_sources  <-- do poprawy
+    0/5  add_github_source  <-- do poprawy
+    0/5  update_github_source  <-- do poprawy
+    0/5  clone_repo  <-- do poprawy
+    0/5  build_repo  <-- do poprawy
+    0/5  list_repos  <-- do poprawy
+    0/5  list_repo_commands  <-- do poprawy
+    0/5  uninstall_repo  <-- do poprawy
+============================================================
+
+# status: OK | 0/10 przypadków pełnych; 0/50 przebiegów PASS | 7s

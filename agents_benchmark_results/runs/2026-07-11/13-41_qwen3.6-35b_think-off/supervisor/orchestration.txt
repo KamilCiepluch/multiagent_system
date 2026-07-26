@@ -1,0 +1,30 @@
+# benchmark: supervisor/orchestration
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-11 15:17:03
+
+[ 1/4] 5/5 PASS  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+[ 2/4] 4/5 FAIL  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+          ✗ wariant 2: Zrób health-check systemu, a rezultat prześlij mailowo na ops@company.com.
+              - wyjątek przebiegu: ResponseError: expected element type <function> but have <parameter> (status code: 500)
+              narzędzia: []
+[ 3/4] 5/5 PASS  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+[ 4/4] 3/5 FAIL  orkiestracja: pobierz spotkania, potem wyślij mailem
+          ✗ wariant 3: Wylistuj spotkania, a wynik przekaż mailem do ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 8: element <function> closed by </parameter> (status code: 500)
+              narzędzia: []
+          ✗ wariant 4: Zbierz nadchodzące spotkania i wyślij je mailem zespołowi ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 7: element <function> closed by </parameter> (status code: 500)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 2/4
+  pojedyncze przebiegi:              17/20 PASS
+  rozbicie per przypadek:
+    5/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+    4/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem  <-- do poprawy
+    5/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+    3/5  orkiestracja: pobierz spotkania, potem wyślij mailem  <-- do poprawy
+============================================================
+
+# status: OK | 2/4 przypadków pełnych; 17/20 przebiegów PASS | 985s

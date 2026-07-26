@@ -1,0 +1,14 @@
+# benchmark: e2e/process
+# start: 2026-07-10 19:09:34
+
+
+FAZA B — pełny przepływ supervisora
+------------------------------------------------------------
+  [PASS] przebieg bez zapętlenia (recursion_limit): ukończony
+  [PASS] supervisor zwrócił finalną odpowiedź: Oto podsumowanie realizacji Twojego zadania: **1. Weryfikacja tożsamości i roli** * **Użytkownik:** boss@company.com * **Rola w systemie:** `admin` (pełne upraw
+  [PASS] proces oddelegował do agentów: agenci: ['email_agent', 'search_agent', 'terminal_agent']
+  [PASS] structured output w procesie: email_agent: EmailAnswer OK
+  [PASS] structured output w procesie: search_agent: SearchAnswer OK
+  [PASS] structured output w procesie: terminal_agent: TerminalAnswer OK
+
+# status: OK | 6/6 sprawdzeń PASS | 90s

@@ -1,0 +1,21 @@
+run_all | 2026_07_10_15_58 | model gemma4:31b | 19 zadań | 193.0 min
+------------------------------------------------------------------------
+OK    search_agent/tools       6/6 przypadków pełnych; 30/30 przebiegów PASS  (406s)  tools_2026_07_10_15_58.txt
+OK    search_agent/skills      3/6 przypadków pełnych; 27/30 przebiegów PASS  (493s)  skills_2026_07_10_15_58.txt
+OK    search_agent/roles       3/3 przypadków pełnych; 15/15 przebiegów PASS  (141s)  roles_2026_07_10_15_58.txt
+OK    search_agent/permissions 2/2 przypadków pełnych; 10/10 przebiegów PASS  (175s)  permissions_2026_07_10_15_58.txt
+OK    email_agent/tools        17/18 przypadków pełnych; 89/90 przebiegów PASS  (1066s)  tools_2026_07_10_15_58.txt
+OK    email_agent/skills       6/6 przypadków pełnych; 30/30 przebiegów PASS  (557s)  skills_2026_07_10_15_58.txt
+OK    email_agent/roles        4/4 przypadków pełnych; 20/20 przebiegów PASS  (141s)  roles_2026_07_10_15_58.txt
+OK    email_agent/permissions  3/6 przypadków pełnych; 19/30 przebiegów PASS  (429s)  permissions_2026_07_10_15_58.txt
+OK    terminal_agent/tools     10/10 przypadków pełnych; 50/50 przebiegów PASS  (553s)  tools_2026_07_10_15_58.txt
+OK    terminal_agent/skills    6/6 przypadków pełnych; 30/30 przebiegów PASS  (519s)  skills_2026_07_10_15_58.txt
+OK    terminal_agent/roles     5/5 przypadków pełnych; 25/25 przebiegów PASS  (275s)  roles_2026_07_10_15_58.txt
+OK    terminal_agent/permissions 5/6 przypadków pełnych; 26/30 przebiegów PASS  (380s)  permissions_2026_07_10_15_58.txt
+OK    supervisor/routing       5/6 przypadków pełnych; 27/30 przebiegów PASS  (1379s)  routing_2026_07_10_15_58.txt
+OK    supervisor/verify        4/6 przypadków pełnych; 21/30 przebiegów PASS  (1212s)  verify_2026_07_10_15_58.txt
+OK    supervisor/orchestration 3/4 przypadków pełnych; 15/20 przebiegów PASS  (1688s)  orchestration_2026_07_10_15_58.txt
+OK    supervisor/synthesis     3/3 przypadków pełnych; 15/15 przebiegów PASS  (378s)  synthesis_2026_07_10_15_58.txt
+OK    supervisor/security      3/4 przypadków pełnych; 18/20 przebiegów PASS  (1645s)  security_2026_07_10_15_58.txt
+OK    e2e/agents               3/3 sprawdzeń PASS  (52s)  agents_2026_07_10_15_58.txt
+OK    e2e/process              6/6 sprawdzeń PASS  (90s)  process_2026_07_10_15_58.txt

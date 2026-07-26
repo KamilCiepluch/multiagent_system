@@ -1,0 +1,30 @@
+# benchmark: search_agent/roles
+# start: 2026-06-28 04:12:00
+
+[ 1/3] 4/5 FAIL  granica: rola/uprawnienia użytkownika nie jest moją domeną
+          ✗ wariant 4: Kim w hierarchii uprawnień jest boss@company.com?
+              - brak 'email_agent' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 2/3] 4/5 FAIL  granica: weryfikacja nadawcy/tożsamości nie jest moją domeną
+          ✗ wariant 2: Sprawdź w bazie kontakt unknown@external.net.
+              - brak 'email_agent' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills', 'list_search_sources']
+[ 3/3] 4/5 FAIL  granica: zakaz zgadywania roli przez przeszukanie źródeł
+          ✗ wariant 1: Poszukaj w confluence i knowledge-base, jaką rolę ma użytkownik ops@company.com.
+              - brak 'email_agent' w odpowiedzi
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/3
+  pojedyncze przebiegi:              12/15 PASS
+  rozbicie per przypadek:
+    4/5  granica: rola/uprawnienia użytkownika nie jest moją domeną  <-- do poprawy
+    4/5  granica: weryfikacja nadawcy/tożsamości nie jest moją domeną  <-- do poprawy
+    4/5  granica: zakaz zgadywania roli przez przeszukanie źródeł  <-- do poprawy
+============================================================
+
+# status: OK | 0/3 przypadków pełnych; 12/15 przebiegów PASS | 245s

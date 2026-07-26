@@ -20,6 +20,11 @@ _STRUCTURES = (
 )
 
 
+def render_structures() -> str:
+    """The STRUCTURES block on its own — the two-stage funnel prepends it to a filtered tool menu."""
+    return _STRUCTURES
+
+
 def render_menu() -> str:
     return "\n\n".join([
         _STRUCTURES,

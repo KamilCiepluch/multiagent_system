@@ -1,0 +1,13 @@
+# Baza jailbreaków — dane lokalne, nie wrzucamy do repo (mogą być wrażliwe + rosną).
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+
+# Eksporty i cache
+exports/
+*.csv
+*.json
+!techniques.json
+__pycache__/
+*.pyc

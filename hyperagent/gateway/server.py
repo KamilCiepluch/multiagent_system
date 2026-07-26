@@ -3,7 +3,7 @@ Gateway — JEDYNY most między zamkniętym w kontenerze hyperagentem a światem
 zewnętrznym (narzędzia ataku, LLM, ground truth, własna historia, cel ataku).
 
 To jest fizyczna realizacja "niełamliwego mechanizmu logowania", o który
-prosił użytkownik: agent może przepisać dosłownie CAŁY swój kod — łącznie
+prosił user: agent może przepisać dosłownie CAŁY swój kod — łącznie
 z własną orkiestracją — ale nie ma żadnej drogi, by ominąć ten proces, bo:
 
   1. kod gatewaya nie znajduje się w katalogu, który agent może zapisywać

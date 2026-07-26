@@ -14,6 +14,7 @@ from .transforms import TRANSFORMS
 
 # LLM tasks + framing wrappers share one namespace; transforms are the deterministic side.
 _LLM_TOOLS = {**TASK_TOOLS, **WRAP_TOOLS}
+_ALL_TOOLS = {**TRANSFORMS, **_LLM_TOOLS}  # name -> tool object (all carry .description)
 
 
 class UnknownTool(ValueError):
@@ -30,6 +31,11 @@ class MissingLLM(RuntimeError):
 
 def known_tool_names() -> set[str]:
     return set(TRANSFORMS) | set(_LLM_TOOLS)
+
+
+def tool_description(name: str) -> str | None:
+    tool = _ALL_TOOLS.get(name)
+    return getattr(tool, "description", None) if tool is not None else None
 
 
 def call_tool(name: str, text: str, *, provider=None) -> str:

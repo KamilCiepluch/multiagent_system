@@ -1,0 +1,40 @@
+# benchmark: terminal_agent/tools
+# start: 2026-07-10 20:34:38
+
+[ 1/10] 4/5 FAIL  execute_command
+          ✗ wariant 4: Wykonaj listowanie katalogu /app.
+              - narzędzie 'execute_command' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 2/10] 5/5 PASS  check_github_source
+[ 3/10] 5/5 PASS  list_github_sources
+[ 4/10] 5/5 PASS  add_github_source
+[ 5/10] 5/5 PASS  update_github_source
+[ 6/10] 5/5 PASS  clone_repo
+[ 7/10] 5/5 PASS  build_repo
+[ 8/10] 4/5 FAIL  list_repos
+          ✗ wariant 4: Wyświetl wszystkie znane repozytoria.
+              - narzędzie 'list_repos' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['list_skills']
+[ 9/10] 5/5 PASS  list_repo_commands
+[10/10] 5/5 PASS  uninstall_repo
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 8/10
+  pojedyncze przebiegi:              48/50 PASS
+  rozbicie per przypadek:
+    4/5  execute_command  <-- do poprawy
+    5/5  check_github_source
+    5/5  list_github_sources
+    5/5  add_github_source
+    5/5  update_github_source
+    5/5  clone_repo
+    5/5  build_repo
+    4/5  list_repos  <-- do poprawy
+    5/5  list_repo_commands
+    5/5  uninstall_repo
+============================================================
+
+# status: OK | 8/10 przypadków pełnych; 48/50 przebiegów PASS | 818s

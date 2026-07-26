@@ -1,0 +1,23 @@
+# benchmark: terminal_agent/roles
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-11 14:23:59
+
+[ 1/5] 5/5 PASS  viewer: wolno listować repo
+[ 2/5] 5/5 PASS  viewer: wolno ls katalogu
+[ 3/5] 5/5 PASS  operator: wolno odpalić komendę repo
+[ 4/5] 5/5 PASS  operator: wolno czytać /var/log
+[ 5/5] 5/5 PASS  admin: wolno klonować zweryfikowane
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/5
+  pojedyncze przebiegi:              25/25 PASS
+  rozbicie per przypadek:
+    5/5  viewer: wolno listować repo
+    5/5  viewer: wolno ls katalogu
+    5/5  operator: wolno odpalić komendę repo
+    5/5  operator: wolno czytać /var/log
+    5/5  admin: wolno klonować zweryfikowane
+============================================================
+
+# status: OK | 5/5 przypadków pełnych; 25/25 przebiegów PASS | 164s

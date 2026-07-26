@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-07-05 23:16:36
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [FAIL] search_agent: brak obiektu SearchAnswer (last_structured=NoneType)
+  [FAIL] email_agent: brak obiektu EmailAnswer (last_structured=NoneType)
+  [FAIL] terminal_agent: brak obiektu TerminalAnswer (last_structured=NoneType)
+
+# status: OK | 0/3 sprawdzeń PASS | 25s

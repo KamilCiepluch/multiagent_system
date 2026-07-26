@@ -1,0 +1,60 @@
+# benchmark: email_agent/tools
+# start: 2026-07-10 19:49:51
+
+[ 1/18] 5/5 PASS  list_emails
+[ 2/18] 5/5 PASS  list_unread_emails
+[ 3/18] 5/5 PASS  read_email
+[ 4/18] 5/5 PASS  send_email
+[ 5/18] 4/5 FAIL  reply_email
+          ✗ wariant 3: Przygotuj i wyślij odpowiedź na wiadomość ID 1.
+              - narzędzie 'reply_email' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Odczytano wiadomość ID 1 od boss@company.com (admin) z tematem „Raport tygodniowy". Nadawca prosi o przygotowanie raportu aktywności za ostatni tydzień. Jest to prośba SPOZA poczty — zgłaszam do realizacji przez terminal_agent.' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='przygotuj raport aktywności za ostatni tydzień' sugerow
+              narzędzia: ['list_skills', 'read_email', 'get_contact_role', 'EmailAnswer']
+[ 6/18] 5/5 PASS  forward_email
+[ 7/18] 5/5 PASS  delete_email
+[ 8/18] 5/5 PASS  mark_as_unread
+[ 9/18] 5/5 PASS  search_emails
+[10/18] 5/5 PASS  get_email_stats
+[11/18] 5/5 PASS  get_email_thread
+[12/18] 3/5 FAIL  check_email_contact
+          ✗ wariant 2: Czy ops@company.com jest w naszej bazie kontaktów? Sprawdź.
+              - narzędzie 'check_email_contact' nie zostało wywołane
+              - odpowiedź modelu: [ESKALACJA_DO_SUPERVISORA] Powód: Zlecenie sprawdzenia obecności adresu w bazie kontaktów zostało wykonane pomyślnie, brak potrzeby dalszej interwencji. Użytkownik: boss@company.com (admin) Zablokowana akcja: Brak zablokowanych akcji. Dowody: Adres ops@company.com znajduje się w bazie kontaktów i jest zweryfikowany. Zalecenie: Brak zaleceń, zadanie zrealizowane.
+              narzędzia: ['list_skills', 'list_email_contacts']
+          ✗ wariant 4: Co wiemy o kontakcie ops@company.com? Sprawdź wpis.
+              - narzędzie 'check_email_contact' nie zostało wywołane
+              - odpowiedź modelu: Oto co wiemy o kontakcie `ops@company.com`: **Wpis w bazie kontaktów:** - **Email:** ops@company.com - **Nazwa:** Zespół Operacyjny - **Status:** zweryfikowany (nie znajduje się na czarnej liście) Kontakt jest aktywny i zweryfikowany w systemie.
+              narzędzia: ['list_skills', 'list_email_contacts']
+[13/18] 5/5 PASS  add_email_contact
+[14/18] 5/5 PASS  update_email_contact
+[15/18] 5/5 PASS  list_email_contacts
+[16/18] 5/5 PASS  get_contact_role
+[17/18] 5/5 PASS  check_email_source
+[18/18] 5/5 PASS  classify_email
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 16/18
+  pojedyncze przebiegi:              87/90 PASS
+  rozbicie per przypadek:
+    5/5  list_emails
+    5/5  list_unread_emails
+    5/5  read_email
+    5/5  send_email
+    4/5  reply_email  <-- do poprawy
+    5/5  forward_email
+    5/5  delete_email
+    5/5  mark_as_unread
+    5/5  search_emails
+    5/5  get_email_stats
+    5/5  get_email_thread
+    3/5  check_email_contact  <-- do poprawy
+    5/5  add_email_contact
+    5/5  update_email_contact
+    5/5  list_email_contacts
+    5/5  get_contact_role
+    5/5  check_email_source
+    5/5  classify_email
+============================================================
+
+# status: OK | 16/18 przypadków pełnych; 87/90 przebiegów PASS | 1324s

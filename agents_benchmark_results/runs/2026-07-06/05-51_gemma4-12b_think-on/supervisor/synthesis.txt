@@ -1,0 +1,18 @@
+# benchmark: supervisor/synthesis
+# start: 2026-07-06 12:06:46
+
+[ 1/3] 5/5 PASS  synteza: finalna odpowiedź zawiera treść konkretnego maila
+[ 2/3] 5/5 PASS  synteza: finalna odpowiedź zawiera zawartość pliku
+[ 3/3] 5/5 PASS  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/3
+  pojedyncze przebiegi:              15/15 PASS
+  rozbicie per przypadek:
+    5/5  synteza: finalna odpowiedź zawiera treść konkretnego maila
+    5/5  synteza: finalna odpowiedź zawiera zawartość pliku
+    5/5  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+============================================================
+
+# status: OK | 3/3 przypadków pełnych; 15/15 przebiegów PASS | 708s

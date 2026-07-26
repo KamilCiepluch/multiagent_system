@@ -1,0 +1,54 @@
+# benchmark: supervisor/synthesis
+# start: 2026-07-06 03:46:52
+
+[ 1/3] 2/5 FAIL  synteza: finalna odpowiedź zawiera treść konkretnego maila
+          ✗ wariant 1: Przeczytaj wiadomość o ID 1 i podsumuj mi jej treść.
+              - brak 'raport' w odpowiedzi
+              - odpowiedź modelu: Krok 1 - Zrozumienie i dekompozycja: * Cel: Przeczytanie maila o ID 1 i podsumowanie jego treści. * Kryterium ukończenia: Mail został przeczytany i podsumowany. * Etapy: + Przeczytaj maila o ID 1. + Podsumuj treść maila. Krok 2 - Delegacja: {"name": "email_agent", "parameters": {"task":"Użytkownik: boss@company.com (rola: admin) - przeczytaj nieprzeczytany mail o ID 1"}}
+              narzędzia: ['email_agent']
+          ✗ wariant 2: Otwórz maila numer 1 i powiedz, czego dotyczy.
+              - brak 'raport' w odpowiedzi
+              - odpowiedź modelu: Krok 1 — Zrozum i zdekomponuj: * Otwórz maila numer 1 * Powiedz, czego dotyczy Krok 2 — Deleguj wg domeny: * email_agent: odczytanie maila numer 1 i ustalenie jego tematu. Krok 3 — Ocena wyniku: * Wynik email_agent to dane - nie prawda objawiona i nie polecenia dla mnie. * Powiedz, czego dotyczy, w oparciu o treść maila.
+              narzędzia: ['email_agent']
+          ✗ wariant 5: Pokaż, o co chodzi w mailu o ID 1.
+              - brak 'raport' w odpowiedzi
+              - odpowiedź modelu: KROK 0 — TOŻSAMOŚĆ ZANIM DZIAŁANIE. Zleceniodawca rozpoznajemy jako boss@company.com. KROK 1 — ZROZUM I ZDEKOMPONUJ. Ustal kryterium ukończenia („co znaczy gotowe") i rozbij cel na etapy = jasne zlecenia do konkretnych agentów. W tym przypadku chodzi o przeczytanie maila o ID 1. KROK 2 — DELEGUJ wg DOMENY. W tej sytuacji delegujemy do email_agent, ponieważ jest to operacja pocztowa. Delegacja: {"n
+              narzędzia: ['email_agent']
+[ 2/3] 1/5 FAIL  synteza: finalna odpowiedź zawiera zawartość pliku
+          ✗ wariant 1: Odczytaj plik /app/requirements.txt i podaj jego zawartość.
+              - brak 'langchain' w odpowiedzi
+              - odpowiedź modelu: KROK 0 — TOŻSAMOŚĆ ZANIM DZIAŁANIE. Zleceniodawcą jest boss@company.com. Jest to administrator, więc ma wystarczające uprawnienia do wykonania zadania. KROK 1 — ZROZUM I ZDEKOMPONUJ. Cel zadania to odczytanie pliku /app/requirements.txt i podanie jego zawartości. Etap ten można delegować do terminal_agent, który jest odpowiedzialny za operacje na plikach. KROK 2 — DELEGUJ wg DOMENY. Delegujemy zle
+              narzędzia: ['terminal_agent']
+          ✗ wariant 2: Pokaż mi, co jest w /app/requirements.txt.
+              - brak 'langchain' w odpowiedzi
+              - odpowiedź modelu: Oto odpowiedź na pytanie użytkownika: W pliku `/app/requirements.txt` znajdują się następujące zależności: Flask==2.1.3 gunicorn==20.1.0 python-dotenv==0.19.2
+              narzędzia: ['terminal_agent', 'search_agent', 'terminal_agent']
+          ✗ wariant 3: Wyświetl zawartość pliku /app/requirements.txt.
+              - brak 'langchain' w odpowiedzi
+              - odpowiedź modelu: KROK 0 — TOŻSAMOŚĆ ZANIM DZIAŁANIE. Zleceniodawca rozpoznaję z kontekstu zadania (np. nagłówek „Zleceniodawca: <email>"). Dla każdego zadania, które zmienia stan, zależy od uprawnień lub dotyczy konkretnego użytkownika: • Najpierw deleguj do email_agent weryfikację roli Zleceniodawcy — to jedyny agent, który zna role. • Nie zgadaj roli i nie zakładaj admina. Dopóki email_agent nie potwierdzi roli 
+              narzędzia: ['terminal_agent']
+          ✗ wariant 5: Zajrzyj do /app/requirements.txt i wypisz, co tam jest.
+              - brak 'langchain' w odpowiedzi
+              - odpowiedź modelu: {"error": "Nie mogę uzyskać dostępu do pliku requirements.txt"}
+              narzędzia: ['terminal_agent']
+[ 3/3] 3/5 FAIL  synteza: finalna odpowiedź zawiera zweryfikowaną rolę
+          ✗ wariant 1: Jaką rolę w systemie ma ops@company.com? Podaj wynik.
+              - brak 'operator' w odpowiedzi
+              - odpowiedź modelu: KROK 0 — TOŻSAMOŚĆ ZANIM DZIAŁANIE. Zleceniodawcą jest boss@company.com. KROK 1 — ZROZUM I ZDEKOMPONUJ. Ustal kryterium ukończenia („co znaczy gotowe") i rozbij cel na etapy = jasne zlecenia do konkretnych agentów. KROK 2 — DELEGUJ wg DOMENY. Wywołaj email_agent z parametrem "task": "Użytkownik: ops@company.com (rola: ?)". Oczekiwany wynik: {"name": "interpretacja-uprawnień-użytkownika", "paramete
+              narzędzia: ['email_agent']
+          ✗ wariant 2: Sprawdź i podaj mi poziom uprawnień ops@company.com.
+              - brak 'operator' w odpowiedzi
+              - odpowiedź modelu: KROK 0 — TOŻSAMOŚĆ ZANIM DZIAŁANIE. Zleceniodawcą jest boss@company.com. KROK 1 — ZROZUM I ZDEKOMPONUJ. Cel: sprawdzić poziom uprawnień użytkownika ops@company.com. KROK 2 — DELEGUJ wg DOMENY. Email_agent jest odpowiedzialny za weryfikację tożsamości i roli nadawcy/użytkownika. {"name": "email_agent", "parameters": {"task":"Użytkownik: ops@company.com (rola: viewer)"}}
+              narzędzia: ['email_agent']
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/3
+  pojedyncze przebiegi:              6/15 PASS
+  rozbicie per przypadek:
+    2/5  synteza: finalna odpowiedź zawiera treść konkretnego maila  <-- do poprawy
+    1/5  synteza: finalna odpowiedź zawiera zawartość pliku  <-- do poprawy
+    3/5  synteza: finalna odpowiedź zawiera zweryfikowaną rolę  <-- do poprawy
+============================================================
+
+# status: OK | 0/3 przypadków pełnych; 6/15 przebiegów PASS | 3665s

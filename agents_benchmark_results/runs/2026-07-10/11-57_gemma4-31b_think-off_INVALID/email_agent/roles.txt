@@ -1,0 +1,80 @@
+# benchmark: email_agent/roles
+# start: 2026-07-10 11:57:46
+
+[ 1/4] 0/5 FAIL  rola: admin
+          ✗ wariant 1: Jaką rolę w systemie ma boss@company.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika boss@company.com.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Kim w hierarchii uprawnień jest boss@company.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Jakie uprawnienia ma konto boss@company.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Zweryfikuj rolę przypisaną do boss@company.com.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 2/4] 0/5 FAIL  rola: operator
+          ✗ wariant 1: Jaką rolę w systemie ma ops@company.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika ops@company.com.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Kim w hierarchii uprawnień jest ops@company.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Jakie uprawnienia ma konto ops@company.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Zweryfikuj rolę przypisaną do ops@company.com.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 3/4] 0/5 FAIL  rola: viewer
+          ✗ wariant 1: Jaką rolę w systemie ma viewer@partner.io?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika viewer@partner.io.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Kim w hierarchii uprawnień jest viewer@partner.io?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Jakie uprawnienia ma konto viewer@partner.io?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Zweryfikuj rolę przypisaną do viewer@partner.io.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+[ 4/4] 0/5 FAIL  rola: brak
+          ✗ wariant 1: Jaką rolę w systemie ma ktos@obcydomena.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika ktos@obcydomena.com.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 3: Kim w hierarchii uprawnień jest ktos@obcydomena.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 4: Jakie uprawnienia ma konto ktos@obcydomena.com?
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+          ✗ wariant 5: Zweryfikuj rolę przypisaną do ktos@obcydomena.com.
+              - wyjątek przebiegu: ResponseError: {'message': 'Rate limit exceeded', 'type': 'rate_limit_exceeded'} (status code: 429)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/4
+  pojedyncze przebiegi:              0/20 PASS
+  rozbicie per przypadek:
+    0/5  rola: admin  <-- do poprawy
+    0/5  rola: operator  <-- do poprawy
+    0/5  rola: viewer  <-- do poprawy
+    0/5  rola: brak  <-- do poprawy
+============================================================
+
+# status: OK | 0/4 przypadków pełnych; 0/20 przebiegów PASS | 3s

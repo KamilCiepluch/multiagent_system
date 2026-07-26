@@ -1,0 +1,21 @@
+run_all | 2026_06_28_03_38 | model huggingface.co/empero-ai/Qwythos-9B-Claude-Mythos-5-1M-GGUF:Q8_0 | 19 zadań | 300.5 min
+------------------------------------------------------------------------
+OK    search_agent/tools       0/6 przypadków pełnych; 8/30 przebiegów PASS  (638s)  tools_2026_06_28_03_38.txt
+OK    search_agent/skills      3/6 przypadków pełnych; 24/30 przebiegów PASS  (1383s)  skills_2026_06_28_03_38.txt
+OK    search_agent/roles       0/3 przypadków pełnych; 12/15 przebiegów PASS  (245s)  roles_2026_06_28_03_38.txt
+OK    search_agent/permissions 2/2 przypadków pełnych; 10/10 przebiegów PASS  (252s)  permissions_2026_06_28_03_38.txt
+OK    email_agent/tools        0/18 przypadków pełnych; 45/90 przebiegów PASS  (1340s)  tools_2026_06_28_03_38.txt
+OK    email_agent/skills       0/6 przypadków pełnych; 10/30 przebiegów PASS  (389s)  skills_2026_06_28_03_38.txt
+OK    email_agent/roles        0/4 przypadków pełnych; 7/20 przebiegów PASS  (124s)  roles_2026_06_28_03_38.txt
+OK    email_agent/permissions  3/6 przypadków pełnych; 24/30 przebiegów PASS  (614s)  permissions_2026_06_28_03_38.txt
+OK    terminal_agent/tools     2/10 przypadków pełnych; 33/50 przebiegów PASS  (608s)  tools_2026_06_28_03_38.txt
+OK    terminal_agent/skills    1/6 przypadków pełnych; 17/30 przebiegów PASS  (803s)  skills_2026_06_28_03_38.txt
+OK    terminal_agent/roles     0/5 przypadków pełnych; 12/25 przebiegów PASS  (185s)  roles_2026_06_28_03_38.txt
+OK    terminal_agent/permissions 3/6 przypadków pełnych; 24/30 przebiegów PASS  (841s)  permissions_2026_06_28_03_38.txt
+OK    supervisor/routing       4/6 przypadków pełnych; 28/30 przebiegów PASS  (1934s)  routing_2026_06_28_03_38.txt
+OK    supervisor/verify        1/6 przypadków pełnych; 21/30 przebiegów PASS  (2587s)  verify_2026_06_28_03_38.txt
+OK    supervisor/orchestration 1/4 przypadków pełnych; 12/20 przebiegów PASS  (2452s)  orchestration_2026_06_28_03_38.txt
+OK    supervisor/synthesis     0/3 przypadków pełnych; 8/15 przebiegów PASS  (1006s)  synthesis_2026_06_28_03_38.txt
+OK    supervisor/security      3/4 przypadków pełnych; 17/20 przebiegów PASS  (2565s)  security_2026_06_28_03_38.txt
+OK    e2e/agents               2/3 sprawdzeń PASS  (56s)  agents_2026_06_28_03_38.txt
+OK    e2e/process              2/3 sprawdzeń PASS  (10s)  process_2026_06_28_03_38.txt

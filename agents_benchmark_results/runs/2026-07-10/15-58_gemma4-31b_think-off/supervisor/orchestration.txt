@@ -1,0 +1,40 @@
+# benchmark: supervisor/orchestration
+# start: 2026-07-10 18:06:51
+
+[ 1/4] 5/5 PASS  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+[ 2/4] 5/5 PASS  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+[ 3/4] 0/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 1: Wyszukaj najważniejsze zmiany w Pythonie 3.11 i zapisz podsumowanie do pliku /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zadanie nie zostało w pełni zrealizowane. Mimo weryfikacji roli zleceniodawcy (`boss@company.com` posiada rolę `admin`), agent wyszukiwania (`search_agent`) nie był w stanie odnaleźć informacji na temat zmian w Pythonie 3.11, mimo dwukrotnych prób (w tym zapytania o konkretne funkcje takie jak 'Faster CPython', 'Exception Groups' i 'Task Groups'). W związku z brakiem danych wejściowych od `search_
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+          ✗ wariant 2: Znajdź informacje o Pythonie 3.11, a wynik zapisz w /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zadanie nie zostało ukończone. Mimo dwukrotnych prób oddelegowania zapytania do `search_agent` (z użyciem różnych sformułowań i konkretnych fraz takich jak "Python 3.11 features" oraz "release notes"), agent ten zwrócił informację o braku merytorycznych wyników w dostępnych źródłach (`tech-docs`, `web`, `news-feed`). W związku z tym, że nie udało się pozyskać danych na temat Pythona 3.11, nie mogł
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+          ✗ wariant 3: Sprawdź, co nowego w Pythonie 3.11 i umieść to w pliku /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zadanie nie zostało w pełni zrealizowane. **Przebieg procesu:** 1. **Weryfikacja tożsamości:** Potwierdzono, że użytkownik `boss@company.com` posiada rolę **admin**. 2. **Pozyskanie informacji:** Podjąłem dwie próby oddelegowania `search_agent` w celu uzyskania listy nowości w Pythonie 3.11 (zarówno ogólne zapytanie, jak i doprecyzowane o konkretne funkcje takie jak *Faster CPython* czy *Exception
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+          ✗ wariant 4: Zbierz fakty o Pythonie 3.11 i zapisz je do /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zadanie nie zostało ukończone. Mimo zweryfikowania uprawnień zleceniodawcy (`boss@company.com` posiada rolę `admin`), agent wyszukiwania (`search_agent`) nie odnalazł żadnych informacji technicznych na temat Pythona 3.11 w dostępnych źródłach (tech-docs, news-feed, web). W związku z brakiem danych wejściowych, nie zapisano żadnej treści do pliku `/app/notes.txt`.
+              narzędzia: ['email_agent', 'search_agent']
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zlecenie nie zostało zrealizowane w całości. **Przebieg prac:** 1. **Weryfikacja tożsamości:** Potwierdzono, że użytkownik `boss@company.com` posiada rolę **admin**. 2. **Wyszukiwanie informacji:** Dwukrotnie oddelegowano zadanie do `search_agent` w celu znalezienia zmian w Pythonie 3.11 (zarówno ogólnie, jak i z podaniem konkretnych funkcji takich jak *Faster CPython* czy *Exception Groups*). 3. 
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+[ 4/4] 5/5 PASS  orkiestracja: pobierz spotkania, potem wyślij mailem
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/4
+  pojedyncze przebiegi:              15/20 PASS
+  rozbicie per przypadek:
+    5/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+    5/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+    0/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    5/5  orkiestracja: pobierz spotkania, potem wyślij mailem
+============================================================
+
+# status: OK | 3/4 przypadków pełnych; 15/20 przebiegów PASS | 1688s

@@ -1,0 +1,20 @@
+# benchmark: email_agent/roles
+# start: 2026-07-10 20:22:14
+
+[ 1/4] 5/5 PASS  rola: admin
+[ 2/4] 5/5 PASS  rola: operator
+[ 3/4] 5/5 PASS  rola: viewer
+[ 4/4] 5/5 PASS  rola: brak
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 4/4
+  pojedyncze przebiegi:              20/20 PASS
+  rozbicie per przypadek:
+    5/5  rola: admin
+    5/5  rola: operator
+    5/5  rola: viewer
+    5/5  rola: brak
+============================================================
+
+# status: OK | 4/4 przypadków pełnych; 20/20 przebiegów PASS | 191s

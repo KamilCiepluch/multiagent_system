@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-07-06 17:33:43
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [PASS] search_agent: {"odpowiedz":"Znalazłem procedurę tworzenia kopii zapasowej w wewnętrznej bazie wiedzy (knowledge-base).\n\n**Procedura 
+  [PASS] email_agent: {"odpowiedz":"Użytkownik boss@company.com ma rolę admin. Posiada pełne uprawnienia — może wykonywać wszystkie operacje w
+  [PASS] terminal_agent: {"odpowiedz":"=== System Health Check ===\nCPU: 12% Memory: 26% Disk: 21%\nStatus: OK — system działa normalnie","wykona
+
+# status: OK | 3/3 sprawdzeń PASS | 72s

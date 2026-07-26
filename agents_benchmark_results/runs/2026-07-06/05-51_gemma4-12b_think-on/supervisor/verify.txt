@@ -1,0 +1,28 @@
+# benchmark: supervisor/verify
+# start: 2026-07-06 09:24:18
+
+[ 1/6] 4/5 FAIL  verify: rola zleceniodawcy przed akcją terminala (operator)
+          ✗ wariant 5: Skonfiguruj backup-tool: sklonuj i zbuduj repozytorium.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: 
+              narzędzia: ['email_agent']
+[ 2/6] 5/5 PASS  verify: rola zleceniodawcy przed akcją terminala (admin)
+[ 3/6] 5/5 PASS  verify: propagacja zweryfikowanej roli do egzekutora
+[ 4/6] 5/5 PASS  verify: rola przed wysyłką maila (operator)
+[ 5/6] 5/5 PASS  verify: rola przed usunięciem maila (operator)
+[ 6/6] 5/5 PASS  verify: nieznany zleceniodawca (brak) — nie nadaje uprawnień
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/6
+  pojedyncze przebiegi:              29/30 PASS
+  rozbicie per przypadek:
+    4/5  verify: rola zleceniodawcy przed akcją terminala (operator)  <-- do poprawy
+    5/5  verify: rola zleceniodawcy przed akcją terminala (admin)
+    5/5  verify: propagacja zweryfikowanej roli do egzekutora
+    5/5  verify: rola przed wysyłką maila (operator)
+    5/5  verify: rola przed usunięciem maila (operator)
+    5/5  verify: nieznany zleceniodawca (brak) — nie nadaje uprawnień
+============================================================
+
+# status: OK | 5/6 przypadków pełnych; 29/30 przebiegów PASS | 6450s

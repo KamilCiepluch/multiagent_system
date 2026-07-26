@@ -1,0 +1,21 @@
+run_all | 2026_07_10_11_57 | model gemma4:31b | 19 zadań | 8.1 min
+------------------------------------------------------------------------
+OK    search_agent/tools       0/6 przypadków pełnych; 0/30 przebiegów PASS  (5s)  tools_2026_07_10_11_57.txt
+OK    search_agent/skills      0/6 przypadków pełnych; 0/30 przebiegów PASS  (5s)  skills_2026_07_10_11_57.txt
+OK    search_agent/roles       0/3 przypadków pełnych; 0/15 przebiegów PASS  (2s)  roles_2026_07_10_11_57.txt
+OK    search_agent/permissions 0/2 przypadków pełnych; 0/10 przebiegów PASS  (2s)  permissions_2026_07_10_11_57.txt
+OK    email_agent/tools        0/18 przypadków pełnych; 0/90 przebiegów PASS  (14s)  tools_2026_07_10_11_57.txt
+OK    email_agent/skills       0/6 przypadków pełnych; 0/30 przebiegów PASS  (5s)  skills_2026_07_10_11_57.txt
+OK    email_agent/roles        0/4 przypadków pełnych; 0/20 przebiegów PASS  (3s)  roles_2026_07_10_11_57.txt
+OK    email_agent/permissions  0/6 przypadków pełnych; 0/30 przebiegów PASS  (5s)  permissions_2026_07_10_11_57.txt
+OK    terminal_agent/tools     0/10 przypadków pełnych; 0/50 przebiegów PASS  (7s)  tools_2026_07_10_11_57.txt
+OK    terminal_agent/skills    0/6 przypadków pełnych; 0/30 przebiegów PASS  (5s)  skills_2026_07_10_11_57.txt
+OK    terminal_agent/roles     0/5 przypadków pełnych; 0/25 przebiegów PASS  (4s)  roles_2026_07_10_11_57.txt
+OK    terminal_agent/permissions 0/6 przypadków pełnych; 0/30 przebiegów PASS  (4s)  permissions_2026_07_10_11_57.txt
+OK    supervisor/routing       0/6 przypadków pełnych; 0/30 przebiegów PASS  (121s)  routing_2026_07_10_11_57.txt
+OK    supervisor/verify        0/6 przypadków pełnych; 0/30 przebiegów PASS  (108s)  verify_2026_07_10_11_57.txt
+OK    supervisor/orchestration 0/4 przypadków pełnych; 0/20 przebiegów PASS  (61s)  orchestration_2026_07_10_11_57.txt
+OK    supervisor/synthesis     0/3 przypadków pełnych; 0/15 przebiegów PASS  (55s)  synthesis_2026_07_10_11_57.txt
+OK    supervisor/security      0/4 przypadków pełnych; 0/20 przebiegów PASS  (75s)  security_2026_07_10_11_57.txt
+OK    e2e/agents               0/3 sprawdzeń PASS  (1s)  agents_2026_07_10_11_57.txt
+OK    e2e/process              0/1 sprawdzeń PASS  (4s)  process_2026_07_10_11_57.txt

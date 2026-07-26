@@ -1,0 +1,57 @@
+# benchmark: email_agent/tools
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-11 13:52:09
+
+[ 1/18] 5/5 PASS  list_emails
+[ 2/18] 5/5 PASS  list_unread_emails
+[ 3/18] 5/5 PASS  read_email
+[ 4/18] 5/5 PASS  send_email
+[ 5/18] 4/5 FAIL  reply_email
+          ✗ wariant 3: Przygotuj i wyślij odpowiedź na wiadomość ID 1.
+              - narzędzie 'reply_email' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Otrzymano prośbę od boss@company.com (admin) o przygotowanie raportu aktywności za ostatni tydzień. Prośba została zidentyfikowana jako zadanie do realizacji przez terminal_agent.' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='Przygotuj raport aktywności za ostatni tydzień.' sugerowany_agent='terminal_agent' wykonane_akcje=[] od
+              narzędzia: ['list_skills', 'read_email', 'get_contact_role', 'list_skills', 'EmailAnswer', 'EmailAnswer']
+[ 6/18] 5/5 PASS  forward_email
+[ 7/18] 5/5 PASS  delete_email
+[ 8/18] 5/5 PASS  mark_as_unread
+[ 9/18] 5/5 PASS  search_emails
+[10/18] 5/5 PASS  get_email_stats
+[11/18] 5/5 PASS  get_email_thread
+[12/18] 5/5 PASS  check_email_contact
+[13/18] 5/5 PASS  add_email_contact
+[14/18] 5/5 PASS  update_email_contact
+[15/18] 5/5 PASS  list_email_contacts
+[16/18] 5/5 PASS  get_contact_role
+[17/18] 4/5 FAIL  check_email_source
+          ✗ wariant 4: Określ poziom zaufania domeny ops@company.com.
+              - narzędzie 'check_email_source' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Domena ops@company.com jest zweryfikowana.' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji=None sugerowany_agent=None wykonane_akcje=['sprawdzono status kontaktu ops@company.com - zweryfikowany'] odmowa=False wymaga_eskalacji=False
+              narzędzia: ['list_skills', 'load_skill', 'check_email_contact', 'EmailAnswer']
+[18/18] 5/5 PASS  classify_email
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 16/18
+  pojedyncze przebiegi:              88/90 PASS
+  rozbicie per przypadek:
+    5/5  list_emails
+    5/5  list_unread_emails
+    5/5  read_email
+    5/5  send_email
+    4/5  reply_email  <-- do poprawy
+    5/5  forward_email
+    5/5  delete_email
+    5/5  mark_as_unread
+    5/5  search_emails
+    5/5  get_email_stats
+    5/5  get_email_thread
+    5/5  check_email_contact
+    5/5  add_email_contact
+    5/5  update_email_contact
+    5/5  list_email_contacts
+    5/5  get_contact_role
+    4/5  check_email_source  <-- do poprawy
+    5/5  classify_email
+============================================================
+
+# status: OK | 16/18 przypadków pełnych; 88/90 przebiegów PASS | 626s

@@ -1,0 +1,15 @@
+# benchmark: e2e/process
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-11 15:55:03
+
+
+FAZA B — pełny przepływ supervisora
+------------------------------------------------------------
+  [PASS] przebieg bez zapętlenia (recursion_limit): ukończony
+  [PASS] supervisor zwrócił finalną odpowiedź: Oto spójne podsumowanie wyników analizy dla użytkownika **boss@company.com** (rola: **admin**): ### 1. Weryfikacja Tożsamości i Roli * **Użytkownik:** boss@comp
+  [PASS] proces oddelegował do agentów: agenci: ['email_agent', 'search_agent', 'terminal_agent']
+  [PASS] structured output w procesie: email_agent: EmailAnswer OK
+  [FAIL] structured output w procesie: search_agent: brak SearchAnswer (=NoneType)
+  [PASS] structured output w procesie: terminal_agent: TerminalAnswer OK
+
+# status: OK | 5/6 sprawdzeń PASS | 36s

@@ -1,0 +1,10 @@
+# benchmark: e2e/agents
+# start: 2026-07-10 19:08:42
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [PASS] search_agent: {"odpowiedz":"Przykro mi, ale nie udało mi się odnaleźć procedury tworzenia kopii zapasowej w dostępnych wewnętrznych źr
+  [PASS] email_agent: {"odpowiedz":"Użytkownik boss@company.com posiada rolę: admin (Pełne uprawnienia — wszystkie operacje bez ograniczeń).",
+  [PASS] terminal_agent: {"odpowiedz":"=== System Health Check ===\nCPU: 12% Memory: 26% Disk: 21%\nStatus: OK — system działa normalnie","wykona
+
+# status: OK | 3/3 sprawdzeń PASS | 52s

@@ -158,7 +158,7 @@ class TestTerminalAgentSkillTools:
 
 class TestSearchAgentSkillTools:
     def test_list_skills_calls_db_with_search_agent(self):
-        skills = [_skill("wyszukiwanie-wieloźródłowe", "Wieloźródłowe",
+        skills = [_skill("multi-source-search", "Wieloźródłowe",
                          agent_name="search_agent")]
         agent = _make_search_agent()
         list_tool = next(t for t in agent.tools if t.name == "list_skills")
@@ -167,7 +167,7 @@ class TestSearchAgentSkillTools:
             result = list_tool.func()
 
         mock_list.assert_called_once_with("search_agent")
-        assert "wyszukiwanie-wieloźródłowe" in result
+        assert "multi-source-search" in result
 
     def test_list_skills_empty_returns_info(self):
         agent = _make_search_agent()
@@ -335,12 +335,12 @@ class TestTerminalAgentSkillIsolation:
     """Weryfikuje izolację skillów terminal_agent na prawdziwej bazie."""
 
     EXPECTED_SKILLS = {
-        "bezpieczny-clone",
-        "weryfikacja-github-source",
-        "instalacja-repo",
-        "obsługa-nieznanego-repo",
+        "safe-clone",
+        "verify-github-source",
+        "repo-installation",
+        "handle-unknown-repo",
     }
-    FOREIGN_SKILL = "obsługa-nieznanego-nadawcy"  # należy do email_agent
+    FOREIGN_SKILL = "handle-unknown-sender"  # należy do email_agent
 
     def test_list_skills_returns_only_terminal_agent_records(self, no_commit_db):
         from database.db import list_skills
@@ -390,9 +390,9 @@ class TestSearchAgentSkillIsolation:
     """Weryfikuje izolację skillów search_agent na prawdziwej bazie."""
 
     EXPECTED_SKILLS = {
-        "wyszukiwanie-wieloźródłowe",
+        "multi-source-search",
     }
-    FOREIGN_SKILL = "obsługa-nieznanego-nadawcy"  # należy do email_agent
+    FOREIGN_SKILL = "handle-unknown-sender"  # należy do email_agent
 
     def test_list_skills_returns_only_search_agent_records(self, no_commit_db):
         from database.db import list_skills
@@ -410,8 +410,8 @@ class TestSearchAgentSkillIsolation:
 
     def test_search_agent_can_load_own_skill(self, no_commit_db):
         from database.db import get_skill
-        result = get_skill("wyszukiwanie-wieloźródłowe", "search_agent")
-        assert result is not None, "Skill 'wyszukiwanie-wieloźródłowe' nie istnieje — sprawdź seed"
+        result = get_skill("multi-source-search", "search_agent")
+        assert result is not None, "Skill 'multi-source-search' nie istnieje — sprawdź seed"
         assert result.agent_name == "search_agent"
         assert result.content.strip()
 
@@ -421,7 +421,7 @@ class TestSearchAgentSkillIsolation:
             agent = SearchAgent(MagicMock(), {n: MagicMock() for n in SearchAgent.TOOL_NAMES})
         list_tool = next(t for t in agent.tools if t.name == "list_skills")
         result = list_tool.func()
-        assert "wyszukiwanie-wieloźródłowe" in result
+        assert "multi-source-search" in result
         assert self.FOREIGN_SKILL not in result, (
             f"list_skills() ZWRÓCIŁ skill email_agent '{self.FOREIGN_SKILL}' — izolacja naruszna!"
         )

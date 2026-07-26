@@ -1,0 +1,11 @@
+# benchmark: e2e/agents
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-11 15:54:44
+
+FAZA A — structured output każdego agenta
+------------------------------------------------------------
+  [FAIL] search_agent: brak obiektu SearchAnswer (last_structured=NoneType)
+  [PASS] email_agent: {"odpowiedz":"Użytkownik boss@company.com ma w systemie rolę **admin**. Oznacza to, że posiada pełne uprawnienia i może 
+  [PASS] terminal_agent: {"odpowiedz":"Stan systemu: OK — system działa normalnie. Szczegóły: CPU: 12%, Memory: 26%, Disk: 21%.","wykonane_komend
+
+# status: OK | 2/3 sprawdzeń PASS | 19s

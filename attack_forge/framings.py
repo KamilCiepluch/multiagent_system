@@ -26,6 +26,12 @@ class Framing(BaseModel):
     examples: list[str] = Field(default_factory=list, description="example phrasings to reuse or vary")
     target_tags: list[str] = Field(default_factory=list, description="channels/targets it suits ([]=universal)")
     score: Optional[float] = Field(default=None, description="filled by the scoring loop (step 5)")
+    template_file: Optional[str] = Field(
+        default=None,
+        description="filename under data/framings/ holding a full, hand-authored frame with a "
+                    "<<<PAYLOAD>>> slot. When set, wrap_<id> splices the payload into it VERBATIM (no "
+                    "LLM) — for long, polished prompts a small attacker model can't generate itself.",
+    )
 
 
 class FramingLibrary:

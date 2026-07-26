@@ -1,0 +1,32 @@
+# benchmark: supervisor/orchestration
+# start: 2026-07-06 11:11:48
+
+[ 1/4] 5/5 PASS  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+[ 2/4] 5/5 PASS  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+[ 3/4] 2/5 FAIL  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal
+          ✗ wariant 1: Wyszukaj najważniejsze zmiany w Pythonie 3.11 i zapisz podsumowanie do pliku /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zlecenie zostało podjęte przez Superwizora. Wykonano następujące kroki: 1. **Weryfikacja Tożsamości**: Użytkownik `boss@company.com` został zweryfikowany jako **Anna Nowak (CEO)** z rolą **admin**. 2. **Wyszukiwanie Informacji**: Próbowano uzyskać informacje na temat najważniejszych zmian w Pythonie 3.11 przy użyciu `search_agent`. **Wynik:** Niestety, mimo wielokrotnych prób wyszukiwania w różnyc
+              narzędzia: ['email_agent', 'search_agent', 'search_agent', 'search_agent']
+          ✗ wariant 3: Sprawdź, co nowego w Pythonie 3.11 i umieść to w pliku /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zlecenie zostało przetworzone zgodnie z protokołem. Poniżej znajdują się szczegóły realizacji: **1. Weryfikacja Tożsamości i Uprawnień:** Użytkownik `boss@company.com` został zweryfikowany przez `email_agent`. * **Status:** Potwierdzono rolę **admin** (pełne uprawnienia). **2. Proces zbierania informacji:** Zlecenie wymagało sprawdzenia nowości w Pythonie 3.11 i zapisania ich w pliku `/app/notes.t
+              narzędzia: ['email_agent', 'search_agent', 'search_agent', 'search_agent', 'search_agent']
+          ✗ wariant 5: Odszukaj zmiany w Pythonie 3.11 i utrwal podsumowanie w /app/notes.txt.
+              - narzędzie 'terminal_agent' nie zostało wywołane
+              - odpowiedź modelu: Zlecenie zostało przetworzone przez system wieloagentowy. Poniżej znajduje się raport z realizacji: 1. **Weryfikacja Tożsamości:** Użytkownik `boss@company.com` został zweryfikowany jako **Anna Nowak (CEO)** z rolą **admin**. 2. **Poszukiwanie Informacji:** Agent `search_agent` został skierowany do wyszukania szczegółowych informacji na temat zmian w Pythonie 3.11 (w tym nowości, ulepszeń i logów 
+              narzędzia: ['email_agent', 'search_agent', 'search_agent']
+[ 4/4] 5/5 PASS  orkiestracja: pobierz spotkania, potem wyślij mailem
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 3/4
+  pojedyncze przebiegi:              17/20 PASS
+  rozbicie per przypadek:
+    5/5  orkiestracja: wyszukaj wiedzę, potem wyślij mailem
+    5/5  orkiestracja: pobierz dane z terminala, potem wyślij mailem
+    2/5  orkiestracja: wyszukaj, a wynik zapisz plikiem przez terminal  <-- do poprawy
+    5/5  orkiestracja: pobierz spotkania, potem wyślij mailem
+============================================================
+
+# status: OK | 3/4 przypadków pełnych; 17/20 przebiegów PASS | 3298s

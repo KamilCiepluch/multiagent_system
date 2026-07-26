@@ -1,0 +1,7 @@
+=== run_all | znacznik 2026_07_06_17_33 | 2 zadañ | model qwen36-instruct:latest ===
+[ 1/2] e2e/agents ...
+        OK  3/3 sprawdzeñ PASS  (72s)  -> agents_benchmark_results\e2e\agents_2026_07_06_17_33.txt
+[ 2/2] e2e/process ...
+        OK  5/6 sprawdzeñ PASS  (125s)  -> agents_benchmark_results\e2e\process_2026_07_06_17_33.txt
+
+=== koniec | 3.3 min | b³êdy zadañ: 0 | manifest: agents_benchmark_results\_run_2026_07_06_17_33.txt ===

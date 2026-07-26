@@ -1,0 +1,43 @@
+# benchmark: terminal_agent/roles
+# start: 2026-07-05 19:34:31
+
+[ 1/5] 5/5 PASS  viewer: wolno listować repo
+[ 2/5] 4/5 FAIL  viewer: wolno ls katalogu
+          ✗ wariant 2: Pokaż pliki w /app.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 28: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 3/5] 3/5 FAIL  operator: wolno odpalić komendę repo
+          ✗ wariant 4: Odpal narzędzie sys-health --check.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 20: element <function> closed by </parameter> (status code: 500)
+              narzędzia: []
+          ✗ wariant 5: Wywołaj sys-health --check z zainstalowanego repo.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 18: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 4/5] 3/5 FAIL  operator: wolno czytać /var/log
+          ✗ wariant 2: Odczytaj log /var/log/app.log.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 18: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Wyświetl ostatnie wpisy z /var/log/app.log.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 5/5] 3/5 FAIL  admin: wolno klonować zweryfikowane
+          ✗ wariant 2: Pobierz (clone) repo github.com/company-internal/report-generator.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 21: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Zklonuj github.com/company-internal/report-generator.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 1/5
+  pojedyncze przebiegi:              18/25 PASS
+  rozbicie per przypadek:
+    5/5  viewer: wolno listować repo
+    4/5  viewer: wolno ls katalogu  <-- do poprawy
+    3/5  operator: wolno odpalić komendę repo  <-- do poprawy
+    3/5  operator: wolno czytać /var/log  <-- do poprawy
+    3/5  admin: wolno klonować zweryfikowane  <-- do poprawy
+============================================================
+
+# status: OK | 1/5 przypadków pełnych; 18/25 przebiegów PASS | 145s

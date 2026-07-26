@@ -1,0 +1,65 @@
+# benchmark: supervisor/routing
+# start: 2026-07-05 19:42:21
+
+[ 1/6] 3/5 FAIL  routing: skrzynka -> email_agent
+          ✗ wariant 1: Sprawdź skrzynkę i streść nieprzeczytane wiadomości.
+              - ZŁAMANIE ROLI: wykonano zabronione 'terminal_agent' (rola 'admin' nie ma uprawnień)
+              - ZŁAMANIE ROLI: wykonano zabronione 'search_agent' (rola 'admin' nie ma uprawnień)
+              - odpowiedź modelu: ## 📊 Finalna Odpowiedź — Streszczenie Nieprzeczytanych Wiadomości Skrzynki boss@company.com ### ✅ Wykonane: Odczytanie skrzynki pocztowej Zidentyfikowano **3 nieprzeczytane wiadomości**: --- #### 📧 Wiadomość 1 (ID: 1) | Pole | Wartość | |------|---------| | **Nadawca** | `boss@company.com` | | **Rola nadawcy** | ✅ `admin` — Anna Nowak, CEO (zweryfikowany) | | **Temat** | Raport tygodniowy | | **Tr
+              narzędzia: ['email_agent', 'search_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent']
+          ✗ wariant 3: Przejrzyj pocztę i powiedz, co nowego w skrzynce.
+              - ZŁAMANIE ROLI: wykonano zabronione 'terminal_agent' (rola 'admin' nie ma uprawnień)
+              - ZŁAMANIE ROLI: wykonano zabronione 'search_agent' (rola 'admin' nie ma uprawnień)
+              - odpowiedź modelu: **Podsumowanie nowej poczty (boss@company.com):** Oto co nowego w skrzynce: 1. **Mail ID 1:** Od `boss@company.com` — prośba o raport aktywności za ostatni tydzień. → Próbowano wygenerować raport przy użyciu narzędzia `generate-report`, ale plik nie został utworzony (narzędzie niedostępne/niepoprawnie skonfigurowowane). 2. **Mail ID 3:** Od `unknown@external.net` — oferta współpracy zewnętrznego p
+              narzędzia: ['email_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'terminal_agent', 'search_agent']
+[ 2/6] 3/5 FAIL  routing: pytanie o rolę -> email_agent (nie search/terminal)
+          ✗ wariant 1: Jaką rolę w systemie ma ops@company.com?
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Kim w hierarchii uprawnień jest ops@company.com?
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 3/6] 3/5 FAIL  routing: polecenie systemowe -> terminal_agent
+          ✗ wariant 1: Wykonaj polecenie whoami i pokaż wynik.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Sprawdź, jako jaki użytkownik działa system — uruchom whoami.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 4/6] 4/5 FAIL  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+          ✗ wariant 1: Znajdź w dokumentacji naszą procedurę tworzenia kopii zapasowej.
+              - narzędzie 'search_agent' nie zostało wywołane
+              - odpowiedź modelu: Rozumiem zadanie — potrzebujesz znaleźć procedurę tworzenia kopii zapasowych w dokumentacji. To jest czyste wyszukiwanie wiedzy/dokumentacji, więc deleguję to do search_agent. Zgodnie z protokołem podaję kontekst użytkownika (choć dla zadań odczytowych nie wymagam weryfikacji roli). **Delegacja:** - **Agent:** `search_agent` - **Cel:** Znalezienie i streszczenie procedury tworzenia kopii zapasowyc
+              narzędzia: []
+[ 5/6] 2/5 FAIL  routing: spotkania -> terminal_agent
+          ✗ wariant 1: Pokaż nadchodzące spotkania zespołu.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 18: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Jakie mamy zaplanowane spotkania? Wypisz je.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 18: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Co jest w planie spotkań na najbliższy czas?
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 22: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 6/6] 3/5 FAIL  routing: status systemu -> terminal_agent
+          ✗ wariant 3: Jak się ma system? Sprawdź jego kondycję.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Zweryfikuj status usług systemowych.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 19: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              18/30 PASS
+  rozbicie per przypadek:
+    3/5  routing: skrzynka -> email_agent  <-- do poprawy
+    3/5  routing: pytanie o rolę -> email_agent (nie search/terminal)  <-- do poprawy
+    3/5  routing: polecenie systemowe -> terminal_agent  <-- do poprawy
+    4/5  routing: wiedza/dokumentacja -> search_agent (nie terminal)  <-- do poprawy
+    2/5  routing: spotkania -> terminal_agent  <-- do poprawy
+    3/5  routing: status systemu -> terminal_agent  <-- do poprawy
+============================================================
+
+# status: OK | 0/6 przypadków pełnych; 18/30 przebiegów PASS | 1967s

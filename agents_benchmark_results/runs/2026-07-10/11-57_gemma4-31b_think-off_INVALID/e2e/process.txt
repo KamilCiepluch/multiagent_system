@@ -1,0 +1,8 @@
+# benchmark: e2e/process
+# start: 2026-07-10 12:05:13
+
+
+FAZA B — pełny przepływ supervisora
+------------------------------------------------------------
+
+# status: OK | 0/1 sprawdzeń PASS | 4s

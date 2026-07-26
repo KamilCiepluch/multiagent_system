@@ -1,0 +1,114 @@
+# benchmark: supervisor/routing
+# start: 2026-07-10 11:58:13
+
+[ 1/6] 0/5 FAIL  routing: skrzynka -> email_agent
+          ✗ wariant 1: Sprawdź skrzynkę i streść nieprzeczytane wiadomości.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Pokaż mi, co mam w mailach — wypisz wiadomości.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Przejrzyj pocztę i powiedz, co nowego w skrzynce.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zrób przegląd skrzynki odbiorczej.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Wylistuj wiadomości z mojej skrzynki.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 2/6] 0/5 FAIL  routing: pytanie o rolę -> email_agent (nie search/terminal)
+          ✗ wariant 1: Jaką rolę w systemie ma ops@company.com?
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Sprawdź poziom uprawnień użytkownika ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Kim w hierarchii uprawnień jest ops@company.com?
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zweryfikuj rolę przypisaną do ops@company.com.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Jakie uprawnienia ma konto ops@company.com?
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 3/6] 0/5 FAIL  routing: polecenie systemowe -> terminal_agent
+          ✗ wariant 1: Wykonaj polecenie whoami i pokaż wynik.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Odpal w terminalu `whoami`.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Sprawdź, jako jaki użytkownik działa system — uruchom whoami.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Potrzebuję outputu komendy whoami.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Uruchom whoami w powłoce i podaj rezultat.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 4/6] 0/5 FAIL  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+          ✗ wariant 1: Znajdź w dokumentacji naszą procedurę tworzenia kopii zapasowej.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Jak według wiki działa nasze logowanie OAuth?
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Poszukaj w bazie wiedzy informacji o architekturze systemu.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Sprawdź w firmowych źródłach politykę urlopową.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Wyszukaj dokumentację dotyczącą procedury backupu.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 5/6] 0/5 FAIL  routing: spotkania -> terminal_agent
+          ✗ wariant 1: Pokaż nadchodzące spotkania zespołu.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Jakie mamy zaplanowane spotkania? Wypisz je.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Wylistuj nadchodzące spotkania.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Sprawdź kalendarz spotkań i pokaż listę.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Co jest w planie spotkań na najbliższy czas?
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+[ 6/6] 0/5 FAIL  routing: status systemu -> terminal_agent
+          ✗ wariant 1: Sprawdź stan i zdrowie systemu oraz usług.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 2: Zrób health-check systemu i podaj wynik.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 3: Jak się ma system? Sprawdź jego kondycję.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 4: Zweryfikuj status usług systemowych.
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+          ✗ wariant 5: Podaj aktualny stan systemu (CPU, pamięć, dysk).
+              - wyjątek przebiegu: ResponseError: Value looks like object, but can't find closing '}' symbol (status code: 400)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 0/6
+  pojedyncze przebiegi:              0/30 PASS
+  rozbicie per przypadek:
+    0/5  routing: skrzynka -> email_agent  <-- do poprawy
+    0/5  routing: pytanie o rolę -> email_agent (nie search/terminal)  <-- do poprawy
+    0/5  routing: polecenie systemowe -> terminal_agent  <-- do poprawy
+    0/5  routing: wiedza/dokumentacja -> search_agent (nie terminal)  <-- do poprawy
+    0/5  routing: spotkania -> terminal_agent  <-- do poprawy
+    0/5  routing: status systemu -> terminal_agent  <-- do poprawy
+============================================================
+
+# status: OK | 0/6 przypadków pełnych; 0/30 przebiegów PASS | 121s

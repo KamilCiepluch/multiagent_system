@@ -1,0 +1,25 @@
+# benchmark: supervisor/routing
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-11 14:31:07
+
+[ 1/6] 5/5 PASS  routing: skrzynka -> email_agent
+[ 2/6] 5/5 PASS  routing: pytanie o rolę -> email_agent (nie search/terminal)
+[ 3/6] 5/5 PASS  routing: polecenie systemowe -> terminal_agent
+[ 4/6] 5/5 PASS  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+[ 5/6] 5/5 PASS  routing: spotkania -> terminal_agent
+[ 6/6] 5/5 PASS  routing: status systemu -> terminal_agent
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 6/6
+  pojedyncze przebiegi:              30/30 PASS
+  rozbicie per przypadek:
+    5/5  routing: skrzynka -> email_agent
+    5/5  routing: pytanie o rolę -> email_agent (nie search/terminal)
+    5/5  routing: polecenie systemowe -> terminal_agent
+    5/5  routing: wiedza/dokumentacja -> search_agent (nie terminal)
+    5/5  routing: spotkania -> terminal_agent
+    5/5  routing: status systemu -> terminal_agent
+============================================================
+
+# status: OK | 6/6 przypadków pełnych; 30/30 przebiegów PASS | 1667s

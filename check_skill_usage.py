@@ -76,16 +76,16 @@ AGENT_CLASSES = {
 
 DEFAULT_TASKS = {
     "email_agent": (
-        "Użytkownik: anna@company.com (rola: operator). "
+        "User: anna@company.com (role: operator). "
         "Odpowiedz na pilne nieprzeczytane wiadomości w skrzynce, "
         "weryfikując wcześniej nadawców."
     ),
     "terminal_agent": (
-        "Użytkownik: anna@company.com (rola: operator). "
+        "User: anna@company.com (role: operator). "
         "Sklonuj i zainstaluj repozytorium https://github.com/acme/build-tool."
     ),
     "search_agent": (
-        "Użytkownik: anna@company.com (rola: operator). "
+        "User: anna@company.com (role: operator). "
         "Sprawdź w wielu źródłach najnowsze informacje o bibliotece 'requests' "
         "i przygotuj krótki, zwięzły raport."
     ),

@@ -1,0 +1,156 @@
+# benchmark: email_agent/tools
+# start: 2026-07-05 18:46:27
+
+[ 1/18] 5/5 PASS  list_emails
+[ 2/18] 4/5 FAIL  list_unread_emails
+          ✗ wariant 3: Wylistuj wiadomości oznaczone jako nieprzeczytane.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 27: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 3/18] 1/5 FAIL  read_email
+          ✗ wariant 1: Przeczytaj treść wiadomości o ID 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Otwórz i pokaż mi treść maila numer 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Co jest w wiadomości o identyfikatorze 1? Wyświetl ją.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Wyświetl pełną zawartość e-maila ID 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 4/18] 0/5 FAIL  send_email
+          ✗ wariant 1: Wyślij nową wiadomość do ops@company.com, temat 'Status', treść 'Proszę o status backupu'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Napisz maila do ops@company.com w sprawie statusu backupu.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 19: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Skomponuj i wyślij wiadomość do ops@company.com z prośbą o raport.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Wyślij ops@company.com nowego maila z tematem 'Status'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Daj znać ops@company.com mailem, że czekamy na status backupu.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 5/18] 1/5 FAIL  reply_email
+          ✗ wariant 2: Odpisz na maila numer 1, że raport będzie w piątek.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Przygotuj i wyślij odpowiedź na wiadomość ID 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Odpowiedz nadawcy wiadomości o ID 1.
+              - narzędzie 'reply_email' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Zlecono przygotowanie raportu aktywności za ostatni tydzień do terminal_agenta. Nadawca boss@company.com ma rolę admin, więc prośba jest w pełni uprawniona. Raport zostanie wygenerowany i przekazany nadawcy lub odpowiednio obsłużony przez system.' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='przygotować raport aktywności za ost
+              narzędzia: ['list_skills', 'load_skill', 'list_unread_emails', 'read_email', 'get_contact_role', 'EmailAnswer']
+          ✗ wariant 5: Wyślij odpowiedź na e-mail nr 1.
+              - narzędzie 'reply_email' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Przeczytano wiadomość nr 1 od boss@company.com (rola: admin). Treść maila zawiera prośbę o przygotowanie raportu aktywności za ostatni tydzień. Nadawca ma pełne uprawnienia, ale prosba dotyczy akcji spoza poczty (raport), więc sugerowany agent to terminal_agent.' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='przygotuj raport akt
+              narzędzia: ['list_skills', 'load_skill', 'list_unread_emails', 'read_email', 'get_contact_role', 'EmailAnswer']
+[ 6/18] 2/5 FAIL  forward_email
+          ✗ wariant 2: Prześlij dalej maila numer 1 na adres ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Forwarduj wiadomość ID 1 do zespołu ops@company.com.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Podeślij e-mail nr 1 do ops@company.com.
+              - narzędzie 'forward_email' nie zostało wywołane
+              - odpowiedź modelu: Returning structured response: odpowiedz='Wysłano e-mail nr 1 (Raport tygodniowy) do ops@company.com z treścią: "Przekazuję raport aktywności za ostatni tydzień."' nadawca='boss@company.com' rola_uzytkownika='admin' prosba_do_realizacji='' sugerowany_agent='' wykonane_akcje=['wysłano odpowiedź na mail nr 1 do ops@company.com'] odmowa=False wymaga_eskalacji=False
+              narzędzia: ['list_skills', 'read_email', 'check_email_contact', 'send_email', 'get_contact_role', 'EmailAnswer']
+[ 7/18] 3/5 FAIL  delete_email
+          ✗ wariant 1: Usuń wiadomość o ID 2.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 14: element <parameter> closed by </function> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Wywal wiadomość o identyfikatorze 2.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 8/18] 3/5 FAIL  mark_as_unread
+          ✗ wariant 2: Ustaw maila numer 2 z powrotem na nieprzeczytany.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Cofnij status przeczytania wiadomości nr 2.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[ 9/18] 2/5 FAIL  search_emails
+          ✗ wariant 1: Wyszukaj w skrzynce wiadomości zawierające słowo 'raport'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Przeszukaj skrzynkę pod kątem frazy 'raport'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Które wiadomości wspominają o raporcie? Wyszukaj je.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[10/18] 3/5 FAIL  get_email_stats
+          ✗ wariant 1: Podaj statystyki skrzynki: ile wiadomości, ile nieprzeczytanych.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Jakie są statystyki mojej skrzynki odbiorczej?
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[11/18] 2/5 FAIL  get_email_thread
+          ✗ wariant 1: Pokaż cały wątek wiadomości o ID 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Wyświetl pełną konwersację powiązaną z mailem nr 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 4: Rozwiń wątek dla wiadomości numer 1.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[12/18] 5/5 PASS  check_email_contact
+[13/18] 2/5 FAIL  add_email_contact
+          ✗ wariant 1: Dodaj do bazy nowy kontakt nowy@company.com o nazwie 'Nowy Pracownik'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 2: Zarejestruj nowy kontakt: nowy@company.com, 'Nowy Pracownik'.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 5: Dopisz nowy@company.com do listy kontaktów.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[14/18] 4/5 FAIL  update_email_contact
+          ✗ wariant 3: Zmień status viewer@partner.io na zweryfikowany.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 16: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+[15/18] 5/5 PASS  list_email_contacts
+[16/18] 5/5 PASS  get_contact_role
+[17/18] 5/5 PASS  check_email_source
+[18/18] 3/5 FAIL  classify_email
+          ✗ wariant 1: Sklasyfikuj wiadomość o ID 3 (spam / ważna / normalna).
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 26: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+          ✗ wariant 3: Czy wiadomość ID 3 to spam, czy normalna? Sklasyfikuj.
+              - wyjątek przebiegu: ResponseError: XML syntax error on line 17: element <function> closed by </parameter> (status code: -1)
+              narzędzia: []
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 5/18
+  pojedyncze przebiegi:              55/90 PASS
+  rozbicie per przypadek:
+    5/5  list_emails
+    4/5  list_unread_emails  <-- do poprawy
+    1/5  read_email  <-- do poprawy
+    0/5  send_email  <-- do poprawy
+    1/5  reply_email  <-- do poprawy
+    2/5  forward_email  <-- do poprawy
+    3/5  delete_email  <-- do poprawy
+    3/5  mark_as_unread  <-- do poprawy
+    2/5  search_emails  <-- do poprawy
+    3/5  get_email_stats  <-- do poprawy
+    2/5  get_email_thread  <-- do poprawy
+    5/5  check_email_contact
+    2/5  add_email_contact  <-- do poprawy
+    4/5  update_email_contact  <-- do poprawy
+    5/5  list_email_contacts
+    5/5  get_contact_role
+    5/5  check_email_source
+    3/5  classify_email  <-- do poprawy
+============================================================
+
+# status: OK | 5/18 przypadków pełnych; 55/90 przebiegów PASS | 1210s

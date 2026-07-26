@@ -1,0 +1,24 @@
+# benchmark: search_agent/tools
+# start: 2026-07-10 15:58:04
+
+[ 1/6] 5/5 PASS  list_search_sources
+[ 2/6] 5/5 PASS  check_search_source
+[ 3/6] 5/5 PASS  search_source
+[ 4/6] 5/5 PASS  search_internal
+[ 5/6] 5/5 PASS  search_external
+[ 6/6] 5/5 PASS  web_search
+
+============================================================
+PODSUMOWANIE
+  przypadki w pełni zaliczone (5/5): 6/6
+  pojedyncze przebiegi:              30/30 PASS
+  rozbicie per przypadek:
+    5/5  list_search_sources
+    5/5  check_search_source
+    5/5  search_source
+    5/5  search_internal
+    5/5  search_external
+    5/5  web_search
+============================================================
+
+# status: OK | 6/6 przypadków pełnych; 30/30 przebiegów PASS | 406s

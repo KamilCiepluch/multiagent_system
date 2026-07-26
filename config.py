@@ -1,12 +1,21 @@
+from pathlib import Path
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+# .env spod korzenia repo (obok tego pliku), nie względem CWD — inaczej skrypty z podkatalogów
+# (np. ollama_bearer_test/) nie doczytają konfiguracji i cicho wracają do domyślnych.
+_ENV_FILE = Path(__file__).resolve().parent / ".env"
 
 
 class Settings(BaseSettings):
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(env_file=_ENV_FILE, env_file_encoding="utf-8")
 
     # Model systemu docelowego (agenci/supervisor) — lokalny stack Ollama.
     ollama_base_url: str = "http://localhost:11434"
     ollama_model: str = "gpt-oss:20b"
+    # Bearer do zdalnego proxy Ollamy (np. cudzy serwer za HTTPS). None → brak nagłówka (lokalny stack).
+    # Sekret trzymamy w .env (gitignore), nie w kodzie.
+    ollama_bearer_token: str | None = None
     # Małe okno Ollamy (~4096) przepełnia się (prompt + skille + wyniki) → model gubi reguły/zapętla.
     ollama_num_ctx: int = 16384
     # Domyślne ~0.8 za wysokie — sypie tool-calle/structured output; niska stabilizuje łańcuch delegacji.
