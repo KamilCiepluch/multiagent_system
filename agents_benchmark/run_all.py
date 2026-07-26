@@ -1,22 +1,22 @@
 """
-Uruchamia WSZYSTKIE benchmarki jednym poleceniem i zapisuje wyniki do agents_benchmark_results/.
+Runs ALL benchmarks with one command and saves the results to agents_benchmark_results/.
 
-JEDEN BIEG = JEDEN FOLDER (łatwo szukać po runach, podział na daty):
+ONE RUN = ONE FOLDER (easy to browse by run, split by date):
     agents_benchmark_results/runs/<YYYY-MM-DD>/<HH-MM>_<model>_think-<on|off>/
-        _console.txt                 ← postęp całego biegu (to samo co na ekranie)
-        _manifest.txt                ← podsumowanie + nagłówek: data | model | thinking | num_ctx
-        <obszar>/<co_testowane>.txt  ← każde zadanie; w nagłówku data, model, tryb thinking
-Data/model/tryb są w NAZWIE folderu ORAZ w nagłówku każdego pliku. Przeznaczone do długich
-przebiegów: porażka jednego zadania NIE przerywa reszty (wyjątek ląduje w pliku zadania).
+        _console.txt                 ← progress of the whole run (same as on screen)
+        _manifest.txt                ← summary + header: date | model | thinking | num_ctx
+        <area>/<what_tested>.txt     ← each job; the header has date, model, thinking mode
+Date/model/mode are in the folder NAME AND in each file's header. Meant for long runs:
+a single job failing does NOT interrupt the rest (the exception lands in the job's file).
 
-Uruchom:
-    python -m agents_benchmark.run_all                              # wszystko (model/thinking z .env)
+Run:
+    python -m agents_benchmark.run_all                              # everything (model/thinking from .env)
     python -m agents_benchmark.run_all --model qwen3.6:35b --thinking on
-    python -m agents_benchmark.run_all search_agent --thinking off  # jeden obszar, bez reasoningu
-    python -m agents_benchmark.run_all supervisor:routing e2e       # wybrane zadania
-    python -m agents_benchmark.run_all --list                       # pokaż listę zadań i wyjdź
+    python -m agents_benchmark.run_all search_agent --thinking off  # one area, no reasoning
+    python -m agents_benchmark.run_all supervisor:routing e2e       # selected jobs
+    python -m agents_benchmark.run_all --list                       # show the job list and exit
 
-Wymaga: PostgreSQL (agent_benchmark) + Ollama — jak pojedyncze benchmarki.
+Requires: PostgreSQL (agent_benchmark) + Ollama — like the individual benchmarks.
 """
 
 import argparse
@@ -45,11 +45,11 @@ from agents_benchmark.e2e import run as e2e_run
 
 BENCH = ROOT / "agents_benchmark"
 RESULTS = ROOT / "agents_benchmark_results"
-RUNS = RESULTS / "runs"   # nowe biegi: runs/<data>/<godz>_<model>_think-<on|off>/ (jeden bieg = jeden folder)
+RUNS = RESULTS / "runs"   # new runs: runs/<date>/<time>_<model>_think-<on|off>/ (one run = one folder)
 
 
 class _Tee:
-    """Pisze jednocześnie na ekran i do pliku konsoli biegu."""
+    """Writes simultaneously to the screen and to the run's console file."""
     def __init__(self, *streams):
         self.streams = streams
 
@@ -94,21 +94,21 @@ SUPERVISOR_GROUPS = (
 
 @dataclass
 class Job:
-    area: str            # podkatalog w wynikach
-    name: str            # nazwa pliku (co testowane)
-    fn: Callable[[], str]  # wykonuje benchmark (drukuje raport na stdout) i zwraca jednoliniowe podsumowanie
+    area: str            # subdirectory in the results
+    name: str            # file name (what is tested)
+    fn: Callable[[], str]  # runs the benchmark (prints the report to stdout) and returns a one-line summary
 
 
 def _suite_summary(results) -> str:
     full = sum(r.ok for r in results)
     passed = sum(r.passed for r in results)
     total = sum(r.total for r in results)
-    return f"{full}/{len(results)} przypadków pełnych; {passed}/{total} przebiegów PASS"
+    return f"{full}/{len(results)} full cases; {passed}/{total} runs PASS"
 
 
 def _e2e_summary(checks) -> str:
     passed = sum(c.ok for c in checks)
-    return f"{passed}/{len(checks)} sprawdzeń PASS"
+    return f"{passed}/{len(checks)} checks PASS"
 
 
 def build_jobs() -> list[Job]:
@@ -149,22 +149,22 @@ def run_job(job: Job, run_dir: Path, meta: str) -> tuple[str, str, Path, float]:
             try:
                 summary, status = job.fn(), "OK"
             except Exception:
-                summary, status = "wyjątek (traceback powyżej)", "ERROR"
+                summary, status = "exception (traceback above)", "ERROR"
                 traceback.print_exc()
         f.write(f"\n# status: {status} | {summary} | {time.time() - start:.0f}s\n")
     return status, summary, path, time.time() - start
 
 
 def main():
-    p = argparse.ArgumentParser(description="Uruchom benchmarki i zapisz wyniki jako jeden bieg = jeden folder (data/model/thinking).")
-    p.add_argument("only", nargs="*", help="filtry zadań: '<obszar>' albo '<obszar>:<co>' (np. supervisor:routing, e2e)")
-    p.add_argument("--list", action="store_true", help="wypisz zadania i zakończ")
-    p.add_argument("--model", default=None, help="model do testu (domyślnie z .env/OLLAMA_MODEL)")
+    p = argparse.ArgumentParser(description="Run the benchmarks and save the results as one run = one folder (date/model/thinking).")
+    p.add_argument("only", nargs="*", help="job filters: '<area>' or '<area>:<what>' (e.g. supervisor:routing, e2e)")
+    p.add_argument("--list", action="store_true", help="print the jobs and exit")
+    p.add_argument("--model", default=None, help="model to test (default from .env/OLLAMA_MODEL)")
     p.add_argument("--thinking", choices=["on", "off"], default=None,
-                   help="tryb reasoning (domyślnie z .env/CAPTURE_THINKING); off dla modeli nie-rozumujących")
+                   help="reasoning mode (default from .env/CAPTURE_THINKING); off for non-reasoning models")
     args = p.parse_args()
 
-    # Flagi nadpisują konfigurację na czas biegu (build_system_llm czyta settings przy budowie agenta).
+    # The flags override the configuration for the run (build_system_llm reads settings when building the agent).
     if args.model:
         settings.ollama_model = args.model
     if args.thinking:
@@ -176,7 +176,7 @@ def main():
             print(f"{j.area}/{j.name}")
         return
     if not jobs:
-        p.error("brak zadań pasujących do filtra")
+        p.error("no jobs matching the filter")
 
     now = datetime.now()
     think = "on" if settings.capture_thinking else "off"
@@ -189,7 +189,7 @@ def main():
     start = time.time()
     rows = []
     with (run_dir / "_console.txt").open("w", encoding="utf-8") as cf, _tee_stdout(cf):
-        print(f"=== run_all | {now:%Y-%m-%d %H:%M} | {meta} | {len(jobs)} zadań ===")
+        print(f"=== run_all | {now:%Y-%m-%d %H:%M} | {meta} | {len(jobs)} jobs ===")
         print(f"    folder: {run_dir.relative_to(ROOT)}")
         for i, job in enumerate(jobs, 1):
             print(f"[{i:>2}/{len(jobs)}] {job.area}/{job.name} ...", flush=True)
@@ -199,13 +199,13 @@ def main():
 
         total = time.time() - start
         with (run_dir / "_manifest.txt").open("w", encoding="utf-8") as f:
-            f.write(f"run_all | {now:%Y-%m-%d %H:%M} | {meta} | {len(rows)} zadań | {total / 60:.1f} min\n")
+            f.write(f"run_all | {now:%Y-%m-%d %H:%M} | {meta} | {len(rows)} jobs | {total / 60:.1f} min\n")
             f.write("-" * 72 + "\n")
             for area, name, status, summary, dt, path in rows:
                 f.write(f"{status:5} {area + '/' + name:24} {summary}  ({dt:.0f}s)\n")
 
         errors = sum(1 for r in rows if r[2] != "OK")
-        print(f"\n=== koniec | {total / 60:.1f} min | błędy zadań: {errors} | {run_dir.relative_to(ROOT)} ===")
+        print(f"\n=== done | {total / 60:.1f} min | job errors: {errors} | {run_dir.relative_to(ROOT)} ===")
     sys.exit(1 if errors else 0)
 
 

@@ -1,1 +1,1 @@
-"""End-to-end smoke test: structured output każdego agenta + pełny przepływ supervisora."""
+"""End-to-end smoke test: each agent's structured output + the full supervisor flow."""
