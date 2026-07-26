@@ -1,10 +1,10 @@
 """
-Loader skilli agentów z folderu `agent_skills/<agent>/<nazwa>.md` → tabela `agent_skills`.
+Loader for agent skills from the `agent_skills/<agent>/<name>.md` folder → `agent_skills` table.
 
-JEDNO ŹRÓDŁO PRAWDY: jeden skill = jeden plik .md (front-matter `description:` + treść).
-Czytelne i edytowalne; loader wstawia je czystym, parametryzowanym INSERT-em — zamiast setek
-linii dollar-quoted SQL w seedach. Używany przez `reset_main_db` (skille są WSPÓLNE dla wszystkich
-datasetów). Dla docker initdb (nie odpala Pythona) generujemy `seeds/agent_skills_seed.sql` przez
+SINGLE SOURCE OF TRUTH: one skill = one .md file (front-matter `description:` + content).
+Readable and editable; the loader inserts them with a clean, parameterized INSERT — instead of hundreds
+of lines of dollar-quoted SQL in the seeds. Used by `reset_main_db` (skills are SHARED across all
+datasets). For docker initdb (which does not run Python) we generate `seeds/agent_skills_seed.sql` via
 `python -m database.skills emit`.
 """
 
@@ -17,7 +17,7 @@ _DOLLAR_TAG = "$skillbody$"
 
 
 def _parse(text: str) -> tuple[str, str]:
-    """Z pliku skilla zwraca (description, content). Front-matter: '---\\ndescription: ...\\n---'."""
+    """From a skill file returns (description, content). Front-matter: '---\\ndescription: ...\\n---'."""
     description, body = "", text
     if text.startswith("---"):
         parts = text.split("---", 2)  # ['', front-matter, body]
@@ -31,7 +31,7 @@ def _parse(text: str) -> tuple[str, str]:
 
 
 def iter_skills() -> list[tuple[str, str, str, str]]:
-    """Lista (agent_name, name, description, content) — stabilnie posortowana (agent, nazwa pliku)."""
+    """List of (agent_name, name, description, content) — stably sorted (agent, file name)."""
     out: list[tuple[str, str, str, str]] = []
     if not SKILLS_DIR.is_dir():
         return out
@@ -43,7 +43,7 @@ def iter_skills() -> list[tuple[str, str, str, str]]:
 
 
 def load_into(conn) -> int:
-    """Wstawia wszystkie skille do `agent_skills` (zakłada wcześniejszy TRUNCATE). Zwraca liczbę."""
+    """Inserts all skills into `agent_skills` (assumes a prior TRUNCATE). Returns the count."""
     rows = iter_skills()
     if rows:
         with conn.cursor() as cur:
@@ -55,14 +55,14 @@ def load_into(conn) -> int:
 
 
 def emit_sql() -> str:
-    """Generuje SQL (INSERT) z folderu — dla docker initdb. Treść w dollar-quotingu ($skillbody$)."""
+    """Generates SQL (INSERT) from the folder — for docker initdb. Content is dollar-quoted ($skillbody$)."""
     lines = [
-        "-- WYGENEROWANE z agent_skills/ przez `python -m database.skills emit` — NIE edytuj ręcznie.",
-        "-- Źródło prawdy: folder agent_skills/<agent>/<nazwa>.md (jeden skill = jeden plik).",
+        "-- GENERATED from agent_skills/ by `python -m database.skills emit` — do NOT edit by hand.",
+        "-- Source of truth: the agent_skills/<agent>/<name>.md folder (one skill = one file).",
         "",
     ]
     for agent, name, desc, content in iter_skills():
-        assert _DOLLAR_TAG not in content, f"kolizja dollar-tag w skillu {agent}/{name}"
+        assert _DOLLAR_TAG not in content, f"dollar-tag collision in skill {agent}/{name}"
         d = desc.replace("'", "''")
         lines.append(
             "INSERT INTO agent_skills (agent_name, name, description, content) VALUES\n"
@@ -77,7 +77,7 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "emit":
         out = SKILLS_DIR.parent / "seeds" / "agent_skills_seed.sql"
         out.write_text(emit_sql(), encoding="utf-8")
-        print(f"Zapisano {out} ({len(iter_skills())} skilli)")
+        print(f"Wrote {out} ({len(iter_skills())} skills)")
     else:
         for a, n, d, c in iter_skills():
-            print(f"{a}/{n}: {d[:60]} ({len(c)} znaków)")
+            print(f"{a}/{n}: {d[:60]} ({len(c)} chars)")
