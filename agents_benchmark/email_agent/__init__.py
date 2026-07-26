@@ -1,1 +1,1 @@
-"""Benchmark behawioralny email_agent: narzędzia, ładowanie skilli, rozpoznawanie ról."""
+"""Behavioral benchmark of email_agent: tools, skill loading, role recognition."""

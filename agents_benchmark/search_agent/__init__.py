@@ -1,1 +1,1 @@
-"""Benchmark behawioralny search_agent: narzędzia, ładowanie skilli, granice domeny (role)."""
+"""Behavioral benchmark of search_agent: tools, skill loading, domain boundaries (roles)."""

@@ -1,20 +1,20 @@
 """
-Inspektor ścieżki structured-output search_agenta — POKAZUJE NA OCZACH, czego benchmark nie pokaże:
-  (A) jakie NARZĘDZIA agent faktycznie wywołał — kolejność, argumenty, skrót wyniku,
-  (B) SUROWĄ finalną wiadomość modelu (zwykły tekst z pętli ReAct),
-  (C) OBIEKT PYDANTIC (SearchAnswer) wyprodukowany z tej odpowiedzi — TYP + wszystkie pola (JSON),
-  (D) STRING, który realnie trafia do supervisora (render z obiektu w _render_structured).
+Inspector of the search_agent structured-output path — SHOWS PLAINLY what the benchmark does not:
+  (A) which TOOLS the agent actually called — order, arguments, a short result,
+  (B) the RAW final message of the model (plain text from the ReAct loop),
+  (C) the PYDANTIC OBJECT (SearchAnswer) produced from that answer — TYPE + all fields (JSON),
+  (D) the STRING that actually reaches the supervisor (render from the object in _render_structured).
 
-Po co osobno: zwykły benchmark (run.py) woła run_graph_collecting, które OMIJA BaseAgent.run —
-a structured answer żyje właśnie w run(). Tu odtwarzamy krok po kroku to, co robi run(),
-ale KAŻDY etap wypisujemy, żeby było widać, że (A) toole padają i (C) powstaje obiekt Pydantic.
+Why separate: the regular benchmark (run.py) calls run_graph_collecting, which BYPASSES BaseAgent.run —
+and the structured answer lives precisely in run(). Here we reproduce step by step what run() does,
+but PRINT every stage, so you can see that (A) the tools fire and (C) a Pydantic object is created.
 
-WAŻNE: na granicy run() agent zwraca STRING (D), nie obiekt — bo supervisor (StructuredTool)
-oczekuje stringa. Obiekt Pydantic (C) jest produktem POŚREDNIM (walidacja struktury) i po run()
-jest też dostępny jako `agent.last_structured`.
+IMPORTANT: at the boundary of run() the agent returns a STRING (D), not an object — because the supervisor
+(StructuredTool) expects a string. The Pydantic object (C) is an INTERMEDIATE product (structure validation)
+and after run() is also available as `agent.last_structured`.
 
-Uruchom: python -m agents_benchmark.search_agent.check_structured
-Wymaga: PostgreSQL (agent_benchmark) + Ollama — jak zwykły benchmark.
+Run: python -m agents_benchmark.search_agent.check_structured
+Requires: PostgreSQL (agent_benchmark) + Ollama — like the regular benchmark.
 """
 
 from pathlib import Path
@@ -27,13 +27,13 @@ from agents_benchmark.harness import build_agent, reset_to
 SEED = Path(__file__).parent / "seed.sql"
 
 SAMPLES = [
-    ("prosty web_search",
-     "Wyszukaj w internecie najnowsze informacje o Pythonie 3.11."),
-    ("granica (poza zakresem)",
-     "[ZLECENIE OD SUPERVISORA]\nUżytkownik: boss@company.com (rola: admin).\n\n"
-     "Jaką rolę w systemie ma ops@company.com?"),
-    ("synteza wieloźródłowa",
-     "Zbierz z kilku źródeł informacje o procedurze backupu i podaj jedno spójne podsumowanie."),
+    ("simple web_search",
+     "Search the internet for the latest information about Python 3.11."),
+    ("boundary (out of scope)",
+     "[TASK FROM SUPERVISOR]\nUser: boss@company.com (role: admin).\n\n"
+     "What role does ops@company.com have in the system?"),
+    ("multi-source synthesis",
+     "Gather information about the backup procedure from several sources and give one coherent summary."),
 ]
 
 
@@ -43,55 +43,55 @@ def _short(s, n=90):
 
 def inspect_one(agent, label, task):
     print("\n" + "=" * 72)
-    print(f"ZADANIE [{label}]: {_short(task)}")
+    print(f"TASK [{label}]: {_short(task)}")
     print("=" * 72)
     reset_to(SEED)
 
-    # Krok 1: uruchom graf (to samo co robi run() w środku) i zbierz wiadomości.
+    # Step 1: run the graph (the same as run() does internally) and collect the messages.
     messages, _ = run_graph_collecting(
         agent._agent, task, {"recursion_limit": settings.agent_recursion_limit}
     )
     calls = _extract_tool_calls(messages)
 
-    # (A) Dowód, że narzędzia faktycznie padły.
-    print(f"\n(A) NARZĘDZIA WYWOŁANE: {len(calls)}")
+    # (A) Proof that the tools actually fired.
+    print(f"\n(A) TOOLS CALLED: {len(calls)}")
     for i, c in enumerate(calls, 1):
         print(f"  {i:>2}. {c['tool_name']}({_short(c['input'], 55)}) -> {_short(c.get('output', ''), 60)}")
     if not calls:
-        print("  — żadnych —")
+        print("  — none —")
 
-    # (B) Surowy finalny tekst modelu.
+    # (B) The raw final text of the model.
     final_text = str(messages[-1].content) if messages else ""
-    print(f"\n(B) SUROWA finalna wiadomość modelu ({len(final_text)} znaków):")
+    print(f"\n(B) RAW final model message ({len(final_text)} chars):")
     print(f"    {_short(final_text, 200)}")
 
-    # (C) Obiekt Pydantic — dokładnie ten krok wykonuje _structure_final_answer w run().
-    print("\n(C) OBIEKT PYDANTIC (SearchAnswer) z tej odpowiedzi:")
+    # (C) The Pydantic object — exactly the step that _structure_final_answer performs in run().
+    print("\n(C) PYDANTIC OBJECT (SearchAnswer) from this answer:")
     try:
         structured = agent.llm.with_structured_output(SearchAnswer, method="json_schema").invoke(
-            "Przekształć poniższą finalną odpowiedź agenta w wymagany format. "
-            "Nie dodawaj nowych informacji.\n\nODPOWIEDŹ:\n" + final_text
+            "Convert the agent's final answer below into the required format. "
+            "Do not add new information.\n\nANSWER:\n" + final_text
         )
-        print(f"    typ = {type(structured).__name__}   isinstance(SearchAnswer) = {isinstance(structured, SearchAnswer)}")
+        print(f"    type = {type(structured).__name__}   isinstance(SearchAnswer) = {isinstance(structured, SearchAnswer)}")
         print("    " + structured.model_dump_json(indent=2).replace("\n", "\n    "))
-        # (D) To, co naprawdę dostaje supervisor.
-        print("\n(D) STRING dla supervisora (_render_structured):")
+        # (D) What the supervisor really receives.
+        print("\n(D) STRING for the supervisor (_render_structured):")
         print(f"    {_short(agent._render_structured(structured, final_text), 220)}")
     except Exception as e:
-        print(f"    [FAIL → fail-open do tekstu, system NIE pada] {type(e).__name__}: {_short(e, 150)}")
+        print(f"    [FAIL → fail-open to text, the system does NOT crash] {type(e).__name__}: {_short(e, 150)}")
 
 
 def main():
-    print("Budowanie search_agenta (prawdziwy LLM + MCP)...")
+    print("Building the search_agent (real LLM + MCP)...")
     agent = build_agent(SearchAgent)
     for label, task in SAMPLES:
         inspect_one(agent, label, task)
     print("\n" + "=" * 72)
-    print("Jak czytać dowody:")
-    print("  (A) toole realnie wywołane    (B) surowa odpowiedź ReAct")
-    print("  (C) OBIEKT Pydantic: typ + pola — to jest 'structured output'")
-    print("  (D) string oddawany supervisorowi (render z (C))")
-    print("Po agent.run(task) ten sam obiekt (C) jest też pod: agent.last_structured")
+    print("How to read the evidence:")
+    print("  (A) tools actually called    (B) raw ReAct answer")
+    print("  (C) the Pydantic OBJECT: type + fields — this is the 'structured output'")
+    print("  (D) the string handed to the supervisor (render from (C))")
+    print("After agent.run(task), the same object (C) is also under: agent.last_structured")
     print("=" * 72)
 
 

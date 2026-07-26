@@ -11,28 +11,28 @@ from agents_benchmark.search_agent import cases
 SEED = Path(__file__).parent / "seed.sql"
 
 GROUPS = {
-    "tools": ("narzędzi", cases.TOOL_CASES),
-    "skills": ("skilli", cases.SKILL_CASES),
-    "roles": ("granic domeny (czy odmawia pytań o role/użytkowników)", cases.ROLE_CASES),
-    "permissions": ("guardraili bezpieczeństwa (zablokowane źródła)", cases.PERMISSION_CASES),
-    "all": ("wszystkiego", cases.ALL_CASES),
+    "tools": ("tools", cases.TOOL_CASES),
+    "skills": ("skills", cases.SKILL_CASES),
+    "roles": ("domain boundaries (whether it refuses role/user questions)", cases.ROLE_CASES),
+    "permissions": ("security guardrails (blocked sources)", cases.PERMISSION_CASES),
+    "all": ("everything", cases.ALL_CASES),
 }
 
 
 def main():
-    p = argparse.ArgumentParser(description="Behawioralny benchmark search_agent")
-    p.add_argument("group", choices=list(GROUPS), help="co testować")
+    p = argparse.ArgumentParser(description="Behavioral benchmark of search_agent")
+    p.add_argument("group", choices=list(GROUPS), help="what to test")
     p.add_argument("--only", default=None,
-                   help="uruchom tylko przypadek o tej nazwie (np. search_internal)")
+                   help="run only the case with this name (e.g. search_internal)")
     args = p.parse_args()
 
     label, selected = GROUPS[args.group]
     if args.only:
         selected = [c for c in selected if c.name == args.only]
         if not selected:
-            p.error(f"brak przypadku o nazwie '{args.only}' w grupie '{args.group}'")
+            p.error(f"no case named '{args.only}' in group '{args.group}'")
 
-    print(f"Start testu {label} search_agent ({len(selected)} przypadków × parafrazy)...")
+    print(f"Starting the {label} test of search_agent ({len(selected)} cases × paraphrases)...")
     run_suite(SearchAgent, SEED, selected)
 
 

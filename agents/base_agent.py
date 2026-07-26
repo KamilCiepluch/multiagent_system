@@ -1,7 +1,7 @@
 """
-BaseAgent — klasa bazowa agentów.
+BaseAgent — base class for agents.
 
-Podklasa definiuje NAME, DESCRIPTION, SYSTEM_PROMPT, TOOL_NAMES i opcjonalnie RESPONSE_SCHEMA.
+A subclass defines NAME, DESCRIPTION, SYSTEM_PROMPT, TOOL_NAMES and optionally RESPONSE_SCHEMA.
 """
 
 from typing import Annotated
@@ -25,7 +25,7 @@ from tracing.run_context import (
 
 
 def _extract_tool_calls(messages: list) -> list[dict]:
-    """Paruje AIMessage.tool_calls z ToolMessage po tool_call_id → [{tool_name, input, output}]."""
+    """Pairs AIMessage.tool_calls with ToolMessage by tool_call_id → [{tool_name, input, output}]."""
     pending: dict[str, dict] = {}
     result: list[dict] = []
 
@@ -52,8 +52,8 @@ def _called_before(
     current_id: str,
     match_name: str | None = None,
 ) -> bool:
-    """Czy `tool_name` było już wywołane w tej inwokacji (liczone z historii wiadomości,
-    bez checkpointera). `match_name` dodatkowo dopasowuje argument `name` (dedup po skillu)."""
+    """Whether `tool_name` was already called in this invocation (counted from message history,
+    without a checkpointer). `match_name` additionally matches the `name` argument (dedup per skill)."""
     for msg in messages:
         for tc in getattr(msg, "tool_calls", None) or []:
             if tc.get("name") != tool_name:
@@ -67,17 +67,17 @@ def _called_before(
 
 
 _RECURSION_NOTE = (
-    "\n\n[uwaga: przerwano po osiągnięciu recursion_limit — agent zapętlił się, "
-    "ale faktycznie wykonane akcje zostały zarejestrowane]"
+    "\n\n[note: stopped after reaching recursion_limit — the agent looped, "
+    "but the actions actually performed were recorded]"
 )
 
 
 def run_graph_collecting(agent, task: str, config: dict) -> tuple[dict, bool]:
-    """Uruchamia graf ReAct strumieniowo (stream, nie invoke), akumulując snapshoty stanu.
+    """Runs the ReAct graph in streaming mode (stream, not invoke), accumulating state snapshots.
 
-    Przy przekroczeniu recursion_limit zwraca ostatni stan + truncated=True zamiast rzucać
-    GraphRecursionError — zachowuje ground-truth (faktycznie wykonane tool-calle). Ostatni
-    stan niesie 'messages' oraz (gdy jest response_format) 'structured_response'."""
+    On exceeding recursion_limit it returns the last state + truncated=True instead of raising
+    GraphRecursionError — preserving ground truth (the tool calls actually performed). The last
+    state carries 'messages' and (when response_format is set) 'structured_response'."""
     last_state: dict = {}
     try:
         for state in agent.stream(
@@ -91,8 +91,8 @@ def run_graph_collecting(agent, task: str, config: dict) -> tuple[dict, bool]:
     except GraphRecursionError:
         return last_state, True
     except StructuredOutputValidationError as e:
-        # structured output niezgodny ze schematem — nie crashujemy: dołączamy surową finalną
-        # wiadomość jako fallback (supervisor odczyta rolę/prośbę z treści).
+        # structured output does not match the schema — do not crash: attach the raw final
+        # message as a fallback (the supervisor reads the role/request from the text).
         ai = getattr(e, "ai_message", None)
         msgs = list(last_state.get("messages") or [])
         if ai is not None:
@@ -102,21 +102,21 @@ def run_graph_collecting(agent, task: str, config: dict) -> tuple[dict, bool]:
 
 class BaseAgent:
     NAME = "base_agent"
-    DESCRIPTION = "Ogólny agent pomocniczy."
-    SYSTEM_PROMPT = "Jesteś pomocnym asystentem."
-    TOOL_NAMES: list[str] = []  # nadpisz w podklasie — nazwy narzędzi MCP dla tego agenta
-    # Opcjonalny schemat Pydantic do ustrukturyzowanej FINALNEJ odpowiedzi (None = wyłączone).
-    # Domyślnie None → zachowanie agentów bez tej funkcji jest niezmienione.
+    DESCRIPTION = "General-purpose helper agent."
+    SYSTEM_PROMPT = "You are a helpful assistant."
+    TOOL_NAMES: list[str] = []  # override in subclass — MCP tool names for this agent
+    # Optional Pydantic schema for a structured FINAL response (None = disabled).
+    # Defaults to None → behavior of agents without this feature is unchanged.
     RESPONSE_SCHEMA: type | None = None
 
     def __init__(self, llm, all_mcp_tools: dict):
         """
-        llm           — ChatOllama (lub inny model z tool-callingiem)
-        all_mcp_tools — dict {name: tool} z build_langchain_tools(server);
-                        agent sam filtruje przez TOOL_NAMES
+        llm           — ChatOllama (or another tool-calling model)
+        all_mcp_tools — dict {name: tool} from build_langchain_tools(server);
+                        the agent filters it itself via TOOL_NAMES
         """
         self.llm = llm
-        self.last_structured = None  # ostatni structured output (debug); run() zwraca string
+        self.last_structured = None  # last structured output (debug); run() returns a string
         skill_tools = self._build_skill_tools()
         mcp_tools = [all_mcp_tools[n] for n in self.TOOL_NAMES if n in all_mcp_tools]
         self.tools = mcp_tools + skill_tools
@@ -124,7 +124,7 @@ class BaseAgent:
         middleware = self._build_middleware()
         if middleware:
             kwargs["middleware"] = middleware
-        # natywny structured output w jednym przebiegu (state['structured_response'])
+        # native structured output in a single pass (state['structured_response'])
         if self.RESPONSE_SCHEMA is not None:
             kwargs["response_format"] = self.RESPONSE_SCHEMA
         self._agent = create_agent(
@@ -135,13 +135,13 @@ class BaseAgent:
         )
 
     def _build_middleware(self) -> list:
-        """Middleware dla create_agent. Domyślnie SkillGate (wymusza list_skills). Nadpisz w podklasie."""
+        """Middleware for create_agent. Defaults to SkillGate (enforces list_skills). Override in subclass."""
         from agents.skill_gate import make_skill_gate
         return [make_skill_gate(self.NAME)]
 
     def _render_structured(self, structured, fallback_text: str, tool_calls: list | None = None) -> str:
-        """Zamienia obiekt RESPONSE_SCHEMA na tekst. Nadpisz w podklasie. `tool_calls` pozwala
-        uzupełnić pola deterministycznie z wyników narzędzi."""
+        """Turns a RESPONSE_SCHEMA object into text. Override in subclass. `tool_calls` lets you
+        fill fields deterministically from tool results."""
         return fallback_text
 
     def _build_skill_tools(self) -> list:
@@ -152,15 +152,15 @@ class BaseAgent:
             tool_call_id: Annotated[str, InjectedToolCallId],
             messages: Annotated[list, InjectedState("messages")],
         ) -> str:
-            """Wylistuj dostępne procedury obsługi zadań (skille). Użyj gdy zadanie pasuje do złożonego scenariusza."""
+            """List the available task-handling procedures (skills). Use when the task matches a complex scenario."""
             if _called_before(messages, "list_skills", tool_call_id):
                 return (
-                    "list_skills zostało już wywołane w tym przebiegu. "
-                    "Użyj wcześniejszej listy zamiast wołać ponownie."
+                    "list_skills has already been called in this run. "
+                    "Use the earlier list instead of calling it again."
                 )
             skills = db_list_skills(agent_name)
             if not skills:
-                return "Brak dostępnych skillów."
+                return "No skills available."
             return "\n".join(f"{s.name} — {s.description}" for s in skills)
 
         @lc_tool
@@ -169,16 +169,16 @@ class BaseAgent:
             tool_call_id: Annotated[str, InjectedToolCallId],
             messages: Annotated[list, InjectedState("messages")],
         ) -> str:
-            """Wczytaj pełną treść skilla: kroki, narzędzia i ograniczenia."""
-            # dedup: powtórne wczytanie tego samego skilla nic nie wnosi
+            """Load the full content of a skill: steps, tools and constraints."""
+            # dedup: reloading the same skill adds nothing
             if _called_before(messages, "load_skill", tool_call_id, match_name=name):
                 return (
-                    f"Skill '{name}' został już wczytany w tym przebiegu. "
-                    "Użyj wcześniej zwróconej treści zamiast wołać ponownie."
+                    f"Skill '{name}' has already been loaded in this run. "
+                    "Use the previously returned content instead of calling it again."
                 )
             skill = db_get_skill(name, agent_name)
             if not skill:
-                return f"Skill '{name}' nie istnieje lub jest niedostępny."
+                return f"Skill '{name}' does not exist or is unavailable."
             return skill.content
 
         return [list_skills, load_skill]
@@ -196,11 +196,11 @@ class BaseAgent:
             state, truncated = run_graph_collecting(self._agent, task, config)
             messages = state.get("messages", [])
             tool_calls = _extract_tool_calls(messages)
-            final_output = messages[-1].content if messages else "[brak odpowiedzi agenta]"
+            final_output = messages[-1].content if messages else "[no agent response]"
             if truncated:
                 final_output = str(final_output) + _RECURSION_NOTE
             elif self.RESPONSE_SCHEMA is not None:
-                # render deterministyczny z obiektu (bez 2. wywołania LLM); tool_calls uzupełniają pola
+                # deterministic render from the object (no 2nd LLM call); tool_calls fill in fields
                 structured = state.get("structured_response")
                 if structured is not None:
                     self.last_structured = structured
@@ -209,7 +209,7 @@ class BaseAgent:
             if logger is not None:
                 logger.finish_agent(inv_id, final_output)
 
-            # audyt (agent_audit) — forensika/show_run.py
+            # audit (agent_audit) — forensics/show_run.py
             create_agent_log(
                 AgentLog(
                     run_id=get_run_id(),
