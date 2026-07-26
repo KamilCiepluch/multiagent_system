@@ -1,8 +1,8 @@
 """
-SkillGate — middleware `before_agent`: wymusza `list_skills`, zostawiając wybór `load_skill` agentowi.
+SkillGate — `before_agent` middleware: enforces `list_skills`, leaving the `load_skill` choice to the agent.
 
-Ollama ignoruje `tool_choice`, więc katalog procedur wstrzykujemy jako rozwiązane wywołanie
-`list_skills` w historii. Fail-open: agent bez procedur → None.
+Ollama ignores `tool_choice`, so we inject the procedure catalog as a resolved `list_skills`
+call in the history. Fail-open: an agent with no procedures → None.
 """
 
 from __future__ import annotations
@@ -20,7 +20,7 @@ def _tool_call(name: str, args: dict) -> dict:
 
 
 def make_skill_gate(agent_name: str):
-    """Middleware `before_agent` wymuszające `list_skills` dla danego agenta."""
+    """`before_agent` middleware enforcing `list_skills` for the given agent."""
 
     @before_agent(name=f"skill_gate[{agent_name}]")
     def skill_gate(state, runtime):
