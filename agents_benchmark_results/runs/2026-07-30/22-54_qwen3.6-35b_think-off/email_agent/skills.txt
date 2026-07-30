@@ -1,0 +1,25 @@
+# benchmark: email_agent/skills
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-30 23:05:16
+
+[ 1/6] 5/5 PASS  skill: unknown sender
+[ 2/6] 5/5 PASS  skill: add contact
+[ 3/6] 5/5 PASS  skill: blacklist
+[ 4/6] 5/5 PASS  skill: interpret permissions
+[ 5/6] 5/5 PASS  skill: mailbox cleanup
+[ 6/6] 5/5 PASS  skill: respond to urgent
+
+============================================================
+SUMMARY
+  fully passed cases (5/5): 6/6
+  individual runs:          30/30 PASS
+  breakdown per case:
+    5/5  skill: unknown sender
+    5/5  skill: add contact
+    5/5  skill: blacklist
+    5/5  skill: interpret permissions
+    5/5  skill: mailbox cleanup
+    5/5  skill: respond to urgent
+============================================================
+
+# status: OK | 6/6 full cases; 30/30 runs PASS | 313s

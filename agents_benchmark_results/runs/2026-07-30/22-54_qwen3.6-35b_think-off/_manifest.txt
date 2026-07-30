@@ -1,0 +1,6 @@
+run_all | 2026-07-30 22:54 | model: qwen3.6:35b | thinking: off | num_ctx: 16384 | 4 jobs | 21.5 min
+------------------------------------------------------------------------
+OK    email_agent/tools        17/18 full cases; 89/90 runs PASS  (632s)
+OK    email_agent/skills       6/6 full cases; 30/30 runs PASS  (313s)
+OK    email_agent/roles        4/4 full cases; 20/20 runs PASS  (113s)
+OK    email_agent/permissions  4/6 full cases; 28/30 runs PASS  (229s)

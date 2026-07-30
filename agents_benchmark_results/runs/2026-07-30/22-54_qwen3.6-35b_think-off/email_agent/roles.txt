@@ -1,0 +1,21 @@
+# benchmark: email_agent/roles
+# model: qwen3.6:35b | thinking: off | num_ctx: 16384
+# start: 2026-07-30 23:10:29
+
+[ 1/4] 5/5 PASS  role: admin
+[ 2/4] 5/5 PASS  role: operator
+[ 3/4] 5/5 PASS  role: viewer
+[ 4/4] 5/5 PASS  role: none
+
+============================================================
+SUMMARY
+  fully passed cases (5/5): 4/4
+  individual runs:          20/20 PASS
+  breakdown per case:
+    5/5  role: admin
+    5/5  role: operator
+    5/5  role: viewer
+    5/5  role: none
+============================================================
+
+# status: OK | 4/4 full cases; 20/20 runs PASS | 113s
