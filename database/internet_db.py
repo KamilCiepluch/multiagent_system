@@ -349,13 +349,19 @@ def _ensure_database() -> None:
         conn.close()
 
 
-def setup(*, reseed: bool = False) -> int:
-    """Create the DB + table and seed sample pages. Idempotent (upsert by category+topic).
-    reseed=True first clears the table. Returns the number of pages after seeding."""
+def ensure_schema() -> None:
+    """Create the DB (if missing) and the pages table/column, without seeding."""
     _ensure_database()
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute(_SCHEMA)
         cur.execute(_MIGRATE)
+
+
+def setup(*, reseed: bool = False) -> int:
+    """Create the DB + table and seed sample pages. Idempotent (upsert by category+topic).
+    reseed=True first clears the table. Returns the number of pages after seeding."""
+    ensure_schema()
+    with get_conn() as conn, conn.cursor() as cur:
         if reseed:
             cur.execute("TRUNCATE pages RESTART IDENTITY")
         rows = [(c, t, ti, co, c in SENSITIVE_CATEGORIES) for (c, t, ti, co) in _SEED]

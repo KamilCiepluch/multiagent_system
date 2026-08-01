@@ -147,10 +147,14 @@ def main() -> None:
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--no-open", action="store_true", help="only write the file, don't open a browser")
+    ap.add_argument("--from", dest="src", help="render from a backup JSON file instead of the live DB")
     ap.add_argument("-o", "--output", default=str(_OUTPUT))
     args = ap.parse_args()
 
-    pages = all_pages()
+    if args.src:
+        pages = json.loads(Path(args.src).read_text(encoding="utf-8"))
+    else:
+        pages = all_pages()
     out = Path(args.output)
     out.write_text(render_html(pages), encoding="utf-8")
     print(f"Wrote {out} ({len(pages)} pages).")

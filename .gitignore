@@ -26,4 +26,8 @@ ollama_bearer_test/
 agents_benchmark/search_sim_agent/results/
 
 # Wygenerowany podgląd bazy wiedzy (regenerowalny z DB przez interactive/kb_viewer)
-interactive/kb_view.html
+interactive/kb_view*.html
+
+# Snapshoty bazy wiedzy (kb_backup) — lokalne wersje świata, w tym potencjalnie treści
+# testowe wrzucane ręcznie; NIE do repo.
+data/kb/
