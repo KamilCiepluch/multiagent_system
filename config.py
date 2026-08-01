@@ -12,7 +12,7 @@ class Settings(BaseSettings):
 
     # Model systemu docelowego (agenci/supervisor) — lokalny stack Ollama.
     ollama_base_url: str = "http://localhost:11434"
-    ollama_model: str = "gpt-oss:20b"
+    ollama_model: str = "qwen3.6:35b"
     # Bearer do zdalnego proxy Ollamy (np. cudzy serwer za HTTPS). None → brak nagłówka (lokalny stack).
     # Sekret trzymamy w .env (gitignore), nie w kodzie.
     ollama_bearer_token: str | None = None
@@ -52,6 +52,8 @@ class Settings(BaseSettings):
     display_tz: str = "Europe/Warsaw"
     # Osobna baza obserwowalności pętli hyperagent_email (niezależna od agent_logs/agent_audit).
     hyperagent_logs_name: str = "hyperagent_logs"
+    # Osobna baza symulująca "internet" (świat wiedzy dla search_sim_agent): kategorie→tematy→treść.
+    fake_internet_db_name: str = "fake_internet"
 
     @property
     def db_dsn(self) -> str:
@@ -90,6 +92,13 @@ class Settings(BaseSettings):
         return (
             f"postgresql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.hyperagent_logs_name}"
+        )
+
+    @property
+    def fake_internet_db_dsn(self) -> str:
+        return (
+            f"postgresql://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.fake_internet_db_name}"
         )
 
 

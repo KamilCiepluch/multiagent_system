@@ -21,3 +21,6 @@ trace*.txt
 
 # Samodzielny stand do testów zdalnego proxy Ollamy (Bearer) — niezależny od repo, może mieć sekrety
 ollama_bearer_test/
+
+# Wyniki przebiegów benchmarku search_sim_agent (per-run logi/trace) — artefakty, nie do repo
+agents_benchmark/search_sim_agent/results/
