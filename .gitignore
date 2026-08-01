@@ -31,3 +31,6 @@ interactive/kb_view*.html
 # Snapshoty bazy wiedzy (kb_backup) — lokalne wersje świata, w tym potencjalnie treści
 # testowe wrzucane ręcznie; NIE do repo.
 data/kb/
+
+# Transkrypty przebiegów red-team na mini-systemie (mogą zawierać treści testowe) — nie do repo.
+redteam/results/
