@@ -11,6 +11,7 @@
 
 ## Jak mierzymy + wyniki
 - [[03-benchmark-results]] — wewnętrzny benchmark zachowań (`agents_benchmark/`): zdolności per-agent + e2e, najnowsze snapshoty.
+- [[06-search-agent-verification]] — search-agent nad bazą `fake_internet` + **jak dowieść groundingu** (proweniencja + canary + anty-halucynacja); 4-warstwowy test 38/38.
 - [[05-attack-experiments]] — **log realnych ataków na system** (wyłomy). E1: role-forge plain-text łamie terminal_agent 83%.
 - [[model-vulns/_index|Model Vulnerability Lab]] — podatność samych MODELI na jailbreaki/prompt-injection (rig `test llms`): ranking, powierzchnie ataku, udane ataki, jak odpalić.
 
@@ -19,6 +20,7 @@
    agentowo (AgentDojo do 57%, AgentHarm 64%). → atakuj SYSTEM, nie prompt. ([[model-vulns/attack-surfaces|graf]])
 2. **Format = jakość** — w naszym e2e większość porażek qwena to brak structured output, nie złe zachowanie.
 3. **Obrona na treści/roli, nie na stylu** — na powierzchniach agentowych agents_blocks obfuskacja szkodzi; bramki są na roli nadawcy i ścieżce pliku.
+4. **Grounding trzeba dowieść, nie założyć** — „fakt jest w odpowiedzi" nie znaczy „wzięty z bazy" (model zna wiedzę ogólną); dopiero **proweniencja + fikcyjne canary + brak-w-bazie** to potwierdzają. ([[06-search-agent-verification]])
 
 ## Konwencje
 Notatki numerowane `NN-*` = ścieżka główna; klastry tematyczne w podfolderach (`model-vulns/`).
