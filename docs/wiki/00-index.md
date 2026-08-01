@@ -12,6 +12,7 @@
 ## Jak mierzymy + wyniki
 - [[03-benchmark-results]] — wewnętrzny benchmark zachowań (`agents_benchmark/`): zdolności per-agent + e2e, najnowsze snapshoty.
 - [[06-search-agent-verification]] — search-agent nad bazą `fake_internet` + **jak dowieść groundingu** (proweniencja + canary + anty-halucynacja); 4-warstwowy test 38/38.
+- [[07-research-agent-toolkit]] — **how-to**: wszystkie komendy (świat, search-agent, mini-system czatu, viewer, backup/wersje, canary, generatory, benchmark).
 - [[05-attack-experiments]] — **log realnych ataków na system** (wyłomy). E1: role-forge plain-text łamie terminal_agent 83%.
 - [[model-vulns/_index|Model Vulnerability Lab]] — podatność samych MODELI na jailbreaki/prompt-injection (rig `test llms`): ranking, powierzchnie ataku, udane ataki, jak odpalić.
 
