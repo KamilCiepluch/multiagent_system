@@ -24,3 +24,6 @@ ollama_bearer_test/
 
 # Wyniki przebiegów benchmarku search_sim_agent (per-run logi/trace) — artefakty, nie do repo
 agents_benchmark/search_sim_agent/results/
+
+# Wygenerowany podgląd bazy wiedzy (regenerowalny z DB przez interactive/kb_viewer)
+interactive/kb_view.html

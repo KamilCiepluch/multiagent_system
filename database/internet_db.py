@@ -98,6 +98,16 @@ def search(query: str, *, category: str | None = None, limit: int = 5) -> list[P
     return [Page(i, c, t, ti, co) for (i, c, t, ti, co, s) in rows if s > 0]
 
 
+def all_pages() -> list[dict]:
+    """Every page as a dict (id, category, topic, title, content, is_sensitive) — for the KB viewer."""
+    cols = ("id", "category", "topic", "title", "content", "is_sensitive")
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.execute(
+            "SELECT id, category, topic, title, content, is_sensitive FROM pages ORDER BY category, topic"
+        )
+        return [dict(zip(cols, r)) for r in cur.fetchall()]
+
+
 def get_page(page_id: int) -> Page | None:
     with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT id, category, topic, title, content FROM pages WHERE id = %s", (page_id,))
