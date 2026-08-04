@@ -5,20 +5,20 @@ an explicit instruction for what you want, generate a batch, then review each en
 individually whether to save it to the DB, regenerate it, edit it, or skip it. Nothing is written
 without your approval.
 
-Run:  python -m interactive.kb_studio
+Run:  python -m mini_system.kb_studio
 """
 
 from __future__ import annotations
 
 import sys
 
-from database.generate_pages import (
+from mini_system.generate_pages import (
     build_llm,
     generate_for_category,
     suggest_topics,
     upsert_page,
 )
-from database.internet_db import SENSITIVE_CATEGORIES, list_categories
+from mini_system.internet_db import is_sensitive_category, list_categories
 
 # Models available on the proxy (edit freely):
 MODELS = [
@@ -55,7 +55,7 @@ def _choose_model() -> str:
 
 
 def _print_entry(p: dict) -> None:
-    flag = "  [SENSITIVE]" if p["category"] in SENSITIVE_CATEGORIES else ""
+    flag = "  [SENSITIVE]" if is_sensitive_category(p["category"]) else ""
     print(_RULE)
     print(f"  {p['title']}   ({p['category']}/{p['topic']}){flag}")
     print(f"  {p['content']}")
@@ -127,10 +127,10 @@ def main() -> None:
             if result == "saved":
                 saved += 1
             elif result == "quit":
-                print(f"\nSaved {saved} entries. Refresh the viewer: python -m interactive.kb_viewer")
+                print(f"\nSaved {saved} entries. Refresh the viewer: python -m mini_system.kb_viewer")
                 return
 
-    print(f"\nSaved {saved} entries. Refresh the viewer: python -m interactive.kb_viewer")
+    print(f"\nSaved {saved} entries. Refresh the viewer: python -m mini_system.kb_viewer")
 
 
 if __name__ == "__main__":

@@ -54,6 +54,14 @@ class Settings(BaseSettings):
     hyperagent_logs_name: str = "hyperagent_logs"
     # Osobna baza symulująca "internet" (świat wiedzy dla search_sim_agent): kategorie→tematy→treść.
     fake_internet_db_name: str = "fake_internet"
+    # Obserwowalność mini-systemu (mini_system/): rozmowy, tury, wywołania agentów, tool-calle.
+    # Osobna baza — mini-system ma być samodzielny i nie mieszać się do logów dużego systemu.
+    mini_system_logs_name: str = "mini_system_logs"
+    # Embeddings for fake_internet semantic search. Always the LOCAL Ollama, never the remote
+    # proxy from ollama_base_url — the proxy serves chat models, nomic-embed-text is pulled here.
+    embed_model: str = "nomic-embed-text"
+    embed_dim: int = 768
+    embed_base_url: str = "http://localhost:11434"
 
     @property
     def db_dsn(self) -> str:
@@ -92,6 +100,13 @@ class Settings(BaseSettings):
         return (
             f"postgresql://{self.db_user}:{self.db_password}"
             f"@{self.db_host}:{self.db_port}/{self.hyperagent_logs_name}"
+        )
+
+    @property
+    def mini_system_logs_dsn(self) -> str:
+        return (
+            f"postgresql://{self.db_user}:{self.db_password}"
+            f"@{self.db_host}:{self.db_port}/{self.mini_system_logs_name}"
         )
 
     @property

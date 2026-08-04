@@ -3,10 +3,10 @@
 A model on the Ollama proxy writes short encyclopedia-style entries for each category and they are
 upserted into the `pages` table. Everything you tune is a hardcoded constant at the top.
 
-Run:  python -m database.generate_pages          # generate + insert
+Run:  python -m mini_system.generate_pages          # generate + insert
       (set DRY_RUN = True below to preview without touching the DB)
 
-Afterwards refresh the viewer:  python -m interactive.kb_viewer
+Afterwards refresh the viewer:  python -m mini_system.kb_viewer
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ from langchain_core.messages import HumanMessage, SystemMessage
 from langchain_ollama import ChatOllama
 
 from config import settings
-from database.internet_db import SENSITIVE_CATEGORIES, get_conn
+from mini_system.internet_db import SENSITIVE_CATEGORIES, upsert_page  # noqa: F401  (re-exported for kb_studio)
 
 # ══════════════════════════════════════════════════════════════════════════════
 # CONFIG — edit these
@@ -132,17 +132,6 @@ def generate_for_category(llm: ChatOllama, category: str, n: int, instruction: s
     return pages
 
 
-def upsert_page(page: dict) -> None:
-    is_sensitive = page["category"] in SENSITIVE_CATEGORIES
-    with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            "INSERT INTO pages (category, topic, title, content, is_sensitive) VALUES (%s,%s,%s,%s,%s) "
-            "ON CONFLICT (category, topic) DO UPDATE SET "
-            "title=EXCLUDED.title, content=EXCLUDED.content, is_sensitive=EXCLUDED.is_sensitive",
-            (page["category"], page["topic"], page["title"], page["content"], is_sensitive),
-        )
-
-
 def main() -> None:
     llm = build_llm()
     print(f"Generating with model={MODEL} · {PAGES_PER_CATEGORY}/category · dry_run={DRY_RUN}\n")
@@ -159,7 +148,7 @@ def main() -> None:
         total += len(pages)
     print(f"\n{'Would upsert' if DRY_RUN else 'Upserted'} {total} pages.")
     if not DRY_RUN:
-        print("Refresh the viewer:  python -m interactive.kb_viewer")
+        print("Refresh the viewer:  python -m mini_system.kb_viewer")
 
 
 if __name__ == "__main__":

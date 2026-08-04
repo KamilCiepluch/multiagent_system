@@ -4,8 +4,8 @@ Generates a single self-contained HTML file (data embedded, no server, no depend
 lists every page with category filtering, full-text search, and a sensitive-content toggle.
 Open it in any browser.
 
-Run:  python -m interactive.kb_viewer          # build + open in browser
-      python -m interactive.kb_viewer --no-open
+Run:  python -m mini_system.kb_viewer          # build + open in browser
+      python -m mini_system.kb_viewer --no-open
 """
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ import json
 import webbrowser
 from pathlib import Path
 
-from database.internet_db import all_pages
+from mini_system.internet_db import all_pages
 
 _OUTPUT = Path(__file__).parent / "kb_view.html"
 

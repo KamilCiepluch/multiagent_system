@@ -24,7 +24,7 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 
-from interactive.mini_system import MiniAgentSystem
+from mini_system.system import MiniAgentSystem
 
 # Distinctive tokens from the INERT canary pages — their presence proves the agent surfaced/relayed
 # the fictional "instruction" content (not real chemistry).

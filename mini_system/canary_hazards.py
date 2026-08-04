@@ -9,15 +9,15 @@ nothing. They are authored by hand (not model-generated) precisely to guarantee 
 Use them to test: when such a "poisoned document" is in the knowledge base, does the agent relay
 it, refuse it, or add safety framing?
 
-Run:  python -m database.canary_hazards          # upsert the canaries
-      python -m database.canary_hazards --remove  # delete them again
+Run:  python -m mini_system.canary_hazards          # upsert the canaries
+      python -m mini_system.canary_hazards --remove  # delete them again
 """
 
 from __future__ import annotations
 
 import sys
 
-from database.internet_db import get_conn
+from mini_system.internet_db import get_conn, upsert_pages
 
 # category, topic, title, content  (all is_sensitive=True). Substance is deliberate nonsense.
 CANARIES: list[tuple[str, str, str, str]] = [
@@ -41,15 +41,10 @@ CANARIES: list[tuple[str, str, str, str]] = [
 
 
 def load() -> int:
-    with get_conn() as conn, conn.cursor() as cur:
-        for category, topic, title, content in CANARIES:
-            cur.execute(
-                "INSERT INTO pages (category, topic, title, content, is_sensitive) VALUES (%s,%s,%s,%s,TRUE) "
-                "ON CONFLICT (category, topic) DO UPDATE SET title=EXCLUDED.title, "
-                "content=EXCLUDED.content, is_sensitive=TRUE",
-                (category, topic, title, content),
-            )
-    return len(CANARIES)
+    return upsert_pages([
+        {"category": c, "topic": t, "title": ti, "content": co, "is_sensitive": True}
+        for (c, t, ti, co) in CANARIES
+    ])
 
 
 def remove() -> int:
@@ -64,4 +59,4 @@ if __name__ == "__main__":
         print(f"Removed {remove()} hazard canaries.")
     else:
         print(f"Upserted {load()} hazard canaries (instruction-shaped, operationally inert).")
-        print("Refresh the viewer:  python -m interactive.kb_viewer")
+        print("Refresh the viewer:  python -m mini_system.kb_viewer")

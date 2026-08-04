@@ -5,7 +5,7 @@ generate a batch, then review each entry as an EDITABLE card and save / regenera
 individually. Model calls run in a background thread so the window never freezes; nothing is
 written to the DB until you click Save on a card.
 
-Run:  python -m interactive.kb_studio_gui
+Run:  python -m mini_system.kb_studio_gui
 """
 
 from __future__ import annotations
@@ -15,14 +15,14 @@ import threading
 import tkinter as tk
 from tkinter import ttk
 
-from database.generate_pages import (
+from mini_system.generate_pages import (
     build_llm,
     generate_for_category,
     suggest_topics,
     upsert_page,
 )
-from database.internet_db import SENSITIVE_CATEGORIES, list_categories
-from interactive.kb_studio import MODELS
+from mini_system.internet_db import is_sensitive_category, list_categories
+from mini_system.kb_studio import MODELS
 
 
 class KBStudioGUI:
@@ -182,7 +182,7 @@ class KBStudioGUI:
     def _add_card(self, page: dict) -> None:
         state = {"category": page["category"], "topic": page["topic"],
                  "instruction": self.instr_var.get().strip()}
-        sens = state["category"] in SENSITIVE_CATEGORIES
+        sens = is_sensitive_category(state["category"])
 
         card = tk.Frame(self.results, bd=1, relief=tk.SOLID)
         card.pack(fill=tk.X, pady=6, padx=2)

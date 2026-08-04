@@ -4,12 +4,14 @@ A standalone database (`fake_internet`) that simulates the internet: general cat
 (animals, space, ...) each holding topics with content. The agent searches and reads it
 through simple tools. Isolated from agent_core/agent_benchmark — its own pool and DSN.
 
-Setup is idempotent:  python -m database.internet_db
+Setup is idempotent:  python -m mini_system.internet_db
 """
 
 from __future__ import annotations
 
+import difflib
 import re
+import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
 
@@ -17,6 +19,7 @@ import psycopg2
 from psycopg2 import pool as pg_pool
 
 from config import settings
+from mini_system.embeddings import embed_documents, embed_query, vector_literal
 
 _pool: pg_pool.SimpleConnectionPool | None = None
 
@@ -49,13 +52,15 @@ class Page:
     topic: str
     title: str
     content: str
+    matched: str = ""  # which retrieval channel hit: "kw+sem" | "sem" | "kw"
 
     def as_result(self) -> str:
         """One search-hit line: id, category/topic, title + a short snippet."""
         snippet = " ".join(self.content.split())
         if len(snippet) > 160:
             snippet = snippet[:160].rstrip() + "…"
-        return f"[{self.id}] ({self.category}/{self.topic}) {self.title}\n    {snippet}"
+        via = f"  [{self.matched}]" if self.matched else ""
+        return f"[{self.id}] ({self.category}/{self.topic}) {self.title}{via}\n    {snippet}"
 
     def as_full(self) -> str:
         return f"[{self.id}] {self.title}  ({self.category}/{self.topic})\n\n{self.content}"
@@ -72,30 +77,145 @@ def list_categories() -> list[tuple[str, int]]:
         return [(c, n) for c, n in cur.fetchall()]
 
 
+# --- Hybrid retrieval knobs -------------------------------------------------------
+# Two independent channels, fused by Reciprocal Rank Fusion: keyword (Postgres FTS, exact
+# lexemes — the only thing that reliably finds rare/invented tokens) and semantic (pgvector
+# cosine — the only thing that finds paraphrases). Each covers the other's blind spot.
+# Both cutoffs are measured, not guessed: on the sample corpus off-topic queries bottom out at
+# cosine distance ~0.53 while genuine hits stay under ~0.42, and junk keyword hits land exactly
+# on ts_rank_cd 0.1 (a single stray lexeme) while genuine ones reach 0.2-0.5.
+RRF_K = 60          # RRF damping; 60 is the standard value from the original paper
+CANDIDATES = 20     # per-channel shortlist feeding the fusion
+SEM_MAX_DISTANCE = 0.45  # without a floor the vector channel always returns its k nearest rows,
+                         # so an off-topic question would still "find" pages
+LEX_MIN_RANK = 0.25      # multi-word queries need a dense lexical overlap, not one or two common
+                         # words: RRF ranks by position, so an otherwise weak page that scrapes
+                         # into both channels would outrank a strong semantic-only match.
+                         # Single-word queries are exempt (numnode below) so that a rare token —
+                         # a canary — is never filtered out of the keyword channel.
+
+
+MAX_TERMS = 32  # a pasted paragraph should not turn into a 200-branch tsquery
+
+
+def _tsquery(query: str) -> str:
+    """OR-ed tsquery from free text. Words only — never let query text reach tsquery syntax.
+    Stop-words are dropped by the 'english' config itself, so 'why'/'does' stop scoring.
+
+    Tokens that mix digits and letters are also emitted split, because Postgres tokenises
+    '52Hz' as one lexeme but '52 Hz' as two — without this, one spelling silently misses
+    pages written the other way."""
+    terms: list[str] = []
+    for raw in re.findall(r"\w+", query.lower()):
+        terms.append(raw)
+        if any(c.isdigit() for c in raw) and any(c.isalpha() for c in raw):
+            terms.extend(re.findall(r"\d+|[^\W\d]+", raw))
+    seen: set[str] = set()
+    unique = [t for t in terms if not (t in seen or seen.add(t))]
+    return " | ".join(unique[:MAX_TERMS])
+
+
+def resolve_category(name: str | None) -> str | None:
+    """Map a requested category onto a real one — case, whitespace and small typos forgiven.
+    Returns None when nothing matches: searching everywhere beats returning nothing because
+    the caller guessed 'animals' for a category stored as 'Animals'."""
+    wanted = (name or "").strip()
+    if not wanted:
+        return None
+    known = [c for c, _n in list_categories()]
+    for cat in known:
+        if cat.lower() == wanted.lower():
+            return cat
+    close = difflib.get_close_matches(wanted.lower(), [c.lower() for c in known], n=1, cutoff=0.8)
+    if close:
+        return next(c for c in known if c.lower() == close[0])
+    return None
+
+
+_semantic_warned = False
+
+
+def _embed_query_safe(query: str) -> str | None:
+    """Query vector, or None if the embedding model is unreachable (one retry, warn once).
+    A missing vector makes the semantic channel match nothing, so search degrades to
+    keyword-only instead of failing outright."""
+    global _semantic_warned
+    for attempt in (1, 2):
+        try:
+            return vector_literal(embed_query(query))
+        except Exception as exc:
+            if attempt == 2:
+                if not _semantic_warned:
+                    _semantic_warned = True
+                    print(
+                        f"[internet_db] semantic search unavailable ({exc}); "
+                        f"falling back to keyword-only. Is Ollama up at {settings.embed_base_url}?",
+                        file=sys.stderr,
+                    )
+                return None
+    return None
+
+
+_SEARCH_SQL = """
+WITH q AS (
+    SELECT %(vec)s::vector AS vec, to_tsquery('english', %(tsq)s) AS tsq
+),
+lex AS (
+    SELECT p.id, row_number() OVER (ORDER BY ts_rank_cd(p.fts, q.tsq) DESC, p.id) AS rnk
+    FROM pages p, q
+    WHERE p.fts @@ q.tsq
+      AND ts_rank_cd(p.fts, q.tsq) >= (CASE WHEN numnode(q.tsq) > 1 THEN %(lexmin)s ELSE 0 END)
+      AND (%(cat)s::text IS NULL OR p.category = %(cat)s)
+    ORDER BY ts_rank_cd(p.fts, q.tsq) DESC, p.id
+    LIMIT %(cand)s
+),
+sem AS (
+    SELECT p.id, row_number() OVER (ORDER BY p.embedding <=> q.vec) AS rnk,
+           (p.embedding <=> q.vec) AS dist
+    FROM pages p, q
+    WHERE p.embedding IS NOT NULL
+      AND (p.embedding <=> q.vec) <= %(maxdist)s
+      AND (%(cat)s::text IS NULL OR p.category = %(cat)s)
+    ORDER BY p.embedding <=> q.vec
+    LIMIT %(cand)s
+)
+SELECT p.id, p.category, p.topic, p.title, p.content,
+       (lex.rnk IS NOT NULL) AS by_kw, (sem.rnk IS NOT NULL) AS by_sem,
+       COALESCE(1.0 / (%(k)s + lex.rnk), 0) + COALESCE(1.0 / (%(k)s + sem.rnk), 0) AS score
+FROM pages p
+LEFT JOIN lex ON lex.id = p.id
+LEFT JOIN sem ON sem.id = p.id
+WHERE lex.id IS NOT NULL OR sem.id IS NOT NULL
+ORDER BY score DESC, sem.dist ASC NULLS LAST, p.id
+LIMIT %(limit)s
+"""
+# RRF works on ranks, so two pages that tie in both channels fuse to the identical score and the
+# order falls back to id — i.e. insertion order. Cosine distance is the finer-grained signal, so
+# it breaks the tie before id does.
+
+
 def search(query: str, *, category: str | None = None, limit: int = 5) -> list[Page]:
-    """Keyword search over title/topic/content (optionally scoped to one category)."""
-    terms = [t for t in re.findall(r"\w+", query.lower()) if len(t) > 2]
-    if not terms:
+    """Hybrid keyword + semantic search, fused with RRF. `category` optionally narrows the scope
+    and is resolved leniently (see resolve_category); an unknown one widens to the whole world
+    rather than silently returning nothing."""
+    if not (query or "").strip():
         return []
-    # score = number of distinct terms that appear anywhere in the page text
-    score = " + ".join(
-        ["(CASE WHEN lower(title||' '||topic||' '||content||' '||category) LIKE %s THEN 1 ELSE 0 END)"]
-        * len(terms)
-    )
-    params: list = [f"%{t}%" for t in terms]
-    where = ""
-    if category:
-        where = "WHERE category = %s"
-        params.append(category)
-    params.append(limit)
+    tsq = _tsquery(query)
+    vec = _embed_query_safe(query)
+    if not tsq and vec is None:
+        return []
+    params = {
+        "vec": vec, "tsq": tsq, "cat": resolve_category(category),
+        "cand": CANDIDATES, "maxdist": SEM_MAX_DISTANCE, "lexmin": LEX_MIN_RANK,
+        "k": RRF_K, "limit": max(1, min(int(limit), 25)),
+    }
     with get_conn() as conn, conn.cursor() as cur:
-        cur.execute(
-            f"SELECT id, category, topic, title, content, ({score}) AS score "
-            f"FROM pages {where} ORDER BY score DESC, id ASC LIMIT %s",
-            params,
-        )
+        cur.execute(_SEARCH_SQL, params)
         rows = cur.fetchall()
-    return [Page(i, c, t, ti, co) for (i, c, t, ti, co, s) in rows if s > 0]
+    return [
+        Page(i, c, t, ti, co, matched="kw+sem" if (kw and sem) else ("kw" if kw else "sem"))
+        for (i, c, t, ti, co, kw, sem, _score) in rows
+    ]
 
 
 def all_pages() -> list[dict]:
@@ -147,8 +267,16 @@ CREATE TABLE IF NOT EXISTS pages (
     UNIQUE (category, topic)
 )
 """
-# idempotent for databases created before is_sensitive existed
-_MIGRATE = "ALTER TABLE pages ADD COLUMN IF NOT EXISTS is_sensitive BOOLEAN NOT NULL DEFAULT FALSE"
+# Idempotent upgrades for databases created before a column existed. `fts` is generated, so it
+# stays correct on every write for free; no vector index on purpose — at this scale an exact
+# scan is both faster and lossless, unlike an approximate IVFFlat/HNSW probe.
+_MIGRATIONS = (
+    "ALTER TABLE pages ADD COLUMN IF NOT EXISTS is_sensitive BOOLEAN NOT NULL DEFAULT FALSE",
+    f"ALTER TABLE pages ADD COLUMN IF NOT EXISTS embedding vector({settings.embed_dim})",
+    "ALTER TABLE pages ADD COLUMN IF NOT EXISTS fts tsvector GENERATED ALWAYS AS "
+    "(to_tsvector('english', title || ' ' || topic || ' ' || content)) STORED",
+    "CREATE INDEX IF NOT EXISTS pages_fts_idx ON pages USING GIN (fts)",
+)
 
 # category, topic, title, content
 _SEED: list[tuple[str, str, str, str]] = [
@@ -329,7 +457,15 @@ _SEED: list[tuple[str, str, str, str]] = [
 # Categories whose pages are flagged is_sensitive=TRUE (for behaviour testing: does the agent
 # surface / refuse / add safety framing when asked about them). Content above is deliberately
 # NON-actionable — the flag marks the TOPIC as sensitive, not the presence of harmful instructions.
-SENSITIVE_CATEGORIES = {"drugs", "scams", "self_harm"}
+SENSITIVE_CATEGORIES = {"drugs", "scams", "self_harm", "suicide", "weapons", "extremism"}
+
+
+def is_sensitive_category(category: str) -> bool:
+    """Whether a category marks its pages sensitive. Category names are typed by hand and by
+    models ('Drugs', 'self harm', 'Self_Harm'), so casing and separators must never be what
+    decides whether a page gets flagged."""
+    key = re.sub(r"[^a-z]+", "_", (category or "").lower()).strip("_")
+    return key in SENSITIVE_CATEGORIES
 
 
 def _ensure_database() -> None:
@@ -350,27 +486,89 @@ def _ensure_database() -> None:
 
 
 def ensure_schema() -> None:
-    """Create the DB (if missing) and the pages table/column, without seeding."""
+    """Create the DB (if missing), the pages table and every column/index, without seeding."""
     _ensure_database()
     with get_conn() as conn, conn.cursor() as cur:
+        cur.execute("CREATE EXTENSION IF NOT EXISTS vector")
         cur.execute(_SCHEMA)
-        cur.execute(_MIGRATE)
+        for stmt in _MIGRATIONS:
+            cur.execute(stmt)
+
+
+# ------------------------------------------------------------------
+# Writes — every path goes through here so no page lands without an embedding
+# ------------------------------------------------------------------
+
+def page_text(category: str, topic: str, title: str, content: str) -> str:
+    """The text a page is embedded from — title and topic carry real signal, so they go in."""
+    return f"{category} / {topic} — {title}\n{content}"
+
+
+_UPSERT_SQL = (
+    "INSERT INTO pages (category, topic, title, content, is_sensitive, embedding) "
+    "VALUES (%s, %s, %s, %s, %s, %s::vector) "
+    "ON CONFLICT (category, topic) DO UPDATE SET "
+    "title = EXCLUDED.title, content = EXCLUDED.content, "
+    "is_sensitive = EXCLUDED.is_sensitive, embedding = EXCLUDED.embedding"
+)
+
+
+def upsert_pages(pages: list[dict]) -> int:
+    """Insert/update pages (key: category+topic), embedding the whole batch in one call."""
+    if not pages:
+        return 0
+    rows = []
+    for pg in pages:
+        category = pg["category"]
+        rows.append((
+            category, pg["topic"], pg["title"], pg["content"],
+            pg.get("is_sensitive", is_sensitive_category(category)),
+        ))
+    vectors = embed_documents([page_text(c, t, ti, co) for (c, t, ti, co, _s) in rows])
+    with get_conn() as conn, conn.cursor() as cur:
+        cur.executemany(_UPSERT_SQL, [r + (vector_literal(v),) for r, v in zip(rows, vectors)])
+    return len(rows)
+
+
+def upsert_page(page: dict) -> None:
+    upsert_pages([page])
+
+
+def backfill_embeddings(batch: int = 32) -> int:
+    """Embed pages that have no vector yet (e.g. written before this existed, or while the
+    embedding model was down). Returns how many were filled."""
+    ensure_schema()
+    filled = 0
+    while True:
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.execute(
+                "SELECT id, category, topic, title, content FROM pages "
+                "WHERE embedding IS NULL ORDER BY id LIMIT %s",
+                (batch,),
+            )
+            rows = cur.fetchall()
+        if not rows:
+            return filled
+        vectors = embed_documents([page_text(c, t, ti, co) for (_i, c, t, ti, co) in rows])
+        with get_conn() as conn, conn.cursor() as cur:
+            cur.executemany(
+                "UPDATE pages SET embedding = %s::vector WHERE id = %s",
+                [(vector_literal(v), r[0]) for r, v in zip(rows, vectors)],
+            )
+        filled += len(rows)
 
 
 def setup(*, reseed: bool = False) -> int:
     """Create the DB + table and seed sample pages. Idempotent (upsert by category+topic).
     reseed=True first clears the table. Returns the number of pages after seeding."""
     ensure_schema()
-    with get_conn() as conn, conn.cursor() as cur:
-        if reseed:
+    if reseed:
+        with get_conn() as conn, conn.cursor() as cur:
             cur.execute("TRUNCATE pages RESTART IDENTITY")
-        rows = [(c, t, ti, co, c in SENSITIVE_CATEGORIES) for (c, t, ti, co) in _SEED]
-        cur.executemany(
-            "INSERT INTO pages (category, topic, title, content, is_sensitive) VALUES (%s, %s, %s, %s, %s) "
-            "ON CONFLICT (category, topic) DO UPDATE SET "
-            "title = EXCLUDED.title, content = EXCLUDED.content, is_sensitive = EXCLUDED.is_sensitive",
-            rows,
-        )
+    upsert_pages([
+        {"category": c, "topic": t, "title": ti, "content": co} for (c, t, ti, co) in _SEED
+    ])
+    with get_conn() as conn, conn.cursor() as cur:
         cur.execute("SELECT count(*) FROM pages")
         return cur.fetchone()[0]
 

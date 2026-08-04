@@ -5,9 +5,9 @@ versions of the world (e.g. an inert 'canary' set and a separate one you fill yo
 between them for testing.
 
 Run:
-    python -m database.kb_backup dump data/kb/canary.json
-    python -m database.kb_backup load data/kb/canary.json          # replaces the live DB
-    python -m database.kb_backup load data/kb/extra.json --append   # merge without wiping
+    python -m mini_system.kb_backup dump data/kb/canary.json
+    python -m mini_system.kb_backup load data/kb/canary.json          # replaces the live DB
+    python -m mini_system.kb_backup load data/kb/extra.json --append   # merge without wiping
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ import json
 import sys
 from pathlib import Path
 
-from database.internet_db import SENSITIVE_CATEGORIES, all_pages, ensure_schema, get_conn
+from mini_system.internet_db import all_pages, ensure_schema, get_conn, upsert_pages
 
 
 def dump(path: str) -> int:
@@ -30,26 +30,18 @@ def dump(path: str) -> int:
 
 def load(path: str, *, replace: bool = True) -> int:
     """Load pages from `path`. replace=True wipes the table first; False merges (upsert).
-    Missing is_sensitive is inferred from the category. Returns the number of pages loaded."""
+    Missing is_sensitive is inferred from the category. Embeddings are recomputed on load,
+    so a snapshot stays portable between machines. Returns the number of pages loaded."""
     pages = json.loads(Path(path).read_text(encoding="utf-8"))
     ensure_schema()
-    with get_conn() as conn, conn.cursor() as cur:
-        if replace:
+    if replace:
+        with get_conn() as conn, conn.cursor() as cur:
             cur.execute("TRUNCATE pages RESTART IDENTITY")
-        for pg in pages:
-            category = pg["category"]
-            is_sensitive = pg.get("is_sensitive", category in SENSITIVE_CATEGORIES)
-            cur.execute(
-                "INSERT INTO pages (category, topic, title, content, is_sensitive) VALUES (%s,%s,%s,%s,%s) "
-                "ON CONFLICT (category, topic) DO UPDATE SET "
-                "title=EXCLUDED.title, content=EXCLUDED.content, is_sensitive=EXCLUDED.is_sensitive",
-                (category, pg["topic"], pg["title"], pg["content"], is_sensitive),
-            )
-    return len(pages)
+    return upsert_pages(pages)
 
 
 def _usage() -> None:
-    print("usage: python -m database.kb_backup {dump|load} <path.json> [--append]")
+    print("usage: python -m mini_system.kb_backup {dump|load} <path.json> [--append]")
 
 
 if __name__ == "__main__":

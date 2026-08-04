@@ -26,7 +26,7 @@ from pathlib import Path
 import psycopg2
 
 from agents.base_agent import _extract_tool_calls, run_graph_collecting
-from agents.search_sim_agent import SearchSimAgent, build_search_sim_agent
+from mini_system.search_agent import SearchSimAgent, build_search_sim_agent
 from agents_benchmark.search_sim_agent.cases import ALL, Case
 from config import settings
 

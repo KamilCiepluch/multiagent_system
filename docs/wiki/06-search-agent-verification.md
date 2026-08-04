@@ -9,7 +9,7 @@
 
 - **`fake_internet`** — OSOBNA baza Postgres symulująca internet: `pages(category, topic, title, content)`,
   33 strony / 11 kategorii (animals, space, technology, history, plants, human_body, weather, music,
-  geography, mythology + `curiosities`=canary). Idempotentny seed: `python -m database.internet_db`.
+  geography, mythology + `curiosities`=canary). Idempotentny seed: `python -m mini_system.internet_db`.
 - **`SearchSimAgent(BaseAgent)`** — konstruowany jak inni agenci (`SearchSimAgent(llm, all_mcp_tools)`),
   wpina się w pipeline przez odziedziczone `run(task)`, wspiera skille (skill-gate). Cztery proste toole
   DB: `list_categories`, `classify_content` (deterministyczny routing po kategorii), `search_internet`,
@@ -56,10 +56,10 @@ tool-calli z I/O + finalna odpowiedź + powody pass/fail) do `results/<ts>/{trac
 ## Jak odpalić
 
 ```
-python -m database.internet_db                                   # seed świata (idempotentny)
+python -m mini_system.internet_db                                   # seed świata (idempotentny)
 python -m agents_benchmark.search_sim_agent.run                 # pełny benchmark (4 warstwy)
 python -m agents_benchmark.search_sim_agent.run --layer grounding   # sam decydujący test
-python -m agents.search_sim_agent "why does mars look red?"     # pojedyncze pytanie
+python -m mini_system.search_agent "why does mars look red?"     # pojedyncze pytanie
 ```
 
 ## Zastrzeżenia / dalej
