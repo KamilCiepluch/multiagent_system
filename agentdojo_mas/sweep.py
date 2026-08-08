@@ -62,6 +62,31 @@ def run_one(pipeline, attack_name: str, ut: str, it: str, logdir: Path) -> bool:
     return bool(next(iter(res["security_results"].values())))
 
 
+def aggregate(rows: list[dict]) -> dict:
+    """Symmetric single-vs-MAS aggregation per bucket. Neutral: reports both directions.
+    contained = of pairs single-agent falls for, fraction the MAS blocks.
+    amplified = of pairs single-agent resists, fraction the MAS newly falls for (MAS as new risk)."""
+    out: dict[str, dict] = {}
+    buckets = defaultdict(list)
+    for r in rows:
+        buckets[r["bucket"]].append(r)
+    for bucket, rs in buckets.items():
+        single = sum(int(r["single_asr"]) for r in rs)
+        mas = sum(int(r["mas_asr"]) for r in rs)
+        single_hits = [r for r in rs if r["single_asr"]]
+        single_misses = [r for r in rs if not r["single_asr"]]
+        contained = sum(1 for r in single_hits if not r["mas_asr"])
+        amplified = sum(1 for r in single_misses if r["mas_asr"])
+        out[bucket] = {
+            "n": len(rs), "single": single, "mas": mas,
+            "single_hits": len(single_hits), "single_misses": len(single_misses),
+            "contained": contained, "amplified": amplified,
+            "contained_pct": (contained / len(single_hits)) if single_hits else None,
+            "amplified_pct": (amplified / len(single_misses)) if single_misses else None,
+        }
+    return out
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--model-id", required=True)
@@ -85,31 +110,22 @@ def main() -> None:
                      "single_asr": s, "mas_asr": m})
         print(f"[{bucket:11s}] {ut} x {it}: single={'HIT' if s else 'miss'}  mas={'HIT' if m else 'miss'}")
 
-    # aggregate
-    agg = defaultdict(lambda: {"n": 0, "single": 0, "mas": 0, "single_hits": 0, "mas_given_single": 0})
-    for r in rows:
-        a = agg[r["bucket"]]
-        a["n"] += 1
-        a["single"] += r["single_asr"]
-        a["mas"] += r["mas_asr"]
-        if r["single_asr"]:
-            a["single_hits"] += 1
-            a["mas_given_single"] += r["mas_asr"]
-
-    print("\n==== AGGREGATE (ASR = injection succeeded on state) ====")
+    agg = aggregate(rows)
+    print("\n==== AGGREGATE (ASR = injection succeeded on state; neutral: MAS may be worse) ====")
     print(f"model={args.model_id} attack={args.attack}")
     for bucket in ("same_role", "cross_agent"):
-        a = agg[bucket]
-        if not a["n"]:
+        a = agg.get(bucket)
+        if not a:
             continue
-        contain = (1 - a["mas_given_single"] / a["single_hits"]) if a["single_hits"] else float("nan")
+        contain = f"{a['contained_pct']:.0%}" if a["single_hits"] else "n/a"
+        amp = f"{a['amplified_pct']:.0%}" if a["single_misses"] else "n/a"
         print(f"  {bucket:11s} n={a['n']}  single_ASR={a['single']}/{a['n']}  mas_ASR={a['mas']}/{a['n']}"
-              f"  | among single-hits({a['single_hits']}): MAS_contained={contain:.0%}" if a["single_hits"]
-              else f"  {bucket:11s} n={a['n']}  single_ASR={a['single']}/{a['n']}  mas_ASR={a['mas']}/{a['n']}  | no single-hits")
+              f"  delta={a['mas'] - a['single']:+d}  | contained={contain} (of {a['single_hits']} single-hits)"
+              f'  amplified={amp} (of {a["single_misses"]} single-misses)')
 
     Path(args.out).write_text(json.dumps(
-        {"model": args.model_id, "attack": args.attack, "rows": rows,
-         "aggregate": {k: dict(v) for k, v in agg.items()}}, indent=2), encoding="utf-8")
+        {"model": args.model_id, "attack": args.attack, "rows": rows, "aggregate": agg}, indent=2),
+        encoding="utf-8")
     print(f"\nsaved -> {args.out}")
 
 
