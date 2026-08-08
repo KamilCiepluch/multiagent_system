@@ -82,10 +82,13 @@ def _tools_called(messages: Sequence[ChatMessage]) -> list[str]:
 class MASPipeline(BasePipelineElement):
     """Supervisor + role sub-agents as one pipeline element over a shared environment."""
 
-    def __init__(self, llm: BasePipelineElement, max_delegation_iters: int = 10) -> None:
+    def __init__(self, llm: BasePipelineElement, max_delegation_iters: int = 10,
+                 name_hint: str = "openai-compatible") -> None:
         self.llm = llm
         self.max_delegation_iters = max_delegation_iters
-        self.name = "mas_supervisor"
+        # name must contain a MODEL_NAMES key (e.g. the provider) so attacks that address the target
+        # model by name (important_instructions) can resolve it from pipeline.name.
+        self.name = f"mas_supervisor ({name_hint})"
         self._supervisor_runtime = FunctionsRuntime(
             [make_function(f) for f in (delegate_to_email_agent, delegate_to_calendar_agent, delegate_to_drive_agent)]
         )
@@ -160,5 +163,5 @@ class MASPipeline(BasePipelineElement):
         return query, runtime, env, msgs, extra_args
 
 
-def build_mas_pipeline(llm: BasePipelineElement) -> MASPipeline:
-    return MASPipeline(llm)
+def build_mas_pipeline(llm: BasePipelineElement, name_hint: str = "openai-compatible") -> MASPipeline:
+    return MASPipeline(llm, name_hint=name_hint)
