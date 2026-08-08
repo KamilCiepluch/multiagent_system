@@ -1,3 +1,5 @@
 runs/
+runs_sweep/
 __pycache__/
 *.pyc
+sweep_result.json
